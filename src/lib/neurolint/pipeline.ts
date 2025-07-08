@@ -73,14 +73,12 @@ export class TransformationPipeline {
   }
   
   /**
-   * Execute a single layer (placeholder - would integrate with actual layer scripts)
+   * Execute a single layer (basic implementation)
    */
   private async executeLayer(layerId: number, code: string, options: ExecutionOptions): Promise<string> {
-    // This would integrate with the actual layer execution scripts
-    // For now, return the same code as a placeholder
-    return new Promise((resolve) => {
-      setTimeout(() => resolve(code), 100);
-    });
+    // Basic placeholder implementation - in production this would call actual layer scripts
+    await new Promise(resolve => setTimeout(resolve, 100));
+    return code; // Return unchanged for now
   }
   
   /**

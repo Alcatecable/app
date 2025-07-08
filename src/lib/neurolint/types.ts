@@ -122,3 +122,31 @@ export interface RecoverySuggestion {
   description: string;
   actions: string[];
 }
+
+// Pattern definitions that were missing
+export const CORRUPTION_PATTERNS = [
+  {
+    name: 'Double function calls',
+    regex: /onClick=\{[^}]*\([^)]*\)\s*=>\s*\(\)\s*=>/g
+  },
+  {
+    name: 'Malformed event handlers',
+    regex: /onClick=\{[^}]*\)\([^)]*\)$/g
+  },
+  {
+    name: 'Invalid JSX attributes',
+    regex: /\w+=\{[^}]*\)[^}]*\}/g
+  },
+  {
+    name: 'Broken import statements',
+    regex: /import\s*{\s*\n\s*import\s*{/g
+  }
+];
+
+export const ENTITY_PATTERNS = [
+  { pattern: /&quot;/g, name: 'HTML quote entities' },
+  { pattern: /&amp;/g, name: 'HTML ampersand entities' },
+  { pattern: /&lt;|&gt;/g, name: 'HTML bracket entities' },
+  { pattern: /console\.log\(/g, name: 'Console.log usage' },
+  { pattern: /\bvar\s+/g, name: 'Var declarations' }
+];
