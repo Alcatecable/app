@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect, useRef } from "react";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import {
   Card,
@@ -26,6 +26,18 @@ import {
   Clock,
   CheckCircle,
   AlertTriangle,
+  Download,
+  Copy,
+  Lightbulb,
+  Eye,
+  EyeOff,
+  RefreshCw,
+  X,
+  FileCode,
+  FolderOpen,
+  GitBranch,
+  Star,
+  Users,
 } from "lucide-react";
 import { NeuroLintOrchestrator, LayerExecutionResult } from "@/lib/neurolint";
 import { useAuth } from "@/contexts/AuthContext";
@@ -44,6 +56,23 @@ export default function Dashboard() {
   const [results, setResults] = useState<LayerExecutionResult | null>(null);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
 
+  // Enhanced states
+  const [isDragOver, setIsDragOver] = useState(false);
+  const [layerSuggestions, setLayerSuggestions] = useState<{
+    recommendedLayers: number[];
+    reasons: string[];
+    confidence: number;
+  } | null>(null);
+  const [githubRepos, setGithubRepos] = useState<any[]>([]);
+  const [isLoadingGithub, setIsLoadingGithub] = useState(false);
+  const [selectedGithubFile, setSelectedGithubFile] = useState<{
+    path: string;
+    content: string;
+  } | null>(null);
+  const [showLayerDetails, setShowLayerDetails] = useState(false);
+  const [realTimeAnalysis, setRealTimeAnalysis] = useState(true);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   // User subscription state
   const [userPlan, setUserPlan] = useState({
     plan_name: "Free",
@@ -59,6 +88,28 @@ export default function Dashboard() {
       loadUserSubscription();
     }
   }, [user]);
+
+  // Real-time code analysis
+  useEffect(() => {
+    if (code.trim() && realTimeAnalysis) {
+      const debounceTimer = setTimeout(async () => {
+        try {
+          const analysis = await NeuroLintOrchestrator.analyze(code);
+          setLayerSuggestions({
+            recommendedLayers: analysis.recommendedLayers,
+            reasons: analysis.reasoning,
+            confidence: analysis.confidence,
+          });
+        } catch (error) {
+          console.warn("Real-time analysis failed:", error);
+        }
+      }, 1000);
+
+      return () => clearTimeout(debounceTimer);
+    } else {
+      setLayerSuggestions(null);
+    }
+  }, [code, realTimeAnalysis]);
 
   const loadUserSubscription = async () => {
     try {
@@ -156,31 +207,37 @@ export default function Dashboard() {
     }
   }, [code, selectedLayers, userPlan, user, uploadedFile, toast]);
 
-  // Handle file upload
+  // Enhanced file upload with drag and drop
   const handleFileUpload = useCallback(
-    (event: React.ChangeEvent<HTMLInputElement>) => {
-      const file = event.target.files?.[0];
-      if (!file) return;
-
+    (file: File) => {
       // Check file type
-      const validTypes = [".js", ".jsx", ".ts", ".tsx", ".json", ".md"];
+      const validTypes = [
+        ".js",
+        ".jsx",
+        ".ts",
+        ".tsx",
+        ".json",
+        ".md",
+        ".vue",
+        ".svelte",
+      ];
       const fileExtension = "." + file.name.split(".").pop()?.toLowerCase();
 
       if (!validTypes.includes(fileExtension)) {
         toast({
           title: "Invalid file type",
           description:
-            "Please upload a JavaScript, TypeScript, JSON, or Markdown file.",
+            "Please upload a JavaScript, TypeScript, Vue, Svelte, JSON, or Markdown file.",
           variant: "destructive",
         });
         return;
       }
 
-      // Check file size (max 1MB)
-      if (file.size > 1024 * 1024) {
+      // Check file size (max 2MB)
+      if (file.size > 2 * 1024 * 1024) {
         toast({
           title: "File too large",
-          description: "Please upload a file smaller than 1MB.",
+          description: "Please upload a file smaller than 2MB.",
           variant: "destructive",
         });
         return;
@@ -194,8 +251,8 @@ export default function Dashboard() {
         const content = e.target?.result as string;
         setCode(content);
         toast({
-          title: "File uploaded",
-          description: `Successfully loaded ${file.name}`,
+          title: "File uploaded successfully",
+          description: `Loaded ${file.name} (${(file.size / 1024).toFixed(1)} KB)`,
         });
       };
       reader.readAsText(file);
@@ -203,7 +260,40 @@ export default function Dashboard() {
     [toast],
   );
 
-  // Handle GitHub import
+  const handleFileInputChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0];
+      if (file) handleFileUpload(file);
+    },
+    [handleFileUpload],
+  );
+
+  // Drag and drop handlers
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+    setIsDragOver(false);
+  }, []);
+
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      setIsDragOver(false);
+
+      const files = Array.from(e.dataTransfer.files);
+      if (files.length > 0) {
+        handleFileUpload(files[0]);
+      }
+    },
+    [handleFileUpload],
+  );
+
+  // Enhanced GitHub integration
   const handleGithubImport = useCallback(async () => {
     if (!githubUrl.trim()) {
       toast({
@@ -214,23 +304,108 @@ export default function Dashboard() {
       return;
     }
 
-    // Basic GitHub URL validation
-    const githubPattern = /^https:\/\/github\.com\/[\w-]+\/[\w-]+(\/.*)?$/;
-    if (!githubPattern.test(githubUrl)) {
+    // Enhanced GitHub URL validation
+    const githubPattern =
+      /^https:\/\/github\.com\/([\w.-]+)\/([\w.-]+)(\/.*)?$/;
+    const match = githubUrl.match(githubPattern);
+
+    if (!match) {
       toast({
         title: "Invalid GitHub URL",
-        description: "Please enter a valid GitHub repository URL.",
+        description:
+          "Please enter a valid GitHub repository URL (e.g., https://github.com/user/repo).",
         variant: "destructive",
       });
       return;
     }
 
-    toast({
-      title: "GitHub integration coming soon",
-      description:
-        "Direct GitHub import will be available in the next update. Please copy and paste your code for now.",
-    });
+    const [, owner, repo] = match;
+    setIsLoadingGithub(true);
+
+    try {
+      // Fetch repository contents from GitHub API
+      const response = await fetch(
+        `https://api.github.com/repos/${owner}/${repo}/contents`,
+      );
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          throw new Error("Repository not found or is private");
+        }
+        throw new Error(`GitHub API error: ${response.status}`);
+      }
+
+      const contents = await response.json();
+
+      // Filter for code files
+      const codeFiles = contents.filter(
+        (item: any) =>
+          item.type === "file" &&
+          /\.(js|jsx|ts|tsx|vue|svelte|json|md)$/i.test(item.name),
+      );
+
+      if (codeFiles.length === 0) {
+        toast({
+          title: "No code files found",
+          description:
+            "This repository doesn't contain any supported code files.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setGithubRepos(codeFiles);
+      toast({
+        title: "Repository loaded",
+        description: `Found ${codeFiles.length} code files in ${owner}/${repo}`,
+      });
+    } catch (error) {
+      console.error("GitHub import failed:", error);
+      toast({
+        title: "GitHub import failed",
+        description:
+          error instanceof Error ? error.message : "Failed to load repository",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingGithub(false);
+    }
   }, [githubUrl, toast]);
+
+  // Load GitHub file content
+  const handleGithubFileSelect = useCallback(
+    async (file: any) => {
+      try {
+        const response = await fetch(file.download_url);
+        const content = await response.text();
+
+        if (content.length > 2 * 1024 * 1024) {
+          toast({
+            title: "File too large",
+            description: "Selected file is too large (max 2MB).",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        setSelectedGithubFile({ path: file.path, content });
+        setCode(content);
+        setUploadedFile(null); // Clear any uploaded file
+
+        toast({
+          title: "File loaded from GitHub",
+          description: `Loaded ${file.name} from repository`,
+        });
+      } catch (error) {
+        toast({
+          title: "Failed to load file",
+          description: "Could not load the selected file from GitHub.",
+          variant: "destructive",
+        });
+      }
+    },
+    [toast],
+  );
 
   // Calculate usage percentage
   const usagePercentage =
