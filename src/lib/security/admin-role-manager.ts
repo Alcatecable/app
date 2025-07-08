@@ -362,4 +362,11 @@ $$ LANGUAGE plpgsql;
 CREATE TRIGGER update_admin_users_updated_at
   BEFORE UPDATE ON admin_users
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- Initial super admin setup (replace with your email)
+INSERT INTO admin_users (user_id, role, granted_by, permissions)
+SELECT id, 'super_admin', id, ARRAY['manage_users', 'manage_admins', 'view_analytics', 'manage_credentials', 'system_settings', 'billing_management', 'data_export', 'security_audit']
+FROM auth.users
+WHERE email = 'your-admin-email@domain.com'
+ON CONFLICT (user_id) DO NOTHING;
 */
