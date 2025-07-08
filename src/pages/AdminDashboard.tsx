@@ -67,6 +67,8 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { NeuroLintOrchestrator } from "@/lib/neurolint";
+import { credentialStorage } from "@/lib/security/credential-storage";
+import { connectionTester } from "@/lib/services/connection-tester";
 
 interface AdminStats {
   totalUsers: number;
