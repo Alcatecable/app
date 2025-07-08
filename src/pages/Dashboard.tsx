@@ -443,6 +443,9 @@ export default function Dashboard() {
               <Button variant="outline" asChild>
                 <a href="/profile">Settings</a>
               </Button>
+              <Button variant="outline" asChild>
+                <a href="/admin">Admin</a>
+              </Button>
             </div>
           </div>
 
