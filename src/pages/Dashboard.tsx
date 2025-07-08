@@ -1,51 +1,56 @@
-
-import React, { useState, useCallback, useEffect } from 'react';
-import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import { useToast } from '@/hooks/use-toast';
-import { 
-  Upload, 
-  Code2, 
-  Github, 
-  Zap, 
-  FileText, 
+import React, { useState, useCallback, useEffect } from "react";
+import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { useToast } from "@/hooks/use-toast";
+import {
+  Upload,
+  Code2,
+  Github,
+  Zap,
+  FileText,
   Settings,
   BarChart3,
   Clock,
   CheckCircle,
-  AlertTriangle
-} from 'lucide-react';
-import { NeuroLintOrchestrator, LayerExecutionResult } from '@/lib/neurolint';
-import { useAuth } from '@/contexts/AuthContext';
-import { paypalService } from '@/lib/paypal/paypal-service';
-import { supabase } from '@/integrations/supabase/client';
+  AlertTriangle,
+} from "lucide-react";
+import { NeuroLintOrchestrator, LayerExecutionResult } from "@/lib/neurolint";
+import { useAuth } from "@/contexts/AuthContext";
+import { paypalService } from "@/lib/paypal/paypal-service";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function Dashboard() {
   const { user } = useAuth();
   const { toast } = useToast();
-  
+
   // Main states
-  const [code, setCode] = useState('');
-  const [githubUrl, setGithubUrl] = useState('');
+  const [code, setCode] = useState("");
+  const [githubUrl, setGithubUrl] = useState("");
   const [selectedLayers, setSelectedLayers] = useState<number[]>([1, 2, 3, 4]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [results, setResults] = useState<LayerExecutionResult | null>(null);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
-  
+
   // User subscription state
   const [userPlan, setUserPlan] = useState({
-    plan_name: 'Free',
+    plan_name: "Free",
     transformation_limit: 25,
     current_usage: 0,
     remaining_transformations: 25,
-    can_transform: true
+    can_transform: true,
   });
 
   // Load user subscription data on mount
@@ -63,10 +68,19 @@ export default function Dashboard() {
         transformation_limit: subscription.transformation_limit,
         current_usage: subscription.current_usage,
         remaining_transformations: subscription.remaining_transformations,
-        can_transform: subscription.can_transform
+        can_transform: subscription.can_transform,
       });
     } catch (error) {
-      console.error('Failed to load user subscription:', error);
+      console.warn(
+        "Failed to load user subscription:",
+        error instanceof Error ? error.message : "Unknown error",
+      );
+      toast({
+        title: "Subscription info unavailable",
+        description:
+          "Using default free plan settings. Your usage data may not be accurate.",
+        variant: "default",
+      });
     }
   };
 
@@ -76,7 +90,7 @@ export default function Dashboard() {
       toast({
         title: "No code provided",
         description: "Please paste some code or upload a file first.",
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
@@ -84,33 +98,41 @@ export default function Dashboard() {
     if (!userPlan.can_transform) {
       toast({
         title: "Usage limit reached",
-        description: "You've reached your monthly transformation limit. Upgrade to continue.",
-        variant: "destructive"
+        description:
+          "You've reached your monthly transformation limit. Upgrade to continue.",
+        variant: "destructive",
       });
       return;
     }
 
     setIsProcessing(true);
-    
+
     try {
-      const result = await NeuroLintOrchestrator.transform(code, selectedLayers, {
-        verbose: true,
-        dryRun: false
-      });
+      const result = await NeuroLintOrchestrator.transform(
+        code,
+        selectedLayers,
+        {
+          verbose: true,
+          dryRun: false,
+        },
+      );
 
       setResults(result);
-      
+
       // Track transformation in database
       if (user) {
-        await supabase.from('transformations').insert({
+        await supabase.from("transformations").insert({
           user_id: user.id,
           original_code_length: code.length,
           transformed_code_length: result.finalCode.length,
           layers_used: selectedLayers,
-          changes_count: result.results.reduce((sum, r) => sum + r.changeCount, 0),
+          changes_count: result.results.reduce(
+            (sum, r) => sum + r.changeCount,
+            0,
+          ),
           execution_time_ms: result.totalExecutionTime,
           success: result.successfulLayers > 0,
-          file_name: uploadedFile?.name || null
+          file_name: uploadedFile?.name || null,
         });
 
         // Refresh user subscription data
@@ -121,13 +143,13 @@ export default function Dashboard() {
         title: "Transformation completed!",
         description: `Successfully processed ${result.successfulLayers} out of ${selectedLayers.length} layers.`,
       });
-
     } catch (error) {
-      console.error('Transformation failed:', error);
+      console.error("Transformation failed:", error);
       toast({
         title: "Transformation failed",
-        description: "An error occurred while processing your code. Please try again.",
-        variant: "destructive"
+        description:
+          "An error occurred while processing your code. Please try again.",
+        variant: "destructive",
       });
     } finally {
       setIsProcessing(false);
@@ -135,47 +157,51 @@ export default function Dashboard() {
   }, [code, selectedLayers, userPlan, user, uploadedFile, toast]);
 
   // Handle file upload
-  const handleFileUpload = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
+  const handleFileUpload = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0];
+      if (!file) return;
 
-    // Check file type
-    const validTypes = ['.js', '.jsx', '.ts', '.tsx', '.json', '.md'];
-    const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase();
-    
-    if (!validTypes.includes(fileExtension)) {
-      toast({
-        title: "Invalid file type",
-        description: "Please upload a JavaScript, TypeScript, JSON, or Markdown file.",
-        variant: "destructive"
-      });
-      return;
-    }
+      // Check file type
+      const validTypes = [".js", ".jsx", ".ts", ".tsx", ".json", ".md"];
+      const fileExtension = "." + file.name.split(".").pop()?.toLowerCase();
 
-    // Check file size (max 1MB)
-    if (file.size > 1024 * 1024) {
-      toast({
-        title: "File too large",
-        description: "Please upload a file smaller than 1MB.",
-        variant: "destructive"
-      });
-      return;
-    }
+      if (!validTypes.includes(fileExtension)) {
+        toast({
+          title: "Invalid file type",
+          description:
+            "Please upload a JavaScript, TypeScript, JSON, or Markdown file.",
+          variant: "destructive",
+        });
+        return;
+      }
 
-    setUploadedFile(file);
+      // Check file size (max 1MB)
+      if (file.size > 1024 * 1024) {
+        toast({
+          title: "File too large",
+          description: "Please upload a file smaller than 1MB.",
+          variant: "destructive",
+        });
+        return;
+      }
 
-    // Read file content
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const content = e.target?.result as string;
-      setCode(content);
-      toast({
-        title: "File uploaded",
-        description: `Successfully loaded ${file.name}`,
-      });
-    };
-    reader.readAsText(file);
-  }, [toast]);
+      setUploadedFile(file);
+
+      // Read file content
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const content = e.target?.result as string;
+        setCode(content);
+        toast({
+          title: "File uploaded",
+          description: `Successfully loaded ${file.name}`,
+        });
+      };
+      reader.readAsText(file);
+    },
+    [toast],
+  );
 
   // Handle GitHub import
   const handleGithubImport = useCallback(async () => {
@@ -183,7 +209,7 @@ export default function Dashboard() {
       toast({
         title: "No GitHub URL provided",
         description: "Please enter a GitHub repository URL.",
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
@@ -194,21 +220,23 @@ export default function Dashboard() {
       toast({
         title: "Invalid GitHub URL",
         description: "Please enter a valid GitHub repository URL.",
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
 
     toast({
       title: "GitHub integration coming soon",
-      description: "Direct GitHub import will be available in the next update. Please copy and paste your code for now.",
+      description:
+        "Direct GitHub import will be available in the next update. Please copy and paste your code for now.",
     });
   }, [githubUrl, toast]);
 
   // Calculate usage percentage
-  const usagePercentage = userPlan.transformation_limit > 0 
-    ? (userPlan.current_usage / userPlan.transformation_limit) * 100 
-    : 0;
+  const usagePercentage =
+    userPlan.transformation_limit > 0
+      ? (userPlan.current_usage / userPlan.transformation_limit) * 100
+      : 0;
 
   return (
     <ProtectedRoute>
@@ -217,18 +245,24 @@ export default function Dashboard() {
           {/* Header */}
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <img 
-                src="/lovable-uploads/145ebbd8-c7fe-45ec-b822-b47d5b279d23.png" 
-                alt="NeuroLint" 
+              <img
+                src="/lovable-uploads/145ebbd8-c7fe-45ec-b822-b47d5b279d23.png"
+                alt="NeuroLint"
                 className="h-8 w-auto"
               />
               <div>
                 <h1 className="text-2xl font-bold">NeuroLint Dashboard</h1>
-                <p className="text-muted-foreground">Welcome back, {user?.email}</p>
+                <p className="text-muted-foreground">
+                  Welcome back, {user?.email}
+                </p>
               </div>
             </div>
             <div className="flex items-center space-x-4">
-              <Badge variant={userPlan.plan_name === 'Free' ? 'secondary' : 'default'}>
+              <Badge
+                variant={
+                  userPlan.plan_name === "Free" ? "secondary" : "default"
+                }
+              >
                 {userPlan.plan_name} Plan
               </Badge>
               <Button variant="outline" asChild>
@@ -294,7 +328,10 @@ export default function Dashboard() {
                       className="font-mono text-sm"
                     />
                     <div className="text-xs text-muted-foreground">
-                      Characters: {code.length} | {uploadedFile ? `Loaded from: ${uploadedFile.name}` : 'No file loaded'}
+                      Characters: {code.length} |{" "}
+                      {uploadedFile
+                        ? `Loaded from: ${uploadedFile.name}`
+                        : "No file loaded"}
                     </div>
                   </div>
 
@@ -303,39 +340,65 @@ export default function Dashboard() {
                     <Label>Transformation Layers</Label>
                     <div className="grid grid-cols-2 gap-3">
                       {[
-                        { id: 1, name: 'Configuration', desc: 'TypeScript & build config fixes' },
-                        { id: 2, name: 'Entity Cleanup', desc: 'HTML entities & patterns' },
-                        { id: 3, name: 'Components', desc: 'React component improvements' },
-                        { id: 4, name: 'Hydration', desc: 'SSR safety guards' }
+                        {
+                          id: 1,
+                          name: "Configuration",
+                          desc: "TypeScript & build config fixes",
+                        },
+                        {
+                          id: 2,
+                          name: "Entity Cleanup",
+                          desc: "HTML entities & patterns",
+                        },
+                        {
+                          id: 3,
+                          name: "Components",
+                          desc: "React component improvements",
+                        },
+                        { id: 4, name: "Hydration", desc: "SSR safety guards" },
                       ].map((layer) => (
-                        <div key={layer.id} className="flex items-center space-x-2">
+                        <div
+                          key={layer.id}
+                          className="flex items-center space-x-2"
+                        >
                           <input
                             type="checkbox"
                             id={`layer-${layer.id}`}
                             checked={selectedLayers.includes(layer.id)}
                             onChange={(e) => {
                               if (e.target.checked) {
-                                setSelectedLayers(prev => [...prev, layer.id].sort());
+                                setSelectedLayers((prev) =>
+                                  [...prev, layer.id].sort(),
+                                );
                               } else {
-                                setSelectedLayers(prev => prev.filter(id => id !== layer.id));
+                                setSelectedLayers((prev) =>
+                                  prev.filter((id) => id !== layer.id),
+                                );
                               }
                             }}
                             className="rounded"
                           />
                           <div>
-                            <label htmlFor={`layer-${layer.id}`} className="text-sm font-medium cursor-pointer">
+                            <label
+                              htmlFor={`layer-${layer.id}`}
+                              className="text-sm font-medium cursor-pointer"
+                            >
                               Layer {layer.id}: {layer.name}
                             </label>
-                            <p className="text-xs text-muted-foreground">{layer.desc}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {layer.desc}
+                            </p>
                           </div>
                         </div>
                       ))}
                     </div>
                   </div>
 
-                  <Button 
-                    onClick={handleTransform} 
-                    disabled={!code.trim() || isProcessing || !userPlan.can_transform}
+                  <Button
+                    onClick={handleTransform}
+                    disabled={
+                      !code.trim() || isProcessing || !userPlan.can_transform
+                    }
                     className="w-full"
                     size="lg"
                   >
@@ -347,7 +410,10 @@ export default function Dashboard() {
                     ) : (
                       <>
                         <Zap className="w-4 h-4 mr-2" />
-                        Transform Code ({userPlan.remaining_transformations} remaining)
+                        Transform Code ({
+                          userPlan.remaining_transformations
+                        }{" "}
+                        remaining)
                       </>
                     )}
                   </Button>
@@ -373,7 +439,8 @@ export default function Dashboard() {
                     <div>
                       <p className="text-lg font-medium">Drop your file here</p>
                       <p className="text-sm text-muted-foreground">
-                        Supports .js, .jsx, .ts, .tsx, .json, .md files (max 1MB)
+                        Supports .js, .jsx, .ts, .tsx, .json, .md files (max
+                        1MB)
                       </p>
                     </div>
                     <input
@@ -389,7 +456,7 @@ export default function Dashboard() {
                       </label>
                     </Button>
                   </div>
-                  
+
                   {uploadedFile && (
                     <div className="p-4 bg-muted rounded-lg">
                       <div className="flex items-center justify-between">
@@ -429,19 +496,20 @@ export default function Dashboard() {
                       onChange={(e) => setGithubUrl(e.target.value)}
                     />
                   </div>
-                  
+
                   <Button onClick={handleGithubImport} className="w-full">
                     <Github className="w-4 h-4 mr-2" />
                     Import from GitHub
                   </Button>
-                  
+
                   <div className="p-4 bg-muted rounded-lg">
                     <div className="flex items-start space-x-2">
                       <AlertTriangle className="h-5 w-5 text-yellow-600 flex-shrink-0 mt-0.5" />
                       <div className="space-y-1">
                         <p className="text-sm font-medium">Coming Soon</p>
                         <p className="text-xs text-muted-foreground">
-                          Direct GitHub integration is in development. For now, please copy and paste your code manually.
+                          Direct GitHub integration is in development. For now,
+                          please copy and paste your code manually.
                         </p>
                       </div>
                     </div>
@@ -467,25 +535,36 @@ export default function Dashboard() {
                           <div className="text-2xl font-bold text-green-600">
                             {results.successfulLayers}
                           </div>
-                          <div className="text-sm text-muted-foreground">Successful</div>
+                          <div className="text-sm text-muted-foreground">
+                            Successful
+                          </div>
                         </div>
                         <div className="text-center p-4 bg-muted rounded-lg">
                           <div className="text-2xl font-bold text-red-600">
                             {results.results.length - results.successfulLayers}
                           </div>
-                          <div className="text-sm text-muted-foreground">Failed</div>
+                          <div className="text-sm text-muted-foreground">
+                            Failed
+                          </div>
                         </div>
                         <div className="text-center p-4 bg-muted rounded-lg">
                           <div className="text-2xl font-bold">
                             {Math.round(results.totalExecutionTime)}ms
                           </div>
-                          <div className="text-sm text-muted-foreground">Total Time</div>
+                          <div className="text-sm text-muted-foreground">
+                            Total Time
+                          </div>
                         </div>
                         <div className="text-center p-4 bg-muted rounded-lg">
                           <div className="text-2xl font-bold">
-                            {results.results.reduce((sum, r) => sum + r.changeCount, 0)}
+                            {results.results.reduce(
+                              (sum, r) => sum + r.changeCount,
+                              0,
+                            )}
                           </div>
-                          <div className="text-sm text-muted-foreground">Changes</div>
+                          <div className="text-sm text-muted-foreground">
+                            Changes
+                          </div>
                         </div>
                       </div>
 
@@ -493,7 +572,10 @@ export default function Dashboard() {
                       <div className="space-y-3">
                         <h3 className="text-lg font-semibold">Layer Results</h3>
                         {results.results.map((result, index) => (
-                          <div key={index} className="flex items-center justify-between p-4 border rounded-lg">
+                          <div
+                            key={index}
+                            className="flex items-center justify-between p-4 border rounded-lg"
+                          >
                             <div className="flex items-center gap-3">
                               {result.success ? (
                                 <CheckCircle className="w-5 h-5 text-green-600" />
@@ -501,15 +583,20 @@ export default function Dashboard() {
                                 <AlertTriangle className="w-5 h-5 text-red-600" />
                               )}
                               <div>
-                                <div className="font-medium">Layer {result.layerId}</div>
+                                <div className="font-medium">
+                                  Layer {result.layerId}
+                                </div>
                                 {result.error && (
-                                  <div className="text-sm text-red-600">{result.error}</div>
-                                )}
-                                {result.improvements && result.improvements.length > 0 && (
-                                  <div className="text-sm text-green-600">
-                                    {result.improvements.join(', ')}
+                                  <div className="text-sm text-red-600">
+                                    {result.error}
                                   </div>
                                 )}
+                                {result.improvements &&
+                                  result.improvements.length > 0 && (
+                                    <div className="text-sm text-green-600">
+                                      {result.improvements.join(", ")}
+                                    </div>
+                                  )}
                               </div>
                             </div>
                             <div className="text-right text-sm text-muted-foreground">
@@ -530,12 +617,13 @@ export default function Dashboard() {
                             rows={10}
                             className="font-mono text-sm"
                           />
-                          <Button 
+                          <Button
                             onClick={() => {
                               navigator.clipboard.writeText(results.finalCode);
                               toast({
                                 title: "Copied to clipboard",
-                                description: "Transformed code has been copied to your clipboard.",
+                                description:
+                                  "Transformed code has been copied to your clipboard.",
                               });
                             }}
                             variant="outline"
