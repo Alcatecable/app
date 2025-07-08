@@ -516,6 +516,7 @@ export default function AdminDashboard() {
       4: "Hydration",
       5: "Next.js",
       6: "Testing",
+      7: "AI Learning",
     };
     return layerNames[layerId] || `Layer ${layerId}`;
   };
