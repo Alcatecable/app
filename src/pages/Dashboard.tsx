@@ -493,22 +493,117 @@ export default function Dashboard() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="code-input">Code</Label>
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="code-input">Code</Label>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setRealTimeAnalysis(!realTimeAnalysis)}
+                        >
+                          {realTimeAnalysis ? (
+                            <Eye className="h-4 w-4" />
+                          ) : (
+                            <EyeOff className="h-4 w-4" />
+                          )}
+                          Real-time Analysis
+                        </Button>
+                        {code && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setCode("")}
+                          >
+                            <X className="h-4 w-4" />
+                            Clear
+                          </Button>
+                        )}
+                      </div>
+                    </div>
                     <Textarea
                       id="code-input"
-                      placeholder="Paste your JavaScript, TypeScript, or React code here..."
+                      placeholder="Paste your JavaScript, TypeScript, Vue, Svelte, or React code here..."
                       value={code}
                       onChange={(e) => setCode(e.target.value)}
                       rows={15}
                       className="font-mono text-sm"
                     />
-                    <div className="text-xs text-muted-foreground">
-                      Characters: {code.length} |{" "}
-                      {uploadedFile
-                        ? `Loaded from: ${uploadedFile.name}`
-                        : "No file loaded"}
+                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                      <span>
+                        {code.length.toLocaleString()} characters |{" "}
+                        {code.split("\n").length} lines
+                      </span>
+                      <span>
+                        {uploadedFile
+                          ? `📁 ${uploadedFile.name}`
+                          : selectedGithubFile
+                            ? `🔗 ${selectedGithubFile.path}`
+                            : "No file loaded"}
+                      </span>
                     </div>
                   </div>
+
+                  {/* Real-time Layer Suggestions */}
+                  {layerSuggestions && layerSuggestions.confidence > 0.6 && (
+                    <Card className="border-blue-200 bg-blue-50">
+                      <CardContent className="pt-4">
+                        <div className="flex items-start gap-2">
+                          <Lightbulb className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2">
+                              <h4 className="font-medium text-blue-900">
+                                Smart Layer Suggestions
+                              </h4>
+                              <Badge variant="secondary">
+                                {Math.round(layerSuggestions.confidence * 100)}%
+                                confidence
+                              </Badge>
+                            </div>
+                            <p className="text-sm text-blue-800">
+                              Based on your code analysis, we recommend layers:{" "}
+                              {layerSuggestions.recommendedLayers.join(", ")}
+                            </p>
+                            <div className="flex gap-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() =>
+                                  setSelectedLayers(
+                                    layerSuggestions.recommendedLayers,
+                                  )
+                                }
+                              >
+                                Apply Suggestions
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() =>
+                                  setShowLayerDetails(!showLayerDetails)
+                                }
+                              >
+                                {showLayerDetails ? "Hide" : "Show"} Details
+                              </Button>
+                            </div>
+                            {showLayerDetails && (
+                              <div className="mt-2 space-y-1">
+                                {layerSuggestions.reasons.map(
+                                  (reason, index) => (
+                                    <p
+                                      key={index}
+                                      className="text-xs text-blue-700"
+                                    >
+                                      • {reason}
+                                    </p>
+                                  ),
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
 
                   {/* Layer Selection */}
                   <div className="space-y-3">
@@ -596,7 +691,7 @@ export default function Dashboard() {
               </Card>
             </TabsContent>
 
-            {/* File Upload Tab */}
+            {/* Enhanced File Upload Tab */}
             <TabsContent value="upload" className="space-y-6">
               <Card>
                 <CardHeader>
@@ -605,50 +700,119 @@ export default function Dashboard() {
                     Upload Code File
                   </CardTitle>
                   <CardDescription>
-                    Upload JavaScript, TypeScript, JSON, or Markdown files
+                    Upload JavaScript, TypeScript, Vue, Svelte, JSON, or
+                    Markdown files
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-8 text-center space-y-4">
-                    <Upload className="h-12 w-12 mx-auto text-muted-foreground" />
+                  <div
+                    className={`border-2 border-dashed rounded-lg p-8 text-center space-y-4 transition-colors ${
+                      isDragOver
+                        ? "border-blue-400 bg-blue-50"
+                        : "border-muted-foreground/25"
+                    }`}
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    onDrop={handleDrop}
+                  >
+                    <div
+                      className={`transition-transform ${isDragOver ? "scale-110" : ""}`}
+                    >
+                      <Upload
+                        className={`h-12 w-12 mx-auto ${isDragOver ? "text-blue-600" : "text-muted-foreground"}`}
+                      />
+                    </div>
                     <div>
-                      <p className="text-lg font-medium">Drop your file here</p>
+                      <p className="text-lg font-medium">
+                        {isDragOver
+                          ? "Drop your file here"
+                          : "Drag & drop your file here"}
+                      </p>
                       <p className="text-sm text-muted-foreground">
-                        Supports .js, .jsx, .ts, .tsx, .json, .md files (max
-                        1MB)
+                        Supports .js, .jsx, .ts, .tsx, .vue, .svelte, .json, .md
+                        files (max 2MB)
                       </p>
                     </div>
-                    <input
-                      type="file"
-                      accept=".js,.jsx,.ts,.tsx,.json,.md"
-                      onChange={handleFileUpload}
-                      className="hidden"
-                      id="file-upload"
-                    />
-                    <Button asChild>
-                      <label htmlFor="file-upload" className="cursor-pointer">
-                        Choose File
-                      </label>
-                    </Button>
+                    <div className="flex gap-2 justify-center">
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept=".js,.jsx,.ts,.tsx,.vue,.svelte,.json,.md"
+                        onChange={handleFileInputChange}
+                        className="hidden"
+                        id="file-upload"
+                      />
+                      <Button
+                        asChild
+                        variant={isDragOver ? "default" : "outline"}
+                      >
+                        <label htmlFor="file-upload" className="cursor-pointer">
+                          <FileCode className="w-4 h-4 mr-2" />
+                          Choose File
+                        </label>
+                      </Button>
+                      {uploadedFile && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setUploadedFile(null);
+                            if (fileInputRef.current) {
+                              fileInputRef.current.value = "";
+                            }
+                          }}
+                        >
+                          <X className="w-4 h-4 mr-1" />
+                          Remove
+                        </Button>
+                      )}
+                    </div>
                   </div>
 
                   {uploadedFile && (
-                    <div className="p-4 bg-muted rounded-lg">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-medium">{uploadedFile.name}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {(uploadedFile.size / 1024).toFixed(1)} KB
-                          </p>
+                    <Card className="border-green-200 bg-green-50">
+                      <CardContent className="pt-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <CheckCircle className="h-5 w-5 text-green-600" />
+                            <div>
+                              <p className="font-medium text-green-900">
+                                {uploadedFile.name}
+                              </p>
+                              <p className="text-sm text-green-700">
+                                {(uploadedFile.size / 1024).toFixed(1)} KB •
+                                Last modified:{" "}
+                                {new Date(
+                                  uploadedFile.lastModified,
+                                ).toLocaleDateString()}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                navigator.clipboard.writeText(code);
+                                toast({
+                                  title: "Copied to clipboard",
+                                  description:
+                                    "File content has been copied to your clipboard.",
+                                });
+                              }}
+                            >
+                              <Copy className="w-4 h-4" />
+                            </Button>
+                          </div>
                         </div>
-                        <CheckCircle className="h-5 w-5 text-green-600" />
-                      </div>
-                    </div>
+                      </CardContent>
+                    </Card>
                   )}
                 </CardContent>
               </Card>
             </TabsContent>
 
+            {/* Enhanced GitHub Integration Tab */}
             <TabsContent value="github" className="space-y-6">
               <Card>
                 <CardHeader>
@@ -657,34 +821,112 @@ export default function Dashboard() {
                     GitHub Repository Import
                   </CardTitle>
                   <CardDescription>
-                    Import code directly from public GitHub repositories
+                    Import code directly from public GitHub repositories (live
+                    integration)
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="github-url">Repository URL</Label>
-                    <Input
-                      id="github-url"
-                      type="url"
-                      placeholder="https://github.com/username/repository"
-                      value={githubUrl}
-                      onChange={(e) => setGithubUrl(e.target.value)}
-                    />
+                    <div className="flex gap-2">
+                      <Input
+                        id="github-url"
+                        type="url"
+                        placeholder="https://github.com/username/repository"
+                        value={githubUrl}
+                        onChange={(e) => setGithubUrl(e.target.value)}
+                        className="flex-1"
+                      />
+                      <Button
+                        onClick={handleGithubImport}
+                        disabled={isLoadingGithub || !githubUrl.trim()}
+                      >
+                        {isLoadingGithub ? (
+                          <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                        ) : (
+                          <Github className="w-4 h-4 mr-2" />
+                        )}
+                        Load Repo
+                      </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Supports public repositories • Examples: React, Vue,
+                      Angular projects
+                    </p>
                   </div>
 
-                  <Button onClick={handleGithubImport} className="w-full">
-                    <Github className="w-4 h-4 mr-2" />
-                    Import from GitHub
-                  </Button>
+                  {githubRepos.length > 0 && (
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <FolderOpen className="h-4 w-4" />
+                        <h4 className="font-medium">
+                          Repository Files ({githubRepos.length})
+                        </h4>
+                      </div>
+                      <div className="grid gap-2 max-h-64 overflow-y-auto">
+                        {githubRepos.map((file, index) => (
+                          <div
+                            key={index}
+                            className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 cursor-pointer transition-colors"
+                            onClick={() => handleGithubFileSelect(file)}
+                          >
+                            <div className="flex items-center gap-2">
+                              <FileCode className="h-4 w-4 text-muted-foreground" />
+                              <span className="font-mono text-sm">
+                                {file.name}
+                              </span>
+                              {file.size && (
+                                <Badge variant="secondary" className="text-xs">
+                                  {(file.size / 1024).toFixed(1)} KB
+                                </Badge>
+                              )}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              Click to load
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
-                  <div className="p-4 bg-muted rounded-lg">
+                  {selectedGithubFile && (
+                    <Card className="border-blue-200 bg-blue-50">
+                      <CardContent className="pt-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <GitBranch className="h-4 w-4 text-blue-600" />
+                            <span className="font-mono text-sm text-blue-900">
+                              {selectedGithubFile.path}
+                            </span>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setSelectedGithubFile(null)}
+                          >
+                            <X className="w-4 h-4" />
+                          </Button>
+                        </div>
+                        <p className="text-xs text-blue-700 mt-1">
+                          File loaded from GitHub •{" "}
+                          {selectedGithubFile.content.length.toLocaleString()}{" "}
+                          characters
+                        </p>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
                     <div className="flex items-start space-x-2">
-                      <AlertTriangle className="h-5 w-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+                      <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
                       <div className="space-y-1">
-                        <p className="text-sm font-medium">Coming Soon</p>
-                        <p className="text-xs text-muted-foreground">
-                          Direct GitHub integration is in development. For now,
-                          please copy and paste your code manually.
+                        <p className="text-sm font-medium text-green-900">
+                          Live GitHub Integration Active
+                        </p>
+                        <p className="text-xs text-green-700">
+                          Real GitHub API integration is now functional. Load
+                          any public repository and select files to transform.
                         </p>
                       </div>
                     </div>
@@ -782,40 +1024,140 @@ export default function Dashboard() {
                         ))}
                       </div>
 
-                      {/* Transformed Code */}
+                      {/* Enhanced Transformed Code Display */}
                       {results.finalCode !== code && (
-                        <div className="space-y-2">
-                          <Label>Transformed Code</Label>
-                          <Textarea
-                            value={results.finalCode}
-                            readOnly
-                            rows={10}
-                            className="font-mono text-sm"
-                          />
-                          <Button
-                            onClick={() => {
-                              navigator.clipboard.writeText(results.finalCode);
-                              toast({
-                                title: "Copied to clipboard",
-                                description:
-                                  "Transformed code has been copied to your clipboard.",
-                              });
-                            }}
-                            variant="outline"
-                            size="sm"
-                          >
-                            Copy to Clipboard
-                          </Button>
+                        <div className="space-y-4">
+                          <div className="flex items-center justify-between">
+                            <Label className="text-lg font-semibold">
+                              Transformed Code
+                            </Label>
+                            <div className="flex gap-2">
+                              <Button
+                                onClick={() => {
+                                  navigator.clipboard.writeText(
+                                    results.finalCode,
+                                  );
+                                  toast({
+                                    title: "Copied to clipboard",
+                                    description:
+                                      "Transformed code has been copied to your clipboard.",
+                                  });
+                                }}
+                                variant="outline"
+                                size="sm"
+                              >
+                                <Copy className="w-4 h-4 mr-1" />
+                                Copy Code
+                              </Button>
+                              <Button
+                                onClick={() => {
+                                  const blob = new Blob([results.finalCode], {
+                                    type: "text/plain",
+                                  });
+                                  const url = URL.createObjectURL(blob);
+                                  const a = document.createElement("a");
+                                  a.href = url;
+                                  a.download =
+                                    uploadedFile?.name?.replace(
+                                      /\.[^/.]+$/,
+                                      "_transformed$&",
+                                    ) || "transformed_code.txt";
+                                  document.body.appendChild(a);
+                                  a.click();
+                                  document.body.removeChild(a);
+                                  URL.revokeObjectURL(url);
+                                  toast({
+                                    title: "Download started",
+                                    description:
+                                      "Transformed code is being downloaded.",
+                                  });
+                                }}
+                                variant="outline"
+                                size="sm"
+                              >
+                                <Download className="w-4 h-4 mr-1" />
+                                Download
+                              </Button>
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                            {/* Before */}
+                            <div className="space-y-2">
+                              <Label className="text-sm font-medium text-muted-foreground">
+                                Before (Original)
+                              </Label>
+                              <Textarea
+                                value={code}
+                                readOnly
+                                rows={12}
+                                className="font-mono text-xs bg-muted/50"
+                              />
+                            </div>
+
+                            {/* After */}
+                            <div className="space-y-2">
+                              <Label className="text-sm font-medium text-green-700">
+                                After (Transformed)
+                              </Label>
+                              <Textarea
+                                value={results.finalCode}
+                                readOnly
+                                rows={12}
+                                className="font-mono text-xs border-green-200 bg-green-50"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="p-3 bg-muted rounded-lg">
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                              <CheckCircle className="h-4 w-4 text-green-600" />
+                              <span>
+                                Transformation complete •
+                                {Math.abs(
+                                  results.finalCode.length - code.length,
+                                )}{" "}
+                                character difference •
+                                {results.results.reduce(
+                                  (sum, r) => sum + r.changeCount,
+                                  0,
+                                )}{" "}
+                                total changes
+                              </span>
+                            </div>
+                          </div>
                         </div>
                       )}
                     </div>
                   ) : (
                     <div className="text-center py-12">
-                      <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                      <p className="text-lg font-medium">No results yet</p>
-                      <p className="text-muted-foreground">
-                        Run a transformation to see results here
-                      </p>
+                      <div className="space-y-4">
+                        <div className="flex justify-center">
+                          <div className="p-4 bg-muted/50 rounded-full">
+                            <FileText className="h-12 w-12 text-muted-foreground" />
+                          </div>
+                        </div>
+                        <div>
+                          <p className="text-lg font-medium">
+                            No transformations yet
+                          </p>
+                          <p className="text-muted-foreground max-w-md mx-auto">
+                            Upload a file, paste code, or import from GitHub,
+                            then run a transformation to see detailed results
+                            and comparisons here.
+                          </p>
+                        </div>
+                        {code && (
+                          <Button
+                            onClick={handleTransform}
+                            disabled={!userPlan.can_transform}
+                            className="mx-auto"
+                          >
+                            <Zap className="w-4 h-4 mr-2" />
+                            Transform Current Code
+                          </Button>
+                        )}
+                      </div>
                     </div>
                   )}
                 </CardContent>
