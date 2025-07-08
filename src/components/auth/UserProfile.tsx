@@ -1,13 +1,18 @@
-
-import React, { useEffect, useState } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import { User, Mail, Calendar, Zap, Crown } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import React, { useEffect, useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { User, Mail, Calendar, Zap, Crown } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 interface UserProfile {
   email: string;
@@ -33,23 +38,30 @@ export function UserProfile() {
   const fetchProfile = async () => {
     try {
       const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user?.id)
+        .from("profiles")
+        .select("*")
+        .eq("id", user?.id)
         .single();
 
       if (error) {
-        console.error('Error fetching profile:', error);
+        console.error("Error fetching profile:", error.message || error);
         toast({
-          title: "Error",
-          description: "Failed to load profile information",
-          variant: "destructive"
+          title: "Profile Error",
+          description: error.message || "Failed to load profile information",
+          variant: "destructive",
         });
       } else {
         setProfile(data);
       }
     } catch (error) {
-      console.error('Error:', error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+      console.error("Profile fetch error:", errorMessage);
+      toast({
+        title: "Profile Error",
+        description: errorMessage,
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
@@ -77,14 +89,18 @@ export function UserProfile() {
     return (
       <Card>
         <CardContent className="p-6">
-          <p className="text-center text-muted-foreground">Unable to load profile</p>
+          <p className="text-center text-muted-foreground">
+            Unable to load profile
+          </p>
         </CardContent>
       </Card>
     );
   }
 
-  const usagePercentage = (profile.monthly_transformations_used / profile.monthly_limit) * 100;
-  const remainingTransformations = profile.monthly_limit - profile.monthly_transformations_used;
+  const usagePercentage =
+    (profile.monthly_transformations_used / profile.monthly_limit) * 100;
+  const remainingTransformations =
+    profile.monthly_limit - profile.monthly_transformations_used;
 
   return (
     <Card>
@@ -105,7 +121,7 @@ export function UserProfile() {
               Full Name
             </div>
             <p className="text-sm text-muted-foreground">
-              {profile.full_name || 'Not provided'}
+              {profile.full_name || "Not provided"}
             </p>
           </div>
 
@@ -122,7 +138,9 @@ export function UserProfile() {
               <Crown className="h-4 w-4" />
               Plan Type
             </div>
-            <Badge variant={profile.plan_type === 'pro' ? 'default' : 'secondary'}>
+            <Badge
+              variant={profile.plan_type === "pro" ? "default" : "secondary"}
+            >
               {profile.plan_type.toUpperCase()}
             </Badge>
           </div>
@@ -143,7 +161,7 @@ export function UserProfile() {
             <Zap className="h-4 w-4" />
             <span className="text-sm font-medium">Monthly Usage</span>
           </div>
-          
+
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
               <span>Transformations Used</span>
@@ -160,18 +178,15 @@ export function UserProfile() {
           {usagePercentage > 80 && (
             <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
               <p className="text-sm text-yellow-800">
-                You're approaching your monthly limit. Consider upgrading to Pro for unlimited transformations.
+                You're approaching your monthly limit. Consider upgrading to Pro
+                for unlimited transformations.
               </p>
             </div>
           )}
         </div>
 
         <div className="pt-4 border-t">
-          <Button 
-            onClick={handleSignOut}
-            variant="outline"
-            className="w-full"
-          >
+          <Button onClick={handleSignOut} variant="outline" className="w-full">
             Sign Out
           </Button>
         </div>
