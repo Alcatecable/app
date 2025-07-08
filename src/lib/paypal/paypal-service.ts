@@ -237,7 +237,56 @@ class PayPalService {
 
       return this.getDefaultSubscription();
     } catch (error) {
-      console.error("Error in getUserSubscription:", error);
+      console.warn(
+        "Error in getUserSubscription:",
+        error instanceof Error ? error.message : "Unknown error",
+      );
+      return this.getDefaultSubscription();
+    }
+  }
+
+  private async getUserSubscriptionFallback(userId: string) {
+    try {
+      // Try to query user_subscriptions table directly
+      const { data: subscription, error } = await supabase
+        .from("user_subscriptions")
+        .select("*")
+        .eq("user_id", userId)
+        .eq("status", "active")
+        .single();
+
+      if (error || !subscription) {
+        console.warn("No active subscription found, using default");
+        return this.getDefaultSubscription();
+      }
+
+      // Get current month usage
+      const currentUsage = await this.getMonthlyUsage();
+
+      return {
+        plan_name: subscription.plan_name || "Free",
+        plan_id: subscription.plan_id || "free",
+        transformation_limit: subscription.transformation_limit || 25,
+        current_usage: currentUsage,
+        remaining_transformations: Math.max(
+          0,
+          (subscription.transformation_limit || 25) - currentUsage,
+        ),
+        status: subscription.status || "active",
+        period_end: subscription.period_end,
+        billing_cycle: subscription.billing_cycle || "monthly",
+        can_transform: currentUsage < (subscription.transformation_limit || 25),
+        features: subscription.features || [
+          "Basic code analysis",
+          "Up to 25 transformations/month",
+          "Community support",
+        ],
+      };
+    } catch (error) {
+      console.warn(
+        "Fallback subscription query failed:",
+        error instanceof Error ? error.message : "Unknown error",
+      );
       return this.getDefaultSubscription();
     }
   }
