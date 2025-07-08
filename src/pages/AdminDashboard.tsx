@@ -51,6 +51,18 @@ import {
   Code2,
   Layers,
   Timer,
+  Key,
+  Lock,
+  Unlock,
+  Save,
+  TestTube,
+  Copy,
+  EyeOff,
+  Wifi,
+  WifiOff,
+  CheckCircle2,
+  AlertTriangle,
+  Loader2,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -92,6 +104,30 @@ interface TransformationData {
   file_name?: string;
 }
 
+interface CredentialConfig {
+  id: string;
+  name: string;
+  service: string;
+  fields: CredentialField[];
+  description: string;
+  icon: React.ReactNode;
+  testEndpoint?: string;
+}
+
+interface CredentialField {
+  key: string;
+  label: string;
+  type: "text" | "password" | "url" | "select";
+  required: boolean;
+  placeholder?: string;
+  description?: string;
+  options?: string[];
+}
+
+interface StoredCredentials {
+  [key: string]: string;
+}
+
 export default function AdminDashboard() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -121,10 +157,26 @@ export default function AdminDashboard() {
   const [dateRange, setDateRange] = useState("7d");
   const [statusFilter, setStatusFilter] = useState("all");
 
+  // Credentials management states
+  const [credentials, setCredentials] = useState<StoredCredentials>({});
+  const [editingCredentials, setEditingCredentials] =
+    useState<StoredCredentials>({});
+  const [showPasswords, setShowPasswords] = useState<{
+    [key: string]: boolean;
+  }>({});
+  const [testingConnections, setTestingConnections] = useState<{
+    [key: string]: boolean;
+  }>({});
+  const [connectionStatus, setConnectionStatus] = useState<{
+    [key: string]: "success" | "error" | "unknown";
+  }>({});
+  const [credentialsSaved, setCredentialsSaved] = useState(false);
+
   // Load admin data
   useEffect(() => {
     if (user) {
       loadAdminData();
+      loadCredentials();
     }
   }, [user]);
 
@@ -143,6 +195,170 @@ export default function AdminDashboard() {
       setIsLoading(false);
     }
   };
+
+  // Credential configurations for different services
+  const credentialConfigs: CredentialConfig[] = [
+    {
+      id: "supabase",
+      name: "Supabase",
+      service: "Database & Auth",
+      icon: <Database className="h-5 w-5 text-green-600" />,
+      description: "Database and authentication service configuration",
+      fields: [
+        {
+          key: "VITE_SUPABASE_URL",
+          label: "Supabase URL",
+          type: "url",
+          required: true,
+          placeholder: "https://your-project.supabase.co",
+          description: "Your Supabase project URL",
+        },
+        {
+          key: "VITE_SUPABASE_ANON_KEY",
+          label: "Supabase Anon Key",
+          type: "password",
+          required: true,
+          placeholder: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+          description: "Public anonymous key for client-side access",
+        },
+        {
+          key: "SUPABASE_SERVICE_ROLE_KEY",
+          label: "Service Role Key",
+          type: "password",
+          required: false,
+          placeholder: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+          description: "Server-side service role key (admin access)",
+        },
+      ],
+    },
+    {
+      id: "paypal",
+      name: "PayPal",
+      service: "Payment Processing",
+      icon: <Globe className="h-5 w-5 text-blue-600" />,
+      description: "PayPal payment processing and subscription management",
+      fields: [
+        {
+          key: "VITE_PAYPAL_CLIENT_ID",
+          label: "PayPal Client ID",
+          type: "text",
+          required: true,
+          placeholder:
+            "AYSq3RDGsmBLJE-otTkBtM-jBRd1TCQwFf9RGfwddNXWz0uFU9ztymylOhRS...",
+          description: "PayPal application client ID",
+        },
+        {
+          key: "PAYPAL_CLIENT_SECRET",
+          label: "PayPal Client Secret",
+          type: "password",
+          required: true,
+          placeholder:
+            "EGnHDxD_qRPdaLdHgGYs_J4uGD5GjRc_EuK_G5g-Nc0bz0f1Y2s6K3r7s...",
+          description: "PayPal application client secret",
+        },
+        {
+          key: "PAYPAL_ENVIRONMENT",
+          label: "Environment",
+          type: "select",
+          required: true,
+          options: ["sandbox", "production"],
+          description:
+            "PayPal environment (sandbox for testing, production for live)",
+        },
+        {
+          key: "PAYPAL_WEBHOOK_ID",
+          label: "Webhook ID",
+          type: "text",
+          required: false,
+          placeholder: "1JE25297HC6565909",
+          description: "PayPal webhook ID for event notifications",
+        },
+      ],
+    },
+    {
+      id: "resend",
+      name: "Resend",
+      service: "Email Service",
+      icon: <Mail className="h-5 w-5 text-purple-600" />,
+      description: "Email delivery service for notifications and marketing",
+      fields: [
+        {
+          key: "RESEND_API_KEY",
+          label: "Resend API Key",
+          type: "password",
+          required: true,
+          placeholder: "re_123abc456def789ghi012jkl345mno678pqr",
+          description: "Resend API key for email sending",
+        },
+        {
+          key: "RESEND_FROM_EMAIL",
+          label: "From Email",
+          type: "text",
+          required: true,
+          placeholder: "noreply@neurolint.dev",
+          description: "Default sender email address",
+        },
+      ],
+    },
+    {
+      id: "github",
+      name: "GitHub",
+      service: "Repository Integration",
+      icon: <GitBranch className="h-5 w-5 text-gray-800" />,
+      description: "GitHub API for repository access and integration",
+      fields: [
+        {
+          key: "GITHUB_TOKEN",
+          label: "GitHub Personal Access Token",
+          type: "password",
+          required: false,
+          placeholder: "ghp_1234567890abcdef1234567890abcdef12345678",
+          description: "GitHub PAT for accessing private repositories",
+        },
+        {
+          key: "GITHUB_APP_ID",
+          label: "GitHub App ID",
+          type: "text",
+          required: false,
+          placeholder: "123456",
+          description: "GitHub App ID for enhanced integration",
+        },
+      ],
+    },
+    {
+      id: "system",
+      name: "System",
+      service: "Application Settings",
+      icon: <Settings className="h-5 w-5 text-gray-600" />,
+      description: "Core application configuration and feature flags",
+      fields: [
+        {
+          key: "VITE_APP_URL",
+          label: "Application URL",
+          type: "url",
+          required: true,
+          placeholder: "https://app.neurolint.dev",
+          description: "Base URL for the application",
+        },
+        {
+          key: "ENVIRONMENT",
+          label: "Environment",
+          type: "select",
+          required: true,
+          options: ["development", "staging", "production"],
+          description: "Current deployment environment",
+        },
+        {
+          key: "DEBUG_MODE",
+          label: "Debug Mode",
+          type: "select",
+          required: false,
+          options: ["true", "false"],
+          description: "Enable detailed logging and debugging",
+        },
+      ],
+    },
+  ];
 
   const loadStats = async () => {
     try {
