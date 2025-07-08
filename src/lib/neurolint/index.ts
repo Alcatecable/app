@@ -6,6 +6,8 @@ export { LayerDependencyManager } from './dependency-manager';
 export { TransformationValidator } from './validation';
 export { TransformationPipeline } from './pipeline';
 export { ErrorRecoverySystem } from './error-recovery';
+export { logger } from './logger';
+export { metrics } from './metrics';
 
 // Export types
 export type {
@@ -24,6 +26,17 @@ export type {
   LayerMetadata,
   RecoverySuggestion
 } from './types';
+
+export type {
+  LogContext,
+  LogEntry
+} from './logger';
+
+export type {
+  MetricData,
+  PerformanceMetrics,
+  LayerMetrics
+} from './metrics';
 
 // Export constants
 export {
