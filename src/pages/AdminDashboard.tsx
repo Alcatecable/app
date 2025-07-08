@@ -597,23 +597,26 @@ export default function AdminDashboard() {
   // Credential management functions
   const loadCredentials = async () => {
     try {
-      // In a real implementation, you'd load from a secure backend
-      // For now, we'll use localStorage with encryption considerations
-      const storedCreds = localStorage.getItem("admin_credentials");
-      if (storedCreds) {
-        const parsed = JSON.parse(storedCreds);
-        setCredentials(parsed);
-        setEditingCredentials({ ...parsed });
+      const storedCreds = await credentialStorage.retrieveCredentials();
+      setCredentials(storedCreds);
+      setEditingCredentials({ ...storedCreds });
 
-        // Check connection status for each service
-        Object.keys(parsed).forEach((serviceId) => {
-          if (parsed[serviceId]) {
-            checkConnectionStatus(serviceId);
-          }
-        });
-      }
+      // Check connection status for each service
+      Object.keys(storedCreds).forEach((serviceId) => {
+        if (
+          storedCreds[serviceId] &&
+          Object.keys(storedCreds[serviceId]).length > 0
+        ) {
+          checkConnectionStatus(serviceId);
+        }
+      });
     } catch (error) {
       console.error("Failed to load credentials:", error);
+      toast({
+        title: "Failed to load credentials",
+        description: "There was an error loading stored credentials.",
+        variant: "destructive",
+      });
     }
   };
 
