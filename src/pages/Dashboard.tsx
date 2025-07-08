@@ -670,9 +670,14 @@ export default function Dashboard() {
                           <div>
                             <label
                               htmlFor={`layer-${layer.id}`}
-                              className="text-sm font-medium cursor-pointer"
+                              className="text-sm font-medium cursor-pointer flex items-center gap-2"
                             >
                               Layer {layer.id}: {layer.name}
+                              {layer.beta && (
+                                <Badge variant="secondary" className="text-xs">
+                                  🧠 AI
+                                </Badge>
+                              )}
                             </label>
                             <p className="text-xs text-muted-foreground">
                               {layer.desc}
