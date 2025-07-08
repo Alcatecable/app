@@ -440,6 +440,74 @@ export class NeuroLintOrchestrator {
           );
         }
         break;
+
+      case 5: // Next.js App Router Fixes
+        // Add 'use client' directive if needed
+        if (
+          !code.includes("'use client'") &&
+          code.includes("useState") &&
+          code.includes("import")
+        ) {
+          transformedCode = "'use client';\n" + code;
+        }
+        // Optimize React imports
+        else if (
+          code.includes("import") &&
+          !code.includes("import React") &&
+          code.includes("React.")
+        ) {
+          transformedCode = code.replace(
+            /^import\s+{([^}]*)} from ['"]react['"]/m,
+            'import React, { $1 } from "react"',
+          );
+        }
+        break;
+
+      case 6: // Testing and Validation
+        // Add React.memo for performance
+        if (
+          code.includes("function ") &&
+          code.includes("return (") &&
+          !code.includes("React.memo")
+        ) {
+          transformedCode = code.replace(
+            /(function\s+\w+\s*\([^)]*\)\s*{[^}]*return\s*\()/,
+            "React.memo($1",
+          );
+          // Add closing parenthesis
+          const lastBraceIndex = transformedCode.lastIndexOf("}");
+          if (lastBraceIndex > -1) {
+            transformedCode =
+              transformedCode.slice(0, lastBraceIndex + 1) +
+              ")" +
+              transformedCode.slice(lastBraceIndex + 1);
+          }
+        }
+        // Add accessibility attributes
+        else if (
+          code.includes("<") &&
+          !code.includes("aria-") &&
+          code.includes("div")
+        ) {
+          transformedCode = code.replace(
+            /<div([^>]*?)>/g,
+            '<div$1 aria-label="content">',
+          );
+        }
+        break;
+
+      case 7: // Adaptive Pattern Learning
+        const learningResult = await patternLearner.applyLearnedRules(code);
+        transformedCode = learningResult.transformedCode;
+
+        if (learningResult.ruleCount > 0) {
+          logger.info("Applied learned rules", {
+            ruleCount: learningResult.ruleCount,
+            rules: learningResult.appliedRules,
+            executionTime: learningResult.executionTime,
+          });
+        }
+        break;
     }
 
     await new Promise((resolve) => setTimeout(resolve, 50));
