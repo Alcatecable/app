@@ -269,6 +269,28 @@ export class NeuroLintOrchestrator {
             changeCount,
           );
 
+          // Learn from successful transformations (Layers 1-6 only)
+          if (layerId !== 7 && previous !== transformed && changeCount > 0) {
+            try {
+              await patternLearner.learnFromTransformation(
+                previous,
+                transformed,
+                layerId,
+              );
+              logger.debug(`Learning patterns from Layer ${layerId}`, {
+                executionId,
+                layerId,
+                changeCount,
+              });
+            } catch (error) {
+              logger.warn(`Pattern learning failed for Layer ${layerId}`, {
+                error: error instanceof Error ? error.message : "Unknown error",
+                executionId,
+                layerId,
+              });
+            }
+          }
+
           logger.info(`Layer ${layerId} completed successfully`, {
             executionId,
             layerId,
