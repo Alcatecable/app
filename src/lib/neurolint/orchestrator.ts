@@ -334,10 +334,10 @@ export class NeuroLintOrchestrator {
     if (
       requestedLayers &&
       requestedLayers.some(
-        (layer) => !Number.isInteger(layer) || layer < 1 || layer > 6,
+        (layer) => !Number.isInteger(layer) || layer < 1 || layer > 7,
       )
     ) {
-      throw new Error("Layer IDs must be integers between 1 and 6");
+      throw new Error("Layer IDs must be integers between 1 and 7");
     }
 
     if (options && typeof options !== "object") {
