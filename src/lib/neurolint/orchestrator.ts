@@ -580,6 +580,36 @@ export class NeuroLintOrchestrator {
       improvements.push("SSR guards added for browser APIs");
     }
 
+    // Layer 5 improvements
+    if (!before.includes("'use client'") && after.includes("'use client'")) {
+      improvements.push("Added 'use client' directive for Next.js");
+    }
+
+    if (
+      before.includes("import") &&
+      !before.includes("import React") &&
+      after.includes("import React")
+    ) {
+      improvements.push("Optimized React imports");
+    }
+
+    // Layer 6 improvements
+    if (
+      before.includes("function ") &&
+      !before.includes("React.memo") &&
+      after.includes("React.memo")
+    ) {
+      improvements.push("Added React.memo for performance optimization");
+    }
+
+    if (
+      before.includes("<div") &&
+      !before.includes("aria-") &&
+      after.includes("aria-")
+    ) {
+      improvements.push("Added accessibility attributes");
+    }
+
     return improvements;
   }
 }
