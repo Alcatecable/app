@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
+import { AdminProtectedRoute } from "@/components/auth/AdminProtectedRoute";
 import {
   Card,
   CardContent,
