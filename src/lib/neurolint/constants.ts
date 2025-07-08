@@ -72,6 +72,9 @@ export const LAYER_DEPENDENCIES = {
   2: [1], // Entity cleanup depends on config foundation
   3: [1, 2], // Components depend on config + cleanup
   4: [1, 2, 3], // Hydration depends on all previous layers
+  5: [1, 2, 3, 4], // Next.js depends on all foundational layers
+  6: [1, 2, 3, 4, 5], // Testing depends on all previous layers
+  7: [1, 2, 3, 4, 5, 6], // Adaptive learning learns from all previous layers
 };
 
 export const LAYER_INFO = {
