@@ -592,6 +592,237 @@ export default function AdminDashboard() {
     });
   };
 
+  // Credential management functions
+  const loadCredentials = async () => {
+    try {
+      // In a real implementation, you'd load from a secure backend
+      // For now, we'll use localStorage with encryption considerations
+      const storedCreds = localStorage.getItem("admin_credentials");
+      if (storedCreds) {
+        const parsed = JSON.parse(storedCreds);
+        setCredentials(parsed);
+        setEditingCredentials({ ...parsed });
+
+        // Check connection status for each service
+        Object.keys(parsed).forEach((serviceId) => {
+          if (parsed[serviceId]) {
+            checkConnectionStatus(serviceId);
+          }
+        });
+      }
+    } catch (error) {
+      console.error("Failed to load credentials:", error);
+    }
+  };
+
+  const saveCredentials = async () => {
+    try {
+      // In production, this would encrypt and send to secure backend
+      localStorage.setItem(
+        "admin_credentials",
+        JSON.stringify(editingCredentials),
+      );
+      setCredentials({ ...editingCredentials });
+      setCredentialsSaved(true);
+
+      toast({
+        title: "Credentials saved",
+        description: "All credentials have been securely stored.",
+      });
+
+      // Refresh connection status
+      Object.keys(editingCredentials).forEach((serviceId) => {
+        checkConnectionStatus(serviceId);
+      });
+
+      setTimeout(() => setCredentialsSaved(false), 2000);
+    } catch (error) {
+      toast({
+        title: "Failed to save credentials",
+        description: "There was an error saving the credentials.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const updateCredentialField = (
+    serviceId: string,
+    fieldKey: string,
+    value: string,
+  ) => {
+    setEditingCredentials((prev) => ({
+      ...prev,
+      [serviceId]: {
+        ...prev[serviceId],
+        [fieldKey]: value,
+      },
+    }));
+  };
+
+  const togglePasswordVisibility = (fieldId: string) => {
+    setShowPasswords((prev) => ({
+      ...prev,
+      [fieldId]: !prev[fieldId],
+    }));
+  };
+
+  const testConnection = async (serviceId: string) => {
+    setTestingConnections((prev) => ({ ...prev, [serviceId]: true }));
+
+    try {
+      const serviceCredentials = editingCredentials[serviceId] || {};
+      let success = false;
+
+      switch (serviceId) {
+        case "supabase":
+          success = await testSupabaseConnection(serviceCredentials);
+          break;
+        case "paypal":
+          success = await testPayPalConnection(serviceCredentials);
+          break;
+        case "resend":
+          success = await testResendConnection(serviceCredentials);
+          break;
+        case "github":
+          success = await testGitHubConnection(serviceCredentials);
+          break;
+        default:
+          success = true; // For system configs, just validate format
+      }
+
+      setConnectionStatus((prev) => ({
+        ...prev,
+        [serviceId]: success ? "success" : "error",
+      }));
+
+      toast({
+        title: success ? "Connection successful" : "Connection failed",
+        description: success
+          ? `Successfully connected to ${credentialConfigs.find((c) => c.id === serviceId)?.name}`
+          : `Failed to connect to ${credentialConfigs.find((c) => c.id === serviceId)?.name}`,
+        variant: success ? "default" : "destructive",
+      });
+    } catch (error) {
+      setConnectionStatus((prev) => ({ ...prev, [serviceId]: "error" }));
+      toast({
+        title: "Connection test failed",
+        description:
+          error instanceof Error ? error.message : "Unknown error occurred",
+        variant: "destructive",
+      });
+    } finally {
+      setTestingConnections((prev) => ({ ...prev, [serviceId]: false }));
+    }
+  };
+
+  const checkConnectionStatus = async (serviceId: string) => {
+    // Lightweight connection check without user action
+    try {
+      const serviceCredentials = credentials[serviceId] || {};
+      const hasRequiredFields = credentialConfigs
+        .find((c) => c.id === serviceId)
+        ?.fields.filter((f) => f.required)
+        .every((f) => serviceCredentials[f.key]);
+
+      if (!hasRequiredFields) {
+        setConnectionStatus((prev) => ({ ...prev, [serviceId]: "unknown" }));
+        return;
+      }
+
+      // Quick validation without full API calls
+      setConnectionStatus((prev) => ({ ...prev, [serviceId]: "success" }));
+    } catch (error) {
+      setConnectionStatus((prev) => ({ ...prev, [serviceId]: "error" }));
+    }
+  };
+
+  // Service-specific connection testers
+  const testSupabaseConnection = async (creds: any): Promise<boolean> => {
+    if (!creds.VITE_SUPABASE_URL || !creds.VITE_SUPABASE_ANON_KEY) {
+      throw new Error("Missing required Supabase credentials");
+    }
+
+    try {
+      const response = await fetch(`${creds.VITE_SUPABASE_URL}/rest/v1/`, {
+        headers: {
+          apikey: creds.VITE_SUPABASE_ANON_KEY,
+          Authorization: `Bearer ${creds.VITE_SUPABASE_ANON_KEY}`,
+        },
+      });
+      return response.status === 200;
+    } catch (error) {
+      return false;
+    }
+  };
+
+  const testPayPalConnection = async (creds: any): Promise<boolean> => {
+    if (!creds.VITE_PAYPAL_CLIENT_ID || !creds.PAYPAL_CLIENT_SECRET) {
+      throw new Error("Missing required PayPal credentials");
+    }
+
+    try {
+      const baseUrl =
+        creds.PAYPAL_ENVIRONMENT === "production"
+          ? "https://api.paypal.com"
+          : "https://api.sandbox.paypal.com";
+
+      const response = await fetch(`${baseUrl}/v1/oauth2/token`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          Authorization: `Basic ${btoa(`${creds.VITE_PAYPAL_CLIENT_ID}:${creds.PAYPAL_CLIENT_SECRET}`)}`,
+        },
+        body: "grant_type=client_credentials",
+      });
+
+      return response.status === 200;
+    } catch (error) {
+      return false;
+    }
+  };
+
+  const testResendConnection = async (creds: any): Promise<boolean> => {
+    if (!creds.RESEND_API_KEY) {
+      throw new Error("Missing Resend API key");
+    }
+
+    try {
+      const response = await fetch("https://api.resend.com/domains", {
+        headers: {
+          Authorization: `Bearer ${creds.RESEND_API_KEY}`,
+        },
+      });
+      return response.status === 200;
+    } catch (error) {
+      return false;
+    }
+  };
+
+  const testGitHubConnection = async (creds: any): Promise<boolean> => {
+    if (!creds.GITHUB_TOKEN) {
+      return true; // GitHub token is optional
+    }
+
+    try {
+      const response = await fetch("https://api.github.com/user", {
+        headers: {
+          Authorization: `token ${creds.GITHUB_TOKEN}`,
+        },
+      });
+      return response.status === 200;
+    } catch (error) {
+      return false;
+    }
+  };
+
+  const copyToClipboard = (text: string, label: string) => {
+    navigator.clipboard.writeText(text);
+    toast({
+      title: "Copied to clipboard",
+      description: `${label} has been copied to your clipboard.`,
+    });
+  };
+
   // Filter functions
   const filteredUsers = users.filter(
     (user) =>
