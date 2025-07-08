@@ -1,5 +1,5 @@
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -25,6 +25,7 @@ import {
 import { NeuroLintOrchestrator, LayerExecutionResult } from '@/lib/neurolint';
 import { useAuth } from '@/contexts/AuthContext';
 import { paypalService } from '@/lib/paypal/paypal-service';
+import { supabase } from '@/integrations/supabase/client';
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -42,8 +43,32 @@ export default function Dashboard() {
   const [userPlan, setUserPlan] = useState({
     plan_name: 'Free',
     transformation_limit: 25,
-    current_usage: 5
+    current_usage: 0,
+    remaining_transformations: 25,
+    can_transform: true
   });
+
+  // Load user subscription data on mount
+  useEffect(() => {
+    if (user) {
+      loadUserSubscription();
+    }
+  }, [user]);
+
+  const loadUserSubscription = async () => {
+    try {
+      const subscription = await paypalService.getUserSubscription();
+      setUserPlan({
+        plan_name: subscription.plan_name,
+        transformation_limit: subscription.transformation_limit,
+        current_usage: subscription.current_usage,
+        remaining_transformations: subscription.remaining_transformations,
+        can_transform: subscription.can_transform
+      });
+    } catch (error) {
+      console.error('Failed to load user subscription:', error);
+    }
+  };
 
   // Handle code transformation
   const handleTransform = useCallback(async () => {
@@ -56,19 +81,18 @@ export default function Dashboard() {
       return;
     }
 
+    if (!userPlan.can_transform) {
+      toast({
+        title: "Usage limit reached",
+        description: "You've reached your monthly transformation limit. Upgrade to continue.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setIsProcessing(true);
     
     try {
-      // Check usage limits
-      if (userPlan.current_usage >= userPlan.transformation_limit) {
-        toast({
-          title: "Usage limit reached",
-          description: "You've reached your monthly transformation limit. Upgrade to continue.",
-          variant: "destructive"
-        });
-        return;
-      }
-
       const result = await NeuroLintOrchestrator.transform(code, selectedLayers, {
         verbose: true,
         dryRun: false
@@ -76,11 +100,22 @@ export default function Dashboard() {
 
       setResults(result);
       
-      // Update usage count
-      setUserPlan(prev => ({
-        ...prev,
-        current_usage: prev.current_usage + 1
-      }));
+      // Track transformation in database
+      if (user) {
+        await supabase.from('transformations').insert({
+          user_id: user.id,
+          original_code_length: code.length,
+          transformed_code_length: result.finalCode.length,
+          layers_used: selectedLayers,
+          changes_count: result.results.reduce((sum, r) => sum + r.changeCount, 0),
+          execution_time_ms: result.totalExecutionTime,
+          success: result.successfulLayers > 0,
+          file_name: uploadedFile?.name || null
+        });
+
+        // Refresh user subscription data
+        await loadUserSubscription();
+      }
 
       toast({
         title: "Transformation completed!",
@@ -97,7 +132,7 @@ export default function Dashboard() {
     } finally {
       setIsProcessing(false);
     }
-  }, [code, selectedLayers, userPlan, toast]);
+  }, [code, selectedLayers, userPlan, user, uploadedFile, toast]);
 
   // Handle file upload
   const handleFileUpload = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
@@ -164,29 +199,16 @@ export default function Dashboard() {
       return;
     }
 
-    try {
-      // Extract owner and repo from URL
-      const urlParts = githubUrl.replace('https://github.com/', '').split('/');
-      const owner = urlParts[0];
-      const repo = urlParts[1];
-      
-      // For now, show a placeholder message since we need GitHub API integration
-      toast({
-        title: "GitHub integration coming soon",
-        description: "Direct GitHub import will be available in the next update. Please copy and paste your code for now.",
-      });
-      
-    } catch (error) {
-      toast({
-        title: "GitHub import failed",
-        description: "Failed to import from GitHub. Please try again.",
-        variant: "destructive"
-      });
-    }
+    toast({
+      title: "GitHub integration coming soon",
+      description: "Direct GitHub import will be available in the next update. Please copy and paste your code for now.",
+    });
   }, [githubUrl, toast]);
 
   // Calculate usage percentage
-  const usagePercentage = (userPlan.current_usage / userPlan.transformation_limit) * 100;
+  const usagePercentage = userPlan.transformation_limit > 0 
+    ? (userPlan.current_usage / userPlan.transformation_limit) * 100 
+    : 0;
 
   return (
     <ProtectedRoute>
@@ -233,7 +255,7 @@ export default function Dashboard() {
                 </div>
                 <Progress value={usagePercentage} className="h-2" />
                 <p className="text-xs text-muted-foreground">
-                  {userPlan.transformation_limit - userPlan.current_usage} transformations remaining
+                  {userPlan.remaining_transformations} transformations remaining
                 </p>
               </div>
             </CardContent>
@@ -313,7 +335,7 @@ export default function Dashboard() {
 
                   <Button 
                     onClick={handleTransform} 
-                    disabled={!code.trim() || isProcessing || usagePercentage >= 100}
+                    disabled={!code.trim() || isProcessing || !userPlan.can_transform}
                     className="w-full"
                     size="lg"
                   >
@@ -325,7 +347,7 @@ export default function Dashboard() {
                     ) : (
                       <>
                         <Zap className="w-4 h-4 mr-2" />
-                        Transform Code
+                        Transform Code ({userPlan.remaining_transformations} remaining)
                       </>
                     )}
                   </Button>
@@ -385,7 +407,6 @@ export default function Dashboard() {
               </Card>
             </TabsContent>
 
-            {/* GitHub Import Tab */}
             <TabsContent value="github" className="space-y-6">
               <Card>
                 <CardHeader>
@@ -429,7 +450,6 @@ export default function Dashboard() {
               </Card>
             </TabsContent>
 
-            {/* Results Tab */}
             <TabsContent value="results" className="space-y-6">
               <Card>
                 <CardHeader>

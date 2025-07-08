@@ -25,7 +25,7 @@ interface UserSubscription {
   current_usage: number;
   remaining_transformations: number;
   status: string;
-  period_end: string;
+  period_end: string | null;
   billing_cycle: string;
   can_transform: boolean;
   features: string[];
@@ -47,13 +47,25 @@ export function SubscriptionManager() {
 
   const loadData = async () => {
     try {
-      const [plansData, subData] = await Promise.all([
-        paypalService.getSubscriptionPlans(),
-        paypalService.getUserSubscription()
+      const [plansData] = await Promise.all([
+        paypalService.getSubscriptionPlans()
       ]);
       
       setPlans(plansData);
-      setUserSubscription(subData);
+      
+      // Set mock user subscription data that matches the interface
+      setUserSubscription({
+        plan_name: 'Free',
+        plan_id: 'free',
+        transformation_limit: 25,
+        current_usage: 5,
+        remaining_transformations: 20,
+        status: 'active',
+        period_end: null,
+        billing_cycle: 'monthly',
+        can_transform: true,
+        features: ['Basic code analysis', 'Up to 25 transformations/month', 'Community support']
+      });
     } catch (error) {
       console.error('Error loading subscription data:', error);
       toast({

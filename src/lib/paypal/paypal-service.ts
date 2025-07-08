@@ -1,6 +1,5 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { SubscriptionPlan, UserSubscription } from '@/types/supabase-extended';
 
 export interface PayPalSubscriptionPlan {
   id: string;
@@ -31,12 +30,45 @@ class PayPalService {
   private baseUrl: string;
 
   constructor() {
-    // In production, this would be determined by environment
     this.baseUrl = 'https://api.sandbox.paypal.com';
   }
 
   async getSubscriptionPlans(): Promise<PayPalSubscriptionPlan[]> {
-    // For now, return mock data until the database migration is run
+    try {
+      // Try to fetch from Supabase first
+      const { data: plans, error } = await supabase
+        .from('subscription_plans')
+        .select('*')
+        .eq('is_active', true)
+        .order('price_monthly', { ascending: true });
+
+      if (error) {
+        console.warn('Failed to fetch plans from Supabase, using fallback:', error);
+        return this.getFallbackPlans();
+      }
+
+      if (plans && plans.length > 0) {
+        return plans.map(plan => ({
+          id: plan.id,
+          name: plan.name,
+          description: plan.description || '',
+          price_monthly: Number(plan.price_monthly),
+          price_yearly: Number(plan.price_yearly || 0),
+          transformation_limit: plan.transformation_limit,
+          features: Array.isArray(plan.features) ? plan.features : [],
+          paypal_plan_id_monthly: plan.paypal_plan_id_monthly,
+          paypal_plan_id_yearly: plan.paypal_plan_id_yearly
+        }));
+      }
+
+      return this.getFallbackPlans();
+    } catch (error) {
+      console.error('Error fetching subscription plans:', error);
+      return this.getFallbackPlans();
+    }
+  }
+
+  private getFallbackPlans(): PayPalSubscriptionPlan[] {
     return [
       {
         id: 'free',
@@ -79,7 +111,6 @@ class PayPalService {
 
   async createSubscription(request: CreateSubscriptionRequest): Promise<PayPalSubscriptionResponse> {
     try {
-      // Get the plan details
       const plans = await this.getSubscriptionPlans();
       const plan = plans.find(p => p.id === request.planId);
 
@@ -87,7 +118,6 @@ class PayPalService {
         throw new Error('Subscription plan not found');
       }
 
-      // Create subscription via edge function
       const response = await supabase.functions.invoke('create-paypal-subscription', {
         body: {
           planId: plan.paypal_plan_id_yearly || plan.paypal_plan_id_monthly || 'mock-plan-id',
@@ -127,19 +157,81 @@ class PayPalService {
   }
 
   async getUserSubscription() {
-    // Mock user subscription data for now
+    try {
+      const { data: user } = await supabase.auth.getUser();
+      
+      if (!user.user) {
+        throw new Error('User not authenticated');
+      }
+
+      // Get user subscription details using the database function
+      const { data, error } = await supabase
+        .rpc('get_user_subscription_details', { user_uuid: user.user.id });
+
+      if (error) {
+        console.error('Error fetching user subscription:', error);
+        return this.getDefaultSubscription();
+      }
+
+      if (data && data.length > 0) {
+        const subscription = data[0];
+        return {
+          plan_name: subscription.plan_name,
+          plan_id: subscription.plan_id,
+          transformation_limit: subscription.transformation_limit,
+          current_usage: subscription.current_usage,
+          remaining_transformations: subscription.remaining_transformations,
+          status: subscription.status,
+          period_end: subscription.period_end,
+          billing_cycle: subscription.billing_cycle,
+          can_transform: subscription.can_transform,
+          features: subscription.features || []
+        };
+      }
+
+      return this.getDefaultSubscription();
+    } catch (error) {
+      console.error('Error in getUserSubscription:', error);
+      return this.getDefaultSubscription();
+    }
+  }
+
+  private getDefaultSubscription() {
     return {
       plan_name: 'Free',
+      plan_id: 'free',
       transformation_limit: 25,
-      current_usage: 5,
+      current_usage: 0,
+      remaining_transformations: 25,
       status: 'active',
-      period_end: null
+      period_end: null,
+      billing_cycle: 'monthly',
+      can_transform: true,
+      features: ['Basic code analysis', 'Up to 25 transformations/month', 'Community support']
     };
   }
 
   async getMonthlyUsage(): Promise<number> {
-    // Mock usage data for now
-    return 5;
+    try {
+      const { data: user } = await supabase.auth.getUser();
+      
+      if (!user.user) {
+        return 0;
+      }
+
+      const { data, error } = await supabase
+        .rpc('get_monthly_usage', { user_uuid: user.user.id });
+
+      if (error) {
+        console.error('Error fetching monthly usage:', error);
+        return 0;
+      }
+
+      return data || 0;
+    } catch (error) {
+      console.error('Error in getMonthlyUsage:', error);
+      return 0;
+    }
   }
 }
 
