@@ -64,7 +64,7 @@ interface AdminStats {
   systemHealth: number;
   averageExecutionTime: number;
   errorRate: number;
-  popularLayers: Array<{ layerId: number; count: number; name: string }>;
+  popularLayers: Array<{layerId: number, count: number, name: string}>;
 }
 
 interface UserData {
@@ -75,8 +75,8 @@ interface UserData {
   plan: string;
   usage: number;
   limit: number;
-  status: "active" | "inactive" | "suspended";
-  role: "user" | "admin" | "moderator";
+  status: 'active' | 'inactive' | 'suspended';
+  role: 'user' | 'admin' | 'moderator';
 }
 
 interface TransformationData {
@@ -105,13 +105,11 @@ export default function AdminDashboard() {
     systemHealth: 100,
     averageExecutionTime: 0,
     errorRate: 0,
-    popularLayers: [],
+    popularLayers: []
   });
-
+  
   const [users, setUsers] = useState<UserData[]>([]);
-  const [transformations, setTransformations] = useState<TransformationData[]>(
-    [],
-  );
+  const [transformations, setTransformations] = useState<TransformationData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -131,9 +129,13 @@ export default function AdminDashboard() {
   const loadAdminData = async () => {
     setIsLoading(true);
     try {
-      await Promise.all([loadStats(), loadUsers(), loadTransformations()]);
+      await Promise.all([
+        loadStats(),
+        loadUsers(),
+        loadTransformations()
+      ]);
     } catch (error) {
-      console.error("Failed to load admin data:", error);
+      console.error('Failed to load admin data:', error);
       toast({
         title: "Failed to load admin data",
         description: "Some data may not be current. Please refresh the page.",
@@ -148,32 +150,30 @@ export default function AdminDashboard() {
     try {
       // Get user stats
       const { data: userStats } = await supabase
-        .from("profiles")
-        .select("id, created_at, updated_at");
+        .from('profiles')
+        .select('id, created_at, updated_at');
 
       // Get transformation stats
       const { data: transformationStats } = await supabase
-        .from("transformations")
-        .select("*");
+        .from('transformations')
+        .select('*');
 
       // Calculate date ranges
       const today = new Date();
       const todayStart = new Date(today.setHours(0, 0, 0, 0));
       const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
 
-      const todayTransformations =
-        transformationStats?.filter(
-          (t) => new Date(t.created_at) >= todayStart,
-        ) || [];
+      const todayTransformations = transformationStats?.filter(t => 
+        new Date(t.created_at) >= todayStart
+      ) || [];
 
-      const recentUsers =
-        userStats?.filter(
-          (u) => new Date(u.updated_at || u.created_at) >= weekAgo,
-        ) || [];
+      const recentUsers = userStats?.filter(u => 
+        new Date(u.updated_at || u.created_at) >= weekAgo
+      ) || [];
 
       // Calculate layer popularity
       const layerCounts: Record<number, number> = {};
-      transformationStats?.forEach((t) => {
+      transformationStats?.forEach(t => {
         t.layers_used?.forEach((layerId: number) => {
           layerCounts[layerId] = (layerCounts[layerId] || 0) + 1;
         });
@@ -183,26 +183,20 @@ export default function AdminDashboard() {
         .map(([layerId, count]) => ({
           layerId: parseInt(layerId),
           count,
-          name: getLayerName(parseInt(layerId)),
+          name: getLayerName(parseInt(layerId))
         }))
         .sort((a, b) => b.count - a.count)
         .slice(0, 4);
 
       // Calculate metrics
-      const successfulTransformations =
-        transformationStats?.filter((t) => t.success) || [];
-      const failedTransformations =
-        transformationStats?.filter((t) => !t.success) || [];
+      const successfulTransformations = transformationStats?.filter(t => t.success) || [];
+      const failedTransformations = transformationStats?.filter(t => !t.success) || [];
+      
+      const avgExecTime = successfulTransformations.length > 0
+        ? successfulTransformations.reduce((sum, t) => sum + (t.execution_time_ms || 0), 0) / successfulTransformations.length
+        : 0;
 
-      const avgExecTime =
-        successfulTransformations.length > 0
-          ? successfulTransformations.reduce(
-              (sum, t) => sum + (t.execution_time_ms || 0),
-              0,
-            ) / successfulTransformations.length
-          : 0;
-
-      const errorRate = transformationStats?.length
+      const errorRate = transformationStats?.length 
         ? (failedTransformations.length / transformationStats.length) * 100
         : 0;
 
@@ -214,10 +208,11 @@ export default function AdminDashboard() {
         systemHealth: Math.max(0, 100 - errorRate),
         averageExecutionTime: avgExecTime,
         errorRate,
-        popularLayers,
+        popularLayers
       });
+
     } catch (error) {
-      console.error("Failed to load stats:", error);
+      console.error('Failed to load stats:', error);
     }
   };
 
@@ -225,79 +220,73 @@ export default function AdminDashboard() {
     try {
       // This would typically join with subscription and usage data
       const { data: profiles } = await supabase
-        .from("profiles")
-        .select("*")
-        .order("created_at", { ascending: false });
+        .from('profiles')
+        .select('*')
+        .order('created_at', { ascending: false });
 
       const { data: subscriptions } = await supabase
-        .from("subscriptions")
-        .select("*");
+        .from('subscriptions')
+        .select('*');
 
-      const usersData: UserData[] =
-        profiles?.map((profile) => {
-          const subscription = subscriptions?.find(
-            (s) => s.user_id === profile.id,
-          );
-          return {
-            id: profile.id,
-            email: profile.email || "Unknown",
-            created_at: profile.created_at,
-            last_sign_in_at: profile.updated_at,
-            plan: subscription?.plan_name || "Free",
-            usage: subscription?.current_usage || 0,
-            limit: subscription?.transformation_limit || 25,
-            status: "active", // You'd determine this based on your business logic
-            role: "user", // You'd get this from your role system
-          };
-        }) || [];
+      const usersData: UserData[] = profiles?.map(profile => {
+        const subscription = subscriptions?.find(s => s.user_id === profile.id);
+        return {
+          id: profile.id,
+          email: profile.email || 'Unknown',
+          created_at: profile.created_at,
+          last_sign_in_at: profile.updated_at,
+          plan: subscription?.plan_name || 'Free',
+          usage: subscription?.current_usage || 0,
+          limit: subscription?.transformation_limit || 25,
+          status: 'active', // You'd determine this based on your business logic
+          role: 'user' // You'd get this from your role system
+        };
+      }) || [];
 
       setUsers(usersData);
     } catch (error) {
-      console.error("Failed to load users:", error);
+      console.error('Failed to load users:', error);
     }
   };
 
   const loadTransformations = async () => {
     try {
       const { data } = await supabase
-        .from("transformations")
-        .select(
-          `
+        .from('transformations')
+        .select(`
           *,
           profiles!inner(email)
-        `,
-        )
-        .order("created_at", { ascending: false })
+        `)
+        .order('created_at', { ascending: false })
         .limit(100);
 
-      const transformationsData: TransformationData[] =
-        data?.map((t) => ({
-          id: t.id,
-          user_email: t.profiles?.email || "Unknown",
-          created_at: t.created_at,
-          layers_used: t.layers_used || [],
-          execution_time_ms: t.execution_time_ms || 0,
-          success: t.success || false,
-          original_code_length: t.original_code_length || 0,
-          transformed_code_length: t.transformed_code_length || 0,
-          changes_count: t.changes_count || 0,
-          file_name: t.file_name,
-        })) || [];
+      const transformationsData: TransformationData[] = data?.map(t => ({
+        id: t.id,
+        user_email: t.profiles?.email || 'Unknown',
+        created_at: t.created_at,
+        layers_used: t.layers_used || [],
+        execution_time_ms: t.execution_time_ms || 0,
+        success: t.success || false,
+        original_code_length: t.original_code_length || 0,
+        transformed_code_length: t.transformed_code_length || 0,
+        changes_count: t.changes_count || 0,
+        file_name: t.file_name
+      })) || [];
 
       setTransformations(transformationsData);
     } catch (error) {
-      console.error("Failed to load transformations:", error);
+      console.error('Failed to load transformations:', error);
     }
   };
 
   const getLayerName = (layerId: number): string => {
     const layerNames: Record<number, string> = {
-      1: "Configuration",
-      2: "Entity Cleanup",
-      3: "Components",
-      4: "Hydration",
-      5: "Next.js",
-      6: "Testing",
+      1: 'Configuration',
+      2: 'Entity Cleanup',
+      3: 'Components',
+      4: 'Hydration',
+      5: 'Next.js',
+      6: 'Testing'
     };
     return layerNames[layerId] || `Layer ${layerId}`;
   };
@@ -312,27 +301,24 @@ export default function AdminDashboard() {
     });
   };
 
-  const handleUserAction = async (
-    userId: string,
-    action: "suspend" | "activate" | "delete" | "promote",
-  ) => {
+  const handleUserAction = async (userId: string, action: 'suspend' | 'activate' | 'delete' | 'promote') => {
     try {
       // Implement user actions based on your business logic
       switch (action) {
-        case "suspend":
+        case 'suspend':
           // Update user status to suspended
           break;
-        case "activate":
+        case 'activate':
           // Update user status to active
           break;
-        case "delete":
+        case 'delete':
           // Soft delete user
           break;
-        case "promote":
+        case 'promote':
           // Change user role
           break;
       }
-
+      
       await loadUsers();
       toast({
         title: "User action completed",
@@ -347,24 +333,20 @@ export default function AdminDashboard() {
     }
   };
 
-  const exportData = (type: "users" | "transformations") => {
-    const data = type === "users" ? users : transformations;
+  const exportData = (type: 'users' | 'transformations') => {
+    const data = type === 'users' ? users : transformations;
     const csv = [
-      Object.keys(data[0] || {}).join(","),
-      ...data.map((row) =>
-        Object.values(row)
-          .map((val) =>
-            typeof val === "string" && val.includes(",") ? `"${val}"` : val,
-          )
-          .join(","),
-      ),
-    ].join("\n");
+      Object.keys(data[0] || {}).join(','),
+      ...data.map(row => Object.values(row).map(val => 
+        typeof val === 'string' && val.includes(',') ? `"${val}"` : val
+      ).join(','))
+    ].join('\n');
 
-    const blob = new Blob([csv], { type: "text/csv" });
+    const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
+    const a = document.createElement('a');
     a.href = url;
-    a.download = `${type}_export_${new Date().toISOString().split("T")[0]}.csv`;
+    a.download = `${type}_export_${new Date().toISOString().split('T')[0]}.csv`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -377,17 +359,14 @@ export default function AdminDashboard() {
   };
 
   // Filter functions
-  const filteredUsers = users.filter(
-    (user) =>
-      user.email.toLowerCase().includes(userFilter.toLowerCase()) &&
-      (statusFilter === "all" || user.status === statusFilter),
+  const filteredUsers = users.filter(user => 
+    user.email.toLowerCase().includes(userFilter.toLowerCase()) &&
+    (statusFilter === 'all' || user.status === statusFilter)
   );
 
-  const filteredTransformations = transformations.filter(
-    (t) =>
-      t.user_email.toLowerCase().includes(transformationFilter.toLowerCase()) ||
-      (t.file_name &&
-        t.file_name.toLowerCase().includes(transformationFilter.toLowerCase())),
+  const filteredTransformations = transformations.filter(t =>
+    t.user_email.toLowerCase().includes(transformationFilter.toLowerCase()) ||
+    (t.file_name && t.file_name.toLowerCase().includes(transformationFilter.toLowerCase()))
   );
 
   if (isLoading) {
@@ -403,8 +382,8 @@ export default function AdminDashboard() {
     );
   }
 
-  return (
-    <ProtectedRoute>
+    return (
+    <AdminProtectedRoute>
       <div className="min-h-screen bg-background">
         <div className="container mx-auto py-6 space-y-6">
           {/* Header */}
@@ -427,9 +406,7 @@ export default function AdminDashboard() {
                 onClick={handleRefresh}
                 disabled={refreshing}
               >
-                <RefreshCw
-                  className={`w-4 h-4 mr-2 ${refreshing ? "animate-spin" : ""}`}
-                />
+                <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
                 Refresh
               </Button>
               <Badge variant="default" className="text-sm">
@@ -444,12 +421,8 @@ export default function AdminDashboard() {
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-muted-foreground">
-                      Total Users
-                    </p>
-                    <p className="text-2xl font-bold">
-                      {stats.totalUsers.toLocaleString()}
-                    </p>
+                    <p className="text-sm font-medium text-muted-foreground">Total Users</p>
+                    <p className="text-2xl font-bold">{stats.totalUsers.toLocaleString()}</p>
                     <p className="text-xs text-green-600">
                       +{stats.activeUsers} active this week
                     </p>
@@ -463,12 +436,8 @@ export default function AdminDashboard() {
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-muted-foreground">
-                      Transformations
-                    </p>
-                    <p className="text-2xl font-bold">
-                      {stats.totalTransformations.toLocaleString()}
-                    </p>
+                    <p className="text-sm font-medium text-muted-foreground">Transformations</p>
+                    <p className="text-2xl font-bold">{stats.totalTransformations.toLocaleString()}</p>
                     <p className="text-xs text-green-600">
                       +{stats.todayTransformations} today
                     </p>
@@ -482,19 +451,13 @@ export default function AdminDashboard() {
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-muted-foreground">
-                      System Health
-                    </p>
-                    <p className="text-2xl font-bold">
-                      {stats.systemHealth.toFixed(1)}%
-                    </p>
+                    <p className="text-sm font-medium text-muted-foreground">System Health</p>
+                    <p className="text-2xl font-bold">{stats.systemHealth.toFixed(1)}%</p>
                     <p className="text-xs text-muted-foreground">
                       {stats.errorRate.toFixed(2)}% error rate
                     </p>
                   </div>
-                  <Server
-                    className={`h-8 w-8 ${stats.systemHealth > 95 ? "text-green-600" : stats.systemHealth > 85 ? "text-yellow-600" : "text-red-600"}`}
-                  />
+                  <Server className={`h-8 w-8 ${stats.systemHealth > 95 ? 'text-green-600' : stats.systemHealth > 85 ? 'text-yellow-600' : 'text-red-600'}`} />
                 </div>
               </CardContent>
             </Card>
@@ -503,12 +466,8 @@ export default function AdminDashboard() {
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-muted-foreground">
-                      Avg Exec Time
-                    </p>
-                    <p className="text-2xl font-bold">
-                      {stats.averageExecutionTime.toFixed(0)}ms
-                    </p>
+                    <p className="text-sm font-medium text-muted-foreground">Avg Exec Time</p>
+                    <p className="text-2xl font-bold">{stats.averageExecutionTime.toFixed(0)}ms</p>
                     <p className="text-xs text-muted-foreground">
                       Per transformation
                     </p>
@@ -535,11 +494,8 @@ export default function AdminDashboard() {
                       <span className="text-sm font-medium">{layer.name}</span>
                       <Badge variant="secondary">{layer.count}</Badge>
                     </div>
-                    <Progress
-                      value={
-                        (layer.count / (stats.popularLayers[0]?.count || 1)) *
-                        100
-                      }
+                    <Progress 
+                      value={(layer.count / (stats.popularLayers[0]?.count || 1)) * 100} 
                       className="h-2"
                     />
                   </div>
@@ -574,7 +530,7 @@ export default function AdminDashboard() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => exportData("users")}
+                      onClick={() => exportData('users')}
                     >
                       <Download className="w-4 h-4 mr-2" />
                       Export CSV
@@ -614,15 +570,9 @@ export default function AdminDashboard() {
                             <th className="text-left p-4 font-medium">User</th>
                             <th className="text-left p-4 font-medium">Plan</th>
                             <th className="text-left p-4 font-medium">Usage</th>
-                            <th className="text-left p-4 font-medium">
-                              Status
-                            </th>
-                            <th className="text-left p-4 font-medium">
-                              Joined
-                            </th>
-                            <th className="text-left p-4 font-medium">
-                              Actions
-                            </th>
+                            <th className="text-left p-4 font-medium">Status</th>
+                            <th className="text-left p-4 font-medium">Joined</th>
+                            <th className="text-left p-4 font-medium">Actions</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -638,22 +588,14 @@ export default function AdminDashboard() {
                                   <div>
                                     <p className="font-medium">{user.email}</p>
                                     <p className="text-sm text-muted-foreground">
-                                      {user.role === "admin" && (
-                                        <Crown className="w-3 h-3 inline mr-1" />
-                                      )}
+                                      {user.role === 'admin' && <Crown className="w-3 h-3 inline mr-1" />}
                                       {user.role}
                                     </p>
                                   </div>
                                 </div>
                               </td>
                               <td className="p-4">
-                                <Badge
-                                  variant={
-                                    user.plan === "Free"
-                                      ? "secondary"
-                                      : "default"
-                                  }
-                                >
+                                <Badge variant={user.plan === 'Free' ? 'secondary' : 'default'}>
                                   {user.plan}
                                 </Badge>
                               </td>
@@ -661,35 +603,21 @@ export default function AdminDashboard() {
                                 <div className="space-y-1">
                                   <div className="flex justify-between text-sm">
                                     <span>{user.usage}</span>
-                                    <span className="text-muted-foreground">
-                                      / {user.limit}
-                                    </span>
+                                    <span className="text-muted-foreground">/ {user.limit}</span>
                                   </div>
-                                  <Progress
-                                    value={(user.usage / user.limit) * 100}
-                                    className="h-1"
-                                  />
+                                  <Progress value={(user.usage / user.limit) * 100} className="h-1" />
                                 </div>
                               </td>
                               <td className="p-4">
-                                <Badge
+                                <Badge 
                                   variant={
-                                    user.status === "active"
-                                      ? "default"
-                                      : user.status === "suspended"
-                                        ? "destructive"
-                                        : "secondary"
+                                    user.status === 'active' ? 'default' : 
+                                    user.status === 'suspended' ? 'destructive' : 'secondary'
                                   }
                                 >
-                                  {user.status === "active" && (
-                                    <CheckCircle className="w-3 h-3 mr-1" />
-                                  )}
-                                  {user.status === "suspended" && (
-                                    <XCircle className="w-3 h-3 mr-1" />
-                                  )}
-                                  {user.status === "inactive" && (
-                                    <Clock className="w-3 h-3 mr-1" />
-                                  )}
+                                  {user.status === 'active' && <CheckCircle className="w-3 h-3 mr-1" />}
+                                  {user.status === 'suspended' && <XCircle className="w-3 h-3 mr-1" />}
+                                  {user.status === 'inactive' && <Clock className="w-3 h-3 mr-1" />}
                                   {user.status}
                                 </Badge>
                               </td>
@@ -701,18 +629,14 @@ export default function AdminDashboard() {
                                   <Button
                                     variant="ghost"
                                     size="sm"
-                                    onClick={() =>
-                                      handleUserAction(user.id, "suspend")
-                                    }
+                                    onClick={() => handleUserAction(user.id, 'suspend')}
                                   >
                                     <UserX className="w-4 h-4" />
                                   </Button>
                                   <Button
                                     variant="ghost"
                                     size="sm"
-                                    onClick={() =>
-                                      handleUserAction(user.id, "promote")
-                                    }
+                                    onClick={() => handleUserAction(user.id, 'promote')}
                                   >
                                     <Crown className="w-4 h-4" />
                                   </Button>
@@ -745,7 +669,7 @@ export default function AdminDashboard() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => exportData("transformations")}
+                      onClick={() => exportData('transformations')}
                     >
                       <Download className="w-4 h-4 mr-2" />
                       Export CSV
@@ -760,9 +684,7 @@ export default function AdminDashboard() {
                       <Input
                         placeholder="Search by user email or filename..."
                         value={transformationFilter}
-                        onChange={(e) =>
-                          setTransformationFilter(e.target.value)
-                        }
+                        onChange={(e) => setTransformationFilter(e.target.value)}
                         className="pl-10"
                       />
                     </div>
@@ -786,105 +708,76 @@ export default function AdminDashboard() {
                           <tr>
                             <th className="text-left p-4 font-medium">User</th>
                             <th className="text-left p-4 font-medium">File</th>
-                            <th className="text-left p-4 font-medium">
-                              Layers
-                            </th>
-                            <th className="text-left p-4 font-medium">
-                              Status
-                            </th>
-                            <th className="text-left p-4 font-medium">
-                              Execution
-                            </th>
-                            <th className="text-left p-4 font-medium">
-                              Changes
-                            </th>
+                            <th className="text-left p-4 font-medium">Layers</th>
+                            <th className="text-left p-4 font-medium">Status</th>
+                            <th className="text-left p-4 font-medium">Execution</th>
+                            <th className="text-left p-4 font-medium">Changes</th>
                             <th className="text-left p-4 font-medium">Date</th>
                           </tr>
                         </thead>
                         <tbody>
-                          {filteredTransformations
-                            .slice(0, 50)
-                            .map((transformation) => (
-                              <tr key={transformation.id} className="border-b">
-                                <td className="p-4">
-                                  <div className="flex items-center gap-2">
-                                    <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center">
-                                      <span className="text-xs font-medium text-green-700">
-                                        {transformation.user_email[0].toUpperCase()}
-                                      </span>
-                                    </div>
-                                    <span className="text-sm">
-                                      {transformation.user_email}
+                          {filteredTransformations.slice(0, 50).map((transformation) => (
+                            <tr key={transformation.id} className="border-b">
+                              <td className="p-4">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center">
+                                    <span className="text-xs font-medium text-green-700">
+                                      {transformation.user_email[0].toUpperCase()}
                                     </span>
                                   </div>
-                                </td>
-                                <td className="p-4">
-                                  <div className="flex items-center gap-2">
-                                    <FileText className="w-4 h-4 text-muted-foreground" />
-                                    <span className="text-sm font-mono">
-                                      {transformation.file_name ||
-                                        "Pasted code"}
-                                    </span>
+                                  <span className="text-sm">{transformation.user_email}</span>
+                                </div>
+                              </td>
+                              <td className="p-4">
+                                <div className="flex items-center gap-2">
+                                  <FileText className="w-4 h-4 text-muted-foreground" />
+                                  <span className="text-sm font-mono">
+                                    {transformation.file_name || 'Pasted code'}
+                                  </span>
+                                </div>
+                              </td>
+                              <td className="p-4">
+                                <div className="flex gap-1">
+                                  {transformation.layers_used.map(layerId => (
+                                    <Badge key={layerId} variant="outline" className="text-xs">
+                                      L{layerId}
+                                    </Badge>
+                                  ))}
+                                </div>
+                              </td>
+                              <td className="p-4">
+                                <Badge 
+                                  variant={transformation.success ? 'default' : 'destructive'}
+                                >
+                                  {transformation.success ? (
+                                    <>
+                                      <CheckCircle className="w-3 h-3 mr-1" />
+                                      Success
+                                    </>
+                                  ) : (
+                                    <>
+                                      <XCircle className="w-3 h-3 mr-1" />
+                                      Failed
+                                    </>
+                                  )}
+                                </Badge>
+                              </td>
+                              <td className="p-4 text-sm">
+                                {transformation.execution_time_ms}ms
+                              </td>
+                              <td className="p-4">
+                                <div className="text-sm">
+                                  <span className="font-medium">{transformation.changes_count}</span>
+                                  <div className="text-xs text-muted-foreground">
+                                    {transformation.original_code_length} → {transformation.transformed_code_length} chars
                                   </div>
-                                </td>
-                                <td className="p-4">
-                                  <div className="flex gap-1">
-                                    {transformation.layers_used.map(
-                                      (layerId) => (
-                                        <Badge
-                                          key={layerId}
-                                          variant="outline"
-                                          className="text-xs"
-                                        >
-                                          L{layerId}
-                                        </Badge>
-                                      ),
-                                    )}
-                                  </div>
-                                </td>
-                                <td className="p-4">
-                                  <Badge
-                                    variant={
-                                      transformation.success
-                                        ? "default"
-                                        : "destructive"
-                                    }
-                                  >
-                                    {transformation.success ? (
-                                      <>
-                                        <CheckCircle className="w-3 h-3 mr-1" />
-                                        Success
-                                      </>
-                                    ) : (
-                                      <>
-                                        <XCircle className="w-3 h-3 mr-1" />
-                                        Failed
-                                      </>
-                                    )}
-                                  </Badge>
-                                </td>
-                                <td className="p-4 text-sm">
-                                  {transformation.execution_time_ms}ms
-                                </td>
-                                <td className="p-4">
-                                  <div className="text-sm">
-                                    <span className="font-medium">
-                                      {transformation.changes_count}
-                                    </span>
-                                    <div className="text-xs text-muted-foreground">
-                                      {transformation.original_code_length} →{" "}
-                                      {transformation.transformed_code_length}{" "}
-                                      chars
-                                    </div>
-                                  </div>
-                                </td>
-                                <td className="p-4 text-sm text-muted-foreground">
-                                  {new Date(
-                                    transformation.created_at,
-                                  ).toLocaleDateString()}
-                                </td>
-                              </tr>
-                            ))}
+                                </div>
+                              </td>
+                              <td className="p-4 text-sm text-muted-foreground">
+                                {new Date(transformation.created_at).toLocaleDateString()}
+                              </td>
+                            </tr>
+                          ))}
                         </tbody>
                       </table>
                     </div>
@@ -907,15 +800,11 @@ export default function AdminDashboard() {
                     <div className="space-y-4">
                       <div className="flex justify-between items-center">
                         <span className="text-sm">User Registrations (7d)</span>
-                        <span className="font-bold text-green-600">
-                          +{stats.activeUsers}
-                        </span>
+                        <span className="font-bold text-green-600">+{stats.activeUsers}</span>
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="text-sm">Daily Transformations</span>
-                        <span className="font-bold text-blue-600">
-                          {stats.todayTransformations}
-                        </span>
+                        <span className="font-bold text-blue-600">{stats.todayTransformations}</span>
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="text-sm">Success Rate</span>
@@ -938,9 +827,7 @@ export default function AdminDashboard() {
                     <div className="space-y-4">
                       <div className="flex justify-between items-center">
                         <span className="text-sm">Average Response Time</span>
-                        <span className="font-bold">
-                          {stats.averageExecutionTime.toFixed(0)}ms
-                        </span>
+                        <span className="font-bold">{stats.averageExecutionTime.toFixed(0)}ms</span>
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="text-sm">System Uptime</span>
@@ -948,9 +835,7 @@ export default function AdminDashboard() {
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="text-sm">Error Rate</span>
-                        <span
-                          className={`font-bold ${stats.errorRate > 5 ? "text-red-600" : "text-green-600"}`}
-                        >
+                        <span className={`font-bold ${stats.errorRate > 5 ? 'text-red-600' : 'text-green-600'}`}>
                           {stats.errorRate.toFixed(2)}%
                         </span>
                       </div>
