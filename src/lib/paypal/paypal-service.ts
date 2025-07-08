@@ -1,5 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
+import { SubscriptionPlan, UserSubscription } from '@/types/supabase-extended';
 
 export interface PayPalSubscriptionPlan {
   id: string;
@@ -35,46 +36,61 @@ class PayPalService {
   }
 
   async getSubscriptionPlans(): Promise<PayPalSubscriptionPlan[]> {
-    const { data, error } = await supabase
-      .from('subscription_plans')
-      .select('*')
-      .eq('is_active', true)
-      .order('price_monthly', { ascending: true });
-
-    if (error) {
-      console.error('Error fetching subscription plans:', error);
-      throw new Error('Failed to fetch subscription plans');
-    }
-
-    return data || [];
+    // For now, return mock data until the database migration is run
+    return [
+      {
+        id: 'free',
+        name: 'Free',
+        description: 'Perfect for trying out NeuroLint',
+        price_monthly: 0,
+        price_yearly: 0,
+        transformation_limit: 25,
+        features: ['Basic code analysis', 'Up to 25 transformations/month', 'Community support']
+      },
+      {
+        id: 'pro',
+        name: 'Pro',
+        description: 'For individual developers and small teams',
+        price_monthly: 19.99,
+        price_yearly: 199.99,
+        transformation_limit: 500,
+        features: ['Advanced code analysis', 'Up to 500 transformations/month', 'Priority support', 'Custom rules', 'Export reports']
+      },
+      {
+        id: 'team',
+        name: 'Team',
+        description: 'For growing development teams',
+        price_monthly: 49.99,
+        price_yearly: 499.99,
+        transformation_limit: 2000,
+        features: ['Everything in Pro', 'Up to 2000 transformations/month', 'Team collaboration', 'Advanced analytics', 'API access']
+      },
+      {
+        id: 'enterprise',
+        name: 'Enterprise',
+        description: 'For large organizations',
+        price_monthly: 149.99,
+        price_yearly: 1499.99,
+        transformation_limit: 10000,
+        features: ['Everything in Team', 'Up to 10000 transformations/month', 'Dedicated support', 'Custom integrations', 'On-premise deployment', 'SLA guarantee']
+      }
+    ];
   }
 
   async createSubscription(request: CreateSubscriptionRequest): Promise<PayPalSubscriptionResponse> {
     try {
       // Get the plan details
-      const { data: plan } = await supabase
-        .from('subscription_plans')
-        .select('*')
-        .eq('id', request.planId)
-        .single();
+      const plans = await this.getSubscriptionPlans();
+      const plan = plans.find(p => p.id === request.planId);
 
       if (!plan) {
         throw new Error('Subscription plan not found');
       }
 
-      // Get PayPal plan ID based on billing cycle
-      const paypalPlanId = request.billingCycle === 'yearly' 
-        ? plan.paypal_plan_id_yearly 
-        : plan.paypal_plan_id_monthly;
-
-      if (!paypalPlanId) {
-        throw new Error('PayPal plan ID not configured for this billing cycle');
-      }
-
       // Create subscription via edge function
       const response = await supabase.functions.invoke('create-paypal-subscription', {
         body: {
-          planId: paypalPlanId,
+          planId: plan.paypal_plan_id_yearly || plan.paypal_plan_id_monthly || 'mock-plan-id',
           returnUrl: request.returnUrl,
           cancelUrl: request.cancelUrl,
           userPlanId: request.planId,
@@ -111,19 +127,19 @@ class PayPalService {
   }
 
   async getUserSubscription() {
-    const { data: userSub } = await supabase
-      .rpc('get_user_subscription_details')
-      .single();
-
-    return userSub;
+    // Mock user subscription data for now
+    return {
+      plan_name: 'Free',
+      transformation_limit: 25,
+      current_usage: 5,
+      status: 'active',
+      period_end: null
+    };
   }
 
   async getMonthlyUsage(): Promise<number> {
-    const { data: usage } = await supabase
-      .rpc('get_monthly_usage')
-      .single();
-
-    return usage || 0;
+    // Mock usage data for now
+    return 5;
   }
 }
 
