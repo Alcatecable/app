@@ -369,16 +369,16 @@ export default function AdminDashboard() {
     (t.file_name && t.file_name.toLowerCase().includes(transformationFilter.toLowerCase()))
   );
 
-  if (isLoading) {
+    if (isLoading) {
     return (
-      <ProtectedRoute>
+      <AdminProtectedRoute>
         <div className="min-h-screen bg-background flex items-center justify-center">
           <div className="text-center space-y-4">
             <RefreshCw className="h-8 w-8 animate-spin mx-auto text-muted-foreground" />
             <p>Loading admin dashboard...</p>
           </div>
         </div>
-      </ProtectedRoute>
+      </AdminProtectedRoute>
     );
   }
 
