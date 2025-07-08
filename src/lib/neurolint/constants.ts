@@ -44,6 +44,27 @@ export const LAYER_CONFIGS: Record<number, LayerConfig> = {
     supportsAST: true,
     critical: false,
   },
+  5: {
+    id: 5,
+    name: "Next.js",
+    description: "Next.js App Router fixes and optimizations",
+    supportsAST: true,
+    critical: false,
+  },
+  6: {
+    id: 6,
+    name: "Testing",
+    description: "Testing utilities and validation",
+    supportsAST: true,
+    critical: false,
+  },
+  7: {
+    id: 7,
+    name: "Adaptive Learning",
+    description: "AI-powered pattern learning and application",
+    supportsAST: false,
+    critical: false,
+  },
 };
 
 export const LAYER_DEPENDENCIES = {
