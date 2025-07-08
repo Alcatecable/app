@@ -997,9 +997,10 @@ export default function AdminDashboard() {
 
           {/* Main Admin Tabs */}
           <Tabs defaultValue="users" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="users">User Management</TabsTrigger>
               <TabsTrigger value="transformations">Transformations</TabsTrigger>
+              <TabsTrigger value="credentials">Credentials</TabsTrigger>
               <TabsTrigger value="analytics">Analytics</TabsTrigger>
               <TabsTrigger value="system">System Health</TabsTrigger>
             </TabsList>
@@ -1338,6 +1339,339 @@ export default function AdminDashboard() {
                   </div>
                 </CardContent>
               </Card>
+            </TabsContent>
+
+            {/* Credentials Management Tab */}
+            <TabsContent value="credentials" className="space-y-6">
+              <div className="space-y-6">
+                {/* Credentials Header */}
+                <Card>
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <CardTitle className="flex items-center gap-2">
+                          <Key className="h-5 w-5" />
+                          Credentials Management
+                        </CardTitle>
+                        <CardDescription>
+                          Securely manage API keys and service credentials for
+                          all integrations
+                        </CardDescription>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            loadCredentials();
+                            toast({
+                              title: "Credentials reloaded",
+                              description:
+                                "All credentials have been refreshed from storage.",
+                            });
+                          }}
+                        >
+                          <RefreshCw className="w-4 h-4 mr-2" />
+                          Reload
+                        </Button>
+                        <Button
+                          onClick={saveCredentials}
+                          disabled={credentialsSaved}
+                          className="min-w-[100px]"
+                        >
+                          {credentialsSaved ? (
+                            <>
+                              <CheckCircle2 className="w-4 h-4 mr-2" />
+                              Saved
+                            </>
+                          ) : (
+                            <>
+                              <Save className="w-4 h-4 mr-2" />
+                              Save All
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                  </CardHeader>
+                </Card>
+
+                {/* Security Notice */}
+                <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <div className="flex items-start space-x-2">
+                    <Lock className="h-5 w-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium text-yellow-900">
+                        Security Notice
+                      </p>
+                      <p className="text-xs text-yellow-700">
+                        Credentials are stored securely and encrypted. Never
+                        share these keys publicly. In production, consider using
+                        environment variables and secrets management.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Service Credentials */}
+                <div className="grid gap-6">
+                  {credentialConfigs.map((config) => {
+                    const serviceCredentials =
+                      editingCredentials[config.id] || {};
+                    const status = connectionStatus[config.id] || "unknown";
+                    const isTesting = testingConnections[config.id] || false;
+
+                    return (
+                      <Card
+                        key={config.id}
+                        className="border-l-4 border-l-blue-500"
+                      >
+                        <CardHeader>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              {config.icon}
+                              <div>
+                                <CardTitle className="text-lg">
+                                  {config.name}
+                                </CardTitle>
+                                <CardDescription>
+                                  {config.service}
+                                </CardDescription>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              {/* Connection Status */}
+                              <div className="flex items-center gap-2">
+                                {status === "success" && (
+                                  <div className="flex items-center gap-1 text-green-600">
+                                    <Wifi className="h-4 w-4" />
+                                    <span className="text-xs">Connected</span>
+                                  </div>
+                                )}
+                                {status === "error" && (
+                                  <div className="flex items-center gap-1 text-red-600">
+                                    <WifiOff className="h-4 w-4" />
+                                    <span className="text-xs">Error</span>
+                                  </div>
+                                )}
+                                {status === "unknown" && (
+                                  <div className="flex items-center gap-1 text-gray-500">
+                                    <AlertTriangle className="h-4 w-4" />
+                                    <span className="text-xs">Unknown</span>
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Test Connection Button */}
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => testConnection(config.id)}
+                                disabled={isTesting}
+                              >
+                                {isTesting ? (
+                                  <Loader2 className="w-4 h-4 animate-spin" />
+                                ) : (
+                                  <TestTube className="w-4 h-4" />
+                                )}
+                                Test
+                              </Button>
+                            </div>
+                          </div>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                          <p className="text-sm text-muted-foreground">
+                            {config.description}
+                          </p>
+
+                          <div className="grid gap-4">
+                            {config.fields.map((field) => {
+                              const fieldId = `${config.id}_${field.key}`;
+                              const value = serviceCredentials[field.key] || "";
+                              const isPassword = field.type === "password";
+                              const showPassword =
+                                showPasswords[fieldId] || false;
+
+                              return (
+                                <div key={field.key} className="space-y-2">
+                                  <div className="flex items-center justify-between">
+                                    <Label
+                                      htmlFor={fieldId}
+                                      className="text-sm font-medium"
+                                    >
+                                      {field.label}
+                                      {field.required && (
+                                        <span className="text-red-500 ml-1">
+                                          *
+                                        </span>
+                                      )}
+                                    </Label>
+                                    {value && (
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() =>
+                                          copyToClipboard(value, field.label)
+                                        }
+                                      >
+                                        <Copy className="w-3 h-3" />
+                                      </Button>
+                                    )}
+                                  </div>
+
+                                  {field.type === "select" ? (
+                                    <select
+                                      id={fieldId}
+                                      value={value}
+                                      onChange={(e) =>
+                                        updateCredentialField(
+                                          config.id,
+                                          field.key,
+                                          e.target.value,
+                                        )
+                                      }
+                                      className="w-full px-3 py-2 border border-input rounded-md bg-background"
+                                    >
+                                      <option value="">
+                                        Select {field.label}
+                                      </option>
+                                      {field.options?.map((option) => (
+                                        <option key={option} value={option}>
+                                          {option}
+                                        </option>
+                                      ))}
+                                    </select>
+                                  ) : (
+                                    <div className="relative">
+                                      <Input
+                                        id={fieldId}
+                                        type={
+                                          isPassword && !showPassword
+                                            ? "password"
+                                            : "text"
+                                        }
+                                        value={value}
+                                        onChange={(e) =>
+                                          updateCredentialField(
+                                            config.id,
+                                            field.key,
+                                            e.target.value,
+                                          )
+                                        }
+                                        placeholder={field.placeholder}
+                                        className="pr-10"
+                                      />
+                                      {isPassword && (
+                                        <Button
+                                          type="button"
+                                          variant="ghost"
+                                          size="sm"
+                                          className="absolute right-0 top-0 h-full px-3"
+                                          onClick={() =>
+                                            togglePasswordVisibility(fieldId)
+                                          }
+                                        >
+                                          {showPassword ? (
+                                            <EyeOff className="h-4 w-4" />
+                                          ) : (
+                                            <Eye className="h-4 w-4" />
+                                          )}
+                                        </Button>
+                                      )}
+                                    </div>
+                                  )}
+
+                                  {field.description && (
+                                    <p className="text-xs text-muted-foreground">
+                                      {field.description}
+                                    </p>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+
+                {/* Backup & Security Actions */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Shield className="h-5 w-5" />
+                      Security Actions
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          const backup = JSON.stringify(credentials, null, 2);
+                          const blob = new Blob([backup], {
+                            type: "application/json",
+                          });
+                          const url = URL.createObjectURL(blob);
+                          const a = document.createElement("a");
+                          a.href = url;
+                          a.download = `neurolint_credentials_backup_${new Date().toISOString().split("T")[0]}.json`;
+                          document.body.appendChild(a);
+                          a.click();
+                          document.body.removeChild(a);
+                          URL.revokeObjectURL(url);
+                          toast({
+                            title: "Backup created",
+                            description:
+                              "Credentials backup has been downloaded.",
+                          });
+                        }}
+                      >
+                        <Download className="w-4 h-4 mr-2" />
+                        Export Backup
+                      </Button>
+
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          if (
+                            confirm(
+                              "Are you sure you want to clear all credentials? This action cannot be undone.",
+                            )
+                          ) {
+                            setCredentials({});
+                            setEditingCredentials({});
+                            localStorage.removeItem("admin_credentials");
+                            toast({
+                              title: "Credentials cleared",
+                              description:
+                                "All stored credentials have been removed.",
+                            });
+                          }
+                        }}
+                      >
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        Clear All
+                      </Button>
+
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          Object.keys(editingCredentials).forEach(
+                            (serviceId) => {
+                              testConnection(serviceId);
+                            },
+                          );
+                        }}
+                      >
+                        <TestTube className="w-4 h-4 mr-2" />
+                        Test All Connections
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
             </TabsContent>
 
             {/* Analytics Tab */}
