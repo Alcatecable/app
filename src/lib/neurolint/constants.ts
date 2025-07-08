@@ -82,6 +82,9 @@ export const LAYER_INFO = {
   2: { name: "Entity Cleanup", critical: false },
   3: { name: "Components", critical: false },
   4: { name: "Hydration", critical: false },
+  5: { name: "Next.js", critical: false },
+  6: { name: "Testing", critical: false },
+  7: { name: "Adaptive Learning", critical: false },
 };
 
 export const CORRUPTION_PATTERNS = [
