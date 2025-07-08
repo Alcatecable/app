@@ -629,6 +629,22 @@ export default function Dashboard() {
                           desc: "React component improvements",
                         },
                         { id: 4, name: "Hydration", desc: "SSR safety guards" },
+                        {
+                          id: 5,
+                          name: "Next.js",
+                          desc: "App Router & optimization",
+                        },
+                        {
+                          id: 6,
+                          name: "Testing",
+                          desc: "Performance & accessibility",
+                        },
+                        {
+                          id: 7,
+                          name: "AI Learning",
+                          desc: "Adaptive pattern learning",
+                          beta: true,
+                        },
                       ].map((layer) => (
                         <div
                           key={layer.id}
