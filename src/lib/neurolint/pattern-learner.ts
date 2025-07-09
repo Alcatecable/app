@@ -228,7 +228,422 @@ export class PatternLearner {
       }
     }
 
+    // AST-based pattern extraction for layers 3-6
+    if ([3, 4, 5, 6].includes(sourceLayer)) {
+      const astPatterns = this.extractASTPatterns(before, after, sourceLayer);
+      patterns.push(...astPatterns);
+    }
+
     return patterns;
+  }
+
+  /**
+   * Extract AST-based patterns for layers 3-6
+   */
+  private extractASTPatterns(
+    before: string,
+    after: string,
+    sourceLayer: number,
+  ): Omit<LearnedRule, "id" | "examples">[] {
+    const patterns: Omit<LearnedRule, "id" | "examples">[] = [];
+
+    try {
+      const beforeAST = this.parseToAST(before);
+      const afterAST = this.parseToAST(after);
+
+      if (!beforeAST || !afterAST) {
+        return patterns; // Fallback to regex patterns only
+      }
+
+      // Layer 3: Component AST patterns
+      if (sourceLayer === 3) {
+        patterns.push(...this.extractComponentASTPatterns(beforeAST, afterAST));
+      }
+
+      // Layer 4: Hydration AST patterns
+      if (sourceLayer === 4) {
+        patterns.push(...this.extractHydrationASTPatterns(beforeAST, afterAST));
+      }
+
+      // Layer 5: Next.js AST patterns
+      if (sourceLayer === 5) {
+        patterns.push(...this.extractNextJSASTPatterns(beforeAST, afterAST));
+      }
+
+      // Layer 6: Testing AST patterns
+      if (sourceLayer === 6) {
+        patterns.push(...this.extractTestingASTPatterns(beforeAST, afterAST));
+      }
+    } catch (error) {
+      console.warn(
+        `AST pattern extraction failed for layer ${sourceLayer}:`,
+        error,
+      );
+    }
+
+    return patterns;
+  }
+
+  /**
+   * Parse code to AST with comprehensive TypeScript/JSX support
+   */
+  private parseToAST(code: string): t.File | null {
+    try {
+      const parserOptions: ParserOptions = {
+        sourceType: "module",
+        allowImportExportEverywhere: true,
+        allowReturnOutsideFunction: true,
+        plugins: [
+          "typescript",
+          "jsx",
+          "decorators-legacy",
+          "classProperties",
+          "objectRestSpread",
+          "functionBind",
+          "exportDefaultFrom",
+          "exportNamespaceFrom",
+          "dynamicImport",
+          "nullishCoalescingOperator",
+          "optionalChaining",
+        ],
+      };
+
+      return parse(code, parserOptions);
+    } catch (error) {
+      return null;
+    }
+  }
+
+  /**
+   * Extract Layer 3 (Component) AST patterns
+   */
+  private extractComponentASTPatterns(
+    beforeAST: t.File,
+    afterAST: t.File,
+  ): Omit<LearnedRule, "id" | "examples">[] {
+    const patterns: Omit<LearnedRule, "id" | "examples">[] = [];
+
+    // Detect key prop additions in map operations
+    let beforeMapWithoutKeys = 0;
+    let afterMapWithKeys = 0;
+
+    // Count maps without keys in before AST
+    traverse(beforeAST, {
+      CallExpression: (path) => {
+        if (this.isMapCallReturningJSX(path) && !this.hasKeyPropInJSX(path)) {
+          beforeMapWithoutKeys++;
+        }
+      },
+    });
+
+    // Count maps with keys in after AST
+    traverse(afterAST, {
+      CallExpression: (path) => {
+        if (this.isMapCallReturningJSX(path) && this.hasKeyPropInJSX(path)) {
+          afterMapWithKeys++;
+        }
+      },
+    });
+
+    // If keys were added, create an AST pattern
+    if (beforeMapWithoutKeys > 0 && afterMapWithKeys > beforeMapWithoutKeys) {
+      patterns.push({
+        pattern: "\\.map\\s*\\(\\s*([^)]+)\\s*=>\\s*<([^>]+)>",
+        replacement: ".map($1 => <$2 key={$1.id || Math.random()}>",
+        confidence: 0.8,
+        frequency: 1,
+        successRate: 1.0,
+        sourceLayer: 3,
+        createdAt: Date.now(),
+        lastUsed: Date.now(),
+        description: "Add key prop to mapped JSX elements",
+        type: "ast",
+        astMetadata: {
+          nodeType: "CallExpression",
+          targetProperty: "callee.property.name",
+          contextRequirements: ["JSXElement", "ArrowFunctionExpression"],
+          transformationType: "modify",
+        },
+      });
+    }
+
+    return patterns;
+  }
+
+  /**
+   * Extract Layer 4 (Hydration) AST patterns
+   */
+  private extractHydrationASTPatterns(
+    beforeAST: t.File,
+    afterAST: t.File,
+  ): Omit<LearnedRule, "id" | "examples">[] {
+    const patterns: Omit<LearnedRule, "id" | "examples">[] = [];
+
+    // Detect SSR guard additions
+    let beforeUnguardedAPIs = 0;
+    let afterGuardedAPIs = 0;
+
+    // Count unguarded browser APIs in before AST
+    traverse(beforeAST, {
+      MemberExpression: (path) => {
+        if (this.isBrowserAPI(path) && !this.isSSRGuarded(path)) {
+          beforeUnguardedAPIs++;
+        }
+      },
+    });
+
+    // Count guarded browser APIs in after AST
+    traverse(afterAST, {
+      MemberExpression: (path) => {
+        if (this.isBrowserAPI(path) && this.isSSRGuarded(path)) {
+          afterGuardedAPIs++;
+        }
+      },
+    });
+
+    // If SSR guards were added, create pattern
+    if (beforeUnguardedAPIs > 0 && afterGuardedAPIs > 0) {
+      patterns.push({
+        pattern: "localStorage\\.",
+        replacement: 'typeof window !== "undefined" && localStorage.',
+        confidence: 0.9,
+        frequency: 1,
+        successRate: 1.0,
+        sourceLayer: 4,
+        createdAt: Date.now(),
+        lastUsed: Date.now(),
+        description: "Add SSR guard for browser APIs",
+        type: "ast",
+        astMetadata: {
+          nodeType: "MemberExpression",
+          targetProperty: "object.name",
+          contextRequirements: [
+            "localStorage",
+            "sessionStorage",
+            "window",
+            "document",
+          ],
+          transformationType: "wrap",
+        },
+      });
+    }
+
+    return patterns;
+  }
+
+  /**
+   * Extract Layer 5 (Next.js) AST patterns
+   */
+  private extractNextJSASTPatterns(
+    beforeAST: t.File,
+    afterAST: t.File,
+  ): Omit<LearnedRule, "id" | "examples">[] {
+    const patterns: Omit<LearnedRule, "id" | "examples">[] = [];
+
+    // Detect 'use client' directive additions
+    const beforeHasUseClient = this.hasUseClientDirective(beforeAST);
+    const afterHasUseClient = this.hasUseClientDirective(afterAST);
+
+    if (!beforeHasUseClient && afterHasUseClient) {
+      patterns.push({
+        pattern: "^((?:import\\s.*?\\n)*)",
+        replacement: "'use client';\n\n$1",
+        confidence: 0.85,
+        frequency: 1,
+        successRate: 1.0,
+        sourceLayer: 5,
+        createdAt: Date.now(),
+        lastUsed: Date.now(),
+        description: "Add 'use client' directive for client components",
+        type: "ast",
+        astMetadata: {
+          nodeType: "Program",
+          targetProperty: "directives",
+          contextRequirements: ["ImportDeclaration"],
+          transformationType: "add",
+        },
+      });
+    }
+
+    return patterns;
+  }
+
+  /**
+   * Extract Layer 6 (Testing) AST patterns
+   */
+  private extractTestingASTPatterns(
+    beforeAST: t.File,
+    afterAST: t.File,
+  ): Omit<LearnedRule, "id" | "examples">[] {
+    const patterns: Omit<LearnedRule, "id" | "examples">[] = [];
+
+    // Detect React.memo wrapping
+    let beforeFunctionComponents = 0;
+    let afterMemoComponents = 0;
+
+    // Count function components in before AST
+    traverse(beforeAST, {
+      FunctionDeclaration: (path) => {
+        if (this.isReactComponent(path)) {
+          beforeFunctionComponents++;
+        }
+      },
+    });
+
+    // Count React.memo wrapped components in after AST
+    traverse(afterAST, {
+      CallExpression: (path) => {
+        if (this.isReactMemoCall(path)) {
+          afterMemoComponents++;
+        }
+      },
+    });
+
+    if (beforeFunctionComponents > 0 && afterMemoComponents > 0) {
+      patterns.push({
+        pattern: "(function\\s+\\w+\\s*\\([^)]*\\)\\s*{[\\s\\S]*?})",
+        replacement: "React.memo($1)",
+        confidence: 0.7,
+        frequency: 1,
+        successRate: 1.0,
+        sourceLayer: 6,
+        createdAt: Date.now(),
+        lastUsed: Date.now(),
+        description: "Wrap function component with React.memo",
+        type: "ast",
+        astMetadata: {
+          nodeType: "FunctionDeclaration",
+          targetProperty: "id.name",
+          contextRequirements: ["JSXElement"],
+          transformationType: "wrap",
+        },
+      });
+    }
+
+    return patterns;
+  }
+
+  // Helper methods for AST analysis
+  private isMapCallReturningJSX(path: any): boolean {
+    return (
+      t.isMemberExpression(path.node.callee) &&
+      t.isIdentifier(path.node.callee.property, { name: "map" }) &&
+      path.node.arguments.length > 0 &&
+      this.callbackReturnsJSX(path.node.arguments[0])
+    );
+  }
+
+  private callbackReturnsJSX(callback: t.Node): boolean {
+    if (
+      t.isArrowFunctionExpression(callback) ||
+      t.isFunctionExpression(callback)
+    ) {
+      if (t.isJSXElement(callback.body) || t.isJSXFragment(callback.body)) {
+        return true;
+      }
+      // Check block statements for return statements with JSX
+      if (t.isBlockStatement(callback.body)) {
+        for (const stmt of callback.body.body) {
+          if (
+            t.isReturnStatement(stmt) &&
+            (t.isJSXElement(stmt.argument) || t.isJSXFragment(stmt.argument))
+          ) {
+            return true;
+          }
+        }
+      }
+    }
+    return false;
+  }
+
+  private hasKeyPropInJSX(path: any): boolean {
+    const callback = path.node.arguments[0];
+    if (!callback) return false;
+
+    let hasKey = false;
+    const callbackAST = t.isBlockStatement(callback.body)
+      ? callback.body
+      : t.program([t.expressionStatement(callback.body)]);
+
+    traverse(
+      t.program([callbackAST]),
+      {
+        JSXAttribute: (jsxPath) => {
+          if (t.isJSXIdentifier(jsxPath.node.name, { name: "key" })) {
+            hasKey = true;
+          }
+        },
+      },
+      path.scope,
+    );
+
+    return hasKey;
+  }
+
+  private isBrowserAPI(path: any): boolean {
+    return (
+      t.isIdentifier(path.node.object, { name: "localStorage" }) ||
+      t.isIdentifier(path.node.object, { name: "sessionStorage" }) ||
+      t.isIdentifier(path.node.object, { name: "window" }) ||
+      t.isIdentifier(path.node.object, { name: "document" })
+    );
+  }
+
+  private isSSRGuarded(path: any): boolean {
+    // Look for typeof window !== "undefined" guard
+    let parent = path.parent;
+    while (parent) {
+      if (t.isLogicalExpression(parent) && parent.operator === "&&") {
+        const left = parent.left;
+        if (
+          t.isBinaryExpression(left) &&
+          left.operator === "!==" &&
+          t.isUnaryExpression(left.left, { operator: "typeof" }) &&
+          t.isIdentifier(left.left.argument, { name: "window" }) &&
+          t.isStringLiteral(left.right, { value: "undefined" })
+        ) {
+          return true;
+        }
+      }
+      parent = parent.parent;
+    }
+    return false;
+  }
+
+  private hasUseClientDirective(ast: t.File): boolean {
+    return (
+      ast.program.directives?.some(
+        (directive) => directive.value.value === "use client",
+      ) || false
+    );
+  }
+
+  private isReactComponent(path: any): boolean {
+    // Check if function returns JSX
+    if (t.isFunctionDeclaration(path.node)) {
+      let returnsJSX = false;
+      traverse(path.node, {
+        ReturnStatement: (returnPath) => {
+          if (
+            t.isJSXElement(returnPath.node.argument) ||
+            t.isJSXFragment(returnPath.node.argument)
+          ) {
+            returnsJSX = true;
+          }
+        },
+      });
+      return returnsJSX;
+    }
+    return false;
+  }
+
+  private isReactMemoCall(path: any): boolean {
+    return (
+      t.isCallExpression(path.node) &&
+      t.isMemberExpression(path.node.callee) &&
+      t.isIdentifier(path.node.callee.object, { name: "React" }) &&
+      t.isIdentifier(path.node.callee.property, { name: "memo" })
+    );
   }
 
   /**
