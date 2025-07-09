@@ -178,12 +178,6 @@ export const NeuroLintTester: React.FC = () => {
   return (
     <div className="container mx-auto p-6 space-y-6">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">NeuroLint Testing Center</h1>
-          <p className="text-muted-foreground">
-            Comprehensive testing and quality assurance for NeuroLint
-          </p>
-        </div>
         <Badge variant="outline" className="text-sm">
           v2.0 Testing Suite
         </Badge>
@@ -257,7 +251,7 @@ export const NeuroLintTester: React.FC = () => {
                 placeholder="// Paste your JavaScript/TypeScript/React code here
 const MyComponent = () => {
   const [items, setItems] = useState([]);
-  
+
   return (
     <div>
       {items.map(item => (
