@@ -815,18 +815,45 @@ export class PatternLearner {
     const startTime = Date.now();
     let transformedCode = code;
     const appliedRules: string[] = [];
+    const originalLength = code.length;
 
     // Get high-confidence rules, sorted by confidence * frequency
     const applicableRules = this.rules
       .filter((r) => r.confidence >= PatternLearner.MIN_CONFIDENCE)
-      .sort((a, b) => b.confidence * b.frequency - a.confidence * a.frequency);
+      .sort((a, b) => b.confidence * b.frequency - a.confidence * a.frequency)
+      .slice(0, 20); // Limit to top 20 rules to prevent performance issues
 
     for (const rule of applicableRules) {
       try {
         const regex = new RegExp(rule.pattern, "gm");
         const beforeTransform = transformedCode;
 
-        transformedCode = transformedCode.replace(regex, rule.replacement);
+        // Prevent infinite loops by limiting replacements
+        let replacementCount = 0;
+        const maxReplacements = 10;
+
+        transformedCode = transformedCode.replace(regex, (match, ...args) => {
+          if (replacementCount >= maxReplacements) {
+            return match; // Stop replacing after limit
+          }
+          replacementCount++;
+          return typeof rule.replacement === "string"
+            ? rule.replacement.replace(
+                /\$(\d+)/g,
+                (_, index) => args[parseInt(index) - 1] || "",
+              )
+            : rule.replacement;
+        });
+
+        // Sanity check: prevent excessive code growth
+        if (transformedCode.length > originalLength * 3) {
+          console.warn(
+            `Rule "${rule.description}" caused excessive code growth, reverting`,
+          );
+          transformedCode = beforeTransform;
+          rule.confidence = Math.max(0.1, rule.confidence - 0.2);
+          continue;
+        }
 
         if (beforeTransform !== transformedCode) {
           appliedRules.push(rule.description);
@@ -836,7 +863,9 @@ export class PatternLearner {
           rule.successRate =
             (rule.successRate * rule.frequency + 1) / (rule.frequency + 1);
 
-          console.log(`✨ Applied learned rule: ${rule.description}`);
+          console.log(
+            `✨ Applied learned rule: ${rule.description} (${replacementCount} replacements)`,
+          );
         }
       } catch (error) {
         console.warn(`Failed to apply rule "${rule.description}":`, error);
