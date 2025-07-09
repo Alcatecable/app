@@ -447,8 +447,9 @@ export class NeuroLintOrchestrator {
 
       case 3:
         if (code.includes(".map(") && !code.includes("key=")) {
+          // More flexible regex to handle various JSX patterns
           transformedCode = code.replace(
-            /\.map\s*\(\s*([^)]+)\s*=>\s*<([^>]+)>/g,
+            /\.map\s*\(\s*([^)]+)\s*=>\s*<([^>]*?)>/g,
             ".map($1 => <$2 key={$1.id || Math.random()}>",
           );
         }
