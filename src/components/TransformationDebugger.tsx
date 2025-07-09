@@ -81,13 +81,24 @@ localStorage.setItem("test", "value");`);
           />
         </div>
 
-        <Button
-          onClick={runDebugTransformation}
-          disabled={isDebugging}
-          className="w-full"
-        >
-          {isDebugging ? "Running Debug..." : "Run Debug Transformation"}
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            onClick={runDebugTransformation}
+            disabled={isDebugging}
+            className="flex-1"
+          >
+            {isDebugging ? "Running Debug..." : "Run Debug Transformation"}
+          </Button>
+
+          <Button
+            onClick={runComplianceTest}
+            disabled={isTestingCompliance}
+            variant="outline"
+            className="flex-1"
+          >
+            {isTestingCompliance ? "Testing..." : "Document Compliance Test"}
+          </Button>
+        </div>
 
         {debugResult && (
           <div className="space-y-2">
