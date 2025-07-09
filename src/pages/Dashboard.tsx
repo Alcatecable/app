@@ -1011,10 +1011,26 @@ export default function Dashboard() {
                         Load Repo
                       </Button>
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      Supports public repositories • Examples: React, Vue,
-                      Angular projects
-                    </p>
+                    <div className="space-y-2">
+                      <p className="text-xs text-muted-foreground">
+                        Supports public repositories • Examples to try:
+                      </p>
+                      <div className="flex flex-wrap gap-1">
+                        {[
+                          "https://github.com/facebook/react",
+                          "https://github.com/vercel/next.js",
+                          "https://github.com/vuejs/core",
+                        ].map((exampleUrl) => (
+                          <button
+                            key={exampleUrl}
+                            onClick={() => setGithubUrl(exampleUrl)}
+                            className="px-2 py-1 text-xs bg-muted hover:bg-muted/80 rounded transition-colors"
+                          >
+                            {exampleUrl.split("/").slice(-2).join("/")}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                   </div>
 
                   {githubRepos.length > 0 && (
