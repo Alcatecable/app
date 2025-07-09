@@ -11,7 +11,7 @@ export const LAYER_EXECUTION_ORDER = [
   {
     id: 7,
     name: "Adaptive Learning",
-    description: "AI-powered pattern learning",
+    description: "Adaptive pattern learning",
   },
 ];
 
