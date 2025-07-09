@@ -19,6 +19,15 @@ export interface LearnedRule {
   lastUsed: number; // Last time applied
   description: string; // Human-readable description
   examples: string[]; // Example transformations
+  type: "regex" | "ast"; // Pattern type for AST vs regex
+  astMetadata?: ASTPatternMetadata; // Metadata for AST patterns
+}
+
+export interface ASTPatternMetadata {
+  nodeType: string; // e.g., 'CallExpression', 'JSXElement'
+  targetProperty?: string; // e.g., 'callee.property.name' for method calls
+  contextRequirements?: string[]; // Required context patterns
+  transformationType: "add" | "modify" | "wrap" | "replace";
 }
 
 export interface PatternLearningResult {
