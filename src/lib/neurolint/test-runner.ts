@@ -1,6 +1,6 @@
 import { NeuroLintOrchestrator } from "./orchestrator";
 import { metrics } from "./metrics";
-import { ValidationService } from "./validation";
+import { TransformationValidator } from "./validation";
 import { PatternLearner } from "./pattern-learner";
 import { SmartLayerSelector } from "./smart-selector";
 
@@ -34,14 +34,14 @@ export interface TestSuite {
 export class TestRunner {
   private orchestrator: NeuroLintOrchestrator;
   private metricsCollector: typeof metrics;
-  private validation: ValidationService;
+  private validation: typeof TransformationValidator;
   private patternLearner: PatternLearner;
   private smartSelector: SmartLayerSelector;
 
   constructor() {
     this.orchestrator = new NeuroLintOrchestrator();
     this.metricsCollector = metrics;
-    this.validation = new ValidationService();
+    this.validation = TransformationValidator;
     this.patternLearner = new PatternLearner();
     this.smartSelector = new SmartLayerSelector();
   }
@@ -400,12 +400,12 @@ export class TestRunner {
 
   private async testASTValidation(): Promise<boolean> {
     const testCode = "const valid = true;";
-    const result = await this.validation.validateTransformation(
+    const result = this.validation.validateTransformation(
       testCode,
       testCode,
       1,
     );
-    return result.isValid;
+    return !result.shouldRevert;
   }
 
   private async testMetricsCollection(): Promise<boolean> {
