@@ -17,43 +17,37 @@ export const LAYER_CONFIGS: Record<number, LayerConfig> = {
     id: 1,
     name: 'Configuration Layer',
     description: 'Fixes TypeScript, Next.js, and package.json configurations',
-    enabled: true,
-    priority: 1
+    rules: []
   },
   2: {
     id: 2,
     name: 'Pattern Recognition Layer',
     description: 'Bulk fixes for common patterns like HTML entities and imports',
-    enabled: true,
-    priority: 2
+    rules: []
   },
   3: {
     id: 3,
     name: 'Component Enhancement Layer',
     description: 'Fixes component-specific issues like props and structure',
-    enabled: true,
-    priority: 3
+    rules: []
   },
   4: {
     id: 4,
     name: 'Hydration & SSR Layer',
     description: 'Fixes client-side rendering and hydration issues',
-    enabled: true,
-    priority: 4
+    rules: []
   },
   5: {
     id: 5,
     name: 'Next.js App Router Layer',
     description: 'Fixes Next.js App Router specific issues',
-    enabled: true,
-    priority: 5
+    rules: []
   },
   6: {
     id: 6,
     name: 'Testing & Validation Layer',
     description: 'Adds testing infrastructure and validation',
-    enabled: true,
-    priority: 6
+    rules: []
   }
 };
 

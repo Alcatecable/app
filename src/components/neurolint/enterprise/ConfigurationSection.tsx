@@ -1,7 +1,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
-import { LAYER_EXECUTION_ORDER } from '@/lib/neurolint/constants';
+import { LAYER_CONFIGS } from '@/lib/neurolint/constants';
 
 interface ConfigurationSectionProps {
   selectedLayers: number[];
@@ -19,7 +19,7 @@ export function ConfigurationSection({ selectedLayers, onLayerToggle }: Configur
       </CardHeader>
       <CardContent>
         <div className="space-y-3">
-          {LAYER_EXECUTION_ORDER.map((layer) => (
+          {Object.values(LAYER_CONFIGS).map((layer) => (
             <div key={layer.id} className="flex items-center space-x-2">
               <Checkbox
                 id={`layer-${layer.id}`}

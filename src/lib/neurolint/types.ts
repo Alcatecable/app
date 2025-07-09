@@ -18,6 +18,12 @@ export interface LayerExecutionResult {
   improvements?: string[];
   originalCode?: string;
   modifiedCode?: string;
+  // Add properties to match TransformationResult usage
+  successfulLayers?: number;
+  results?: LayerResult[];
+  totalExecutionTime?: number;
+  finalCode?: string;
+  states?: any[];
 }
 
 // Extended result type for orchestrator
@@ -98,6 +104,12 @@ export interface ErrorInfo {
   layer: number;
   severity: 'low' | 'medium' | 'high' | 'critical';
   context?: any;
+  // Add missing properties
+  category?: string;
+  suggestion?: string;
+  recoveryOptions?: string[];
+  automated?: boolean;
+  retryable?: boolean;
 }
 
 export interface RecoverySuggestion {
@@ -105,6 +117,8 @@ export interface RecoverySuggestion {
   description: string;
   priority: number;
   estimatedEffectiveness: number;
+  // Add missing properties
+  type?: string;
 }
 
 export interface LayerResult {
@@ -114,12 +128,19 @@ export interface LayerResult {
   executionTime: number;
   changeCount: number;
   transformedCode?: string;
+  code?: string;
 }
 
 export interface ErrorRecoveryStrategy {
   name: string;
   canHandle: (error: ErrorInfo) => boolean;
   recover: (error: ErrorInfo, context: any) => Promise<RecoverySuggestion[]>;
+  // Add missing properties
+  suggestion?: string;
+  recoveryOptions?: string[];
+  automated?: boolean;
+  retryable?: boolean;
+  recoveryFunction?: (code: string, error: any) => Promise<string>;
 }
 
 // Additional missing types

@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { CheckCircle, AlertTriangle } from 'lucide-react';
 import { LayerExecutionResult } from '@/lib/neurolint';
-import { LAYER_EXECUTION_ORDER } from '@/lib/neurolint/constants';
+import { LAYER_CONFIGS } from '@/lib/neurolint/constants';
 
 interface ResultsSectionProps {
   results: LayerExecutionResult | null;
@@ -23,6 +23,11 @@ export function ResultsSection({ results, originalCode }: ResultsSectionProps) {
     );
   }
 
+  const successfulLayers = results.successfulLayers || 0;
+  const totalLayers = results.results?.length || 1;
+  const totalExecutionTime = results.totalExecutionTime || results.executionTime;
+  const totalChanges = results.results?.reduce((sum, r) => sum + r.changeCount, 0) || results.changeCount;
+
   return (
     <div className="space-y-4">
       <Card>
@@ -33,25 +38,25 @@ export function ResultsSection({ results, originalCode }: ResultsSectionProps) {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="text-center">
               <div className="text-2xl font-bold text-green-600">
-                {results.successfulLayers}
+                {successfulLayers}
               </div>
               <div className="text-sm text-muted-foreground">Successful</div>
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold text-red-600">
-                {results.results.length - results.successfulLayers}
+                {totalLayers - successfulLayers}
               </div>
               <div className="text-sm text-muted-foreground">Failed</div>
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold">
-                {Math.round(results.totalExecutionTime)}ms
+                {Math.round(totalExecutionTime)}ms
               </div>
               <div className="text-sm text-muted-foreground">Total Time</div>
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold">
-                {results.results.reduce((sum, r) => sum + r.changeCount, 0)}
+                {totalChanges}
               </div>
               <div className="text-sm text-muted-foreground">Changes</div>
             </div>
@@ -65,7 +70,7 @@ export function ResultsSection({ results, originalCode }: ResultsSectionProps) {
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            {results.results.map((result, index) => (
+            {(results.results || [results]).map((result, index) => (
               <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
                 <div className="flex items-center gap-3">
                   {result.success ? (
@@ -75,7 +80,7 @@ export function ResultsSection({ results, originalCode }: ResultsSectionProps) {
                   )}
                   <div>
                     <div className="font-medium">
-                      Layer {result.layerId}: {LAYER_EXECUTION_ORDER.find(l => l.id === result.layerId)?.name}
+                      Layer {result.layerId}: {LAYER_CONFIGS[result.layerId]?.name || 'Unknown'}
                     </div>
                     {result.error && (
                       <div className="text-sm text-red-600">{result.error}</div>
@@ -97,7 +102,7 @@ export function ResultsSection({ results, originalCode }: ResultsSectionProps) {
         </CardContent>
       </Card>
       
-      {results.finalCode !== originalCode && (
+      {results.finalCode && results.finalCode !== originalCode && (
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">Transformed Code</CardTitle>

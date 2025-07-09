@@ -31,23 +31,29 @@ export function LogsSection({ executionHistory, onExportLogs }: LogsSectionProps
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              {executionHistory.map((execution, index) => (
-                <div key={index} className="flex justify-between items-center p-2 border rounded">
-                  <div className="flex items-center gap-2">
-                    {execution.successfulLayers === execution.results.length ? (
-                      <CheckCircle className="w-4 h-4 text-green-600" />
-                    ) : (
-                      <AlertTriangle className="w-4 h-4 text-yellow-600" />
-                    )}
-                    <span className="font-medium">
-                      {execution.successfulLayers}/{execution.results.length} layers successful
-                    </span>
+              {executionHistory.map((execution, index) => {
+                const successfulLayers = execution.successfulLayers || (execution.success ? 1 : 0);
+                const totalLayers = execution.results?.length || 1;
+                const executionTime = execution.totalExecutionTime || execution.executionTime;
+                
+                return (
+                  <div key={index} className="flex justify-between items-center p-2 border rounded">
+                    <div className="flex items-center gap-2">
+                      {successfulLayers === totalLayers ? (
+                        <CheckCircle className="w-4 h-4 text-green-600" />
+                      ) : (
+                        <AlertTriangle className="w-4 h-4 text-yellow-600" />
+                      )}
+                      <span className="font-medium">
+                        {successfulLayers}/{totalLayers} layers successful
+                      </span>
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      {Math.round(executionTime)}ms
+                    </div>
                   </div>
-                  <div className="text-sm text-muted-foreground">
-                    {Math.round(execution.totalExecutionTime)}ms
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </CardContent>
         </Card>
