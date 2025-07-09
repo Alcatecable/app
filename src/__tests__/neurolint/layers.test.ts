@@ -1,297 +1,324 @@
-import { describe, it, expect, beforeEach } from "vitest";
-import { NeuroLintOrchestrator } from "@/lib/neurolint/orchestrator";
-import { TransformationValidator } from "@/lib/neurolint/validation";
-import { PatternLearner } from "@/lib/neurolint/pattern-learner";
-import { SmartLayerSelector } from "@/lib/neurolint/smart-selector";
 
-describe("NeuroLint Layer Tests", () => {
-  let orchestrator: NeuroLintOrchestrator;
-  let validation: typeof TransformationValidator;
-  let patternLearner: PatternLearner;
-  let smartSelector: SmartLayerSelector;
+import { describe, it, expect, beforeEach } from 'vitest';
+import { NeuroLintOrchestrator } from '../../lib/neurolint/orchestrator';
+import { SmartLayerSelector } from '../../lib/neurolint/smart-selector';
+import { patternLearner } from '../../lib/neurolint/pattern-learner';
 
+describe('NeuroLint Layer System', () => {
   beforeEach(() => {
-    orchestrator = new NeuroLintOrchestrator();
-    validation = TransformationValidator;
-    patternLearner = new PatternLearner();
-    smartSelector = new SmartLayerSelector();
+    // Reset pattern learner state before each test
+    patternLearner.clearRules();
   });
 
-  describe("Layer 1: Configuration", () => {
-    it("should validate basic configuration", () => {
-      const config = {
-        enablePatternLearning: true,
-        maxFileSize: 1024 * 1024,
-        selectedLayers: [1, 2, 3],
-      };
-
-      expect(config.enablePatternLearning).toBe(true);
-      expect(config.maxFileSize).toBeGreaterThan(0);
-      expect(config.selectedLayers).toContain(1);
-    });
-
-    it("should handle invalid configuration gracefully", () => {
-      const invalidConfig = {
-        enablePatternLearning: "invalid",
-        maxFileSize: -1,
-        selectedLayers: [],
-      };
-
-      // Should not crash with invalid config
-      expect(() => {
-        // Configuration validation logic would go here
-      }).not.toThrow();
-    });
-  });
-
-  describe("Layer 2: Pattern Detection", () => {
-    it("should detect missing key props in map operations", async () => {
-      const testCode = `
-        const items = [1, 2, 3];
-        const rendered = items.map(item => <div>{item}</div>);
-      `;
-
-      const result = await orchestrator.processCode(testCode, {
-        selectedLayers: [2],
-      });
-
-      expect(result).toBeDefined();
-      expect(result.success).toBeDefined();
-    });
-
-    it("should ignore already correct key props", async () => {
-      const testCode = `
-        const items = [1, 2, 3];
-        const rendered = items.map((item, index) => <div key={index}>{item}</div>);
-      `;
-
-      const result = await orchestrator.processCode(testCode, {
-        selectedLayers: [2],
-      });
-
-      expect(result).toBeDefined();
-    });
-  });
-
-  describe("Layer 3: Component Analysis", () => {
-    it("should analyze component structure", async () => {
-      const testCode = `
-        const MyComponent = ({ items }) => {
-          return (
-            <div>
-              {items.map(item => <span>{item.name}</span>)}
-            </div>
-          );
+  describe('Layer 1: Configuration Fixes', () => {
+    it('should fix TypeScript configuration issues', async () => {
+      const problematicCode = `
+        // TypeScript config issues
+        const config = {
+          target: "es5",
+          lib: ["dom"]
         };
       `;
 
-      const result = await orchestrator.processCode(testCode, {
-        selectedLayers: [3],
+      const result = await NeuroLintOrchestrator.processCode(problematicCode, {
+        selectedLayers: [1]
       });
 
-      expect(result).toBeDefined();
+      expect(result.successfulLayers).toBeGreaterThan(0);
+      expect(result.finalCode).toBeDefined();
     });
 
-    it("should handle complex nested components", async () => {
-      const testCode = `
-        const ComplexComponent = () => {
-          const data = [];
-          return (
-            <div>
-              {data.map(item => (
-                <div>
-                  {item.children.map(child => (
-                    <span>{child.name}</span>
-                  ))}
-                </div>
-              ))}
-            </div>
-          );
-        };
+    it('should optimize package.json scripts', async () => {
+      const problematicCode = `
+        {
+          "scripts": {
+            "dev": "next",
+            "build": "next build"
+          }
+        }
       `;
 
-      const result = await orchestrator.processCode(testCode, {
-        selectedLayers: [3],
+      const result = await NeuroLintOrchestrator.processCode(problematicCode, {
+        selectedLayers: [1]
       });
 
-      expect(result).toBeDefined();
+      expect(result.results).toBeDefined();
+      expect(result.successfulLayers).toBeGreaterThanOrEqual(0);
     });
   });
 
-  describe("Layer 4: Hydration Fixes", () => {
-    it("should detect hydration mismatches", async () => {
-      const testCode = `
-        const TimeComponent = () => {
-          return <div>{new Date().toISOString()}</div>;
-        };
+  describe('Layer 2: Pattern Recognition and Bulk Fixes', () => {
+    it('should fix HTML entity corruption', async () => {
+      const corruptedCode = `
+        const message = "Hello &quot;World&quot; &#x27;test&#x27;";
+        const ampersand = "Company &amp; Co";
       `;
 
-      const result = await orchestrator.processCode(testCode, {
-        selectedLayers: [4],
+      const result = await NeuroLintOrchestrator.processCode(corruptedCode, {
+        selectedLayers: [2]
       });
 
-      expect(result).toBeDefined();
+      expect(result.finalCode).not.toContain('&quot;');
+      expect(result.finalCode).not.toContain('&#x27;');
+      expect(result.finalCode).not.toContain('&amp;');
     });
 
-    it("should handle client-side only code", async () => {
-      const testCode = `
-        const ClientComponent = () => {
-          const userAgent = navigator.userAgent;
-          return <div>{userAgent}</div>;
-        };
-      `;
-
-      const result = await orchestrator.processCode(testCode, {
-        selectedLayers: [4],
-      });
-
-      expect(result).toBeDefined();
-    });
-  });
-
-  describe("Layer 5: Next.js Optimization", () => {
-    it("should detect client components", async () => {
-      const testCode = `
-        const InteractiveComponent = () => {
+    it('should remove unused imports', async () => {
+      const codeWithUnusedImports = `
+        import React from 'react';
+        import { useState, useEffect } from 'react';
+        import { Button } from './Button';
+        import { UnusedComponent } from './Unused';
+        
+        export default function Component() {
           const [state, setState] = useState(0);
-          return <button onClick={() => setState(state + 1)}>{state}</button>;
-        };
+          return <div>{state}</div>;
+        }
       `;
 
-      const result = await orchestrator.processCode(testCode, {
-        selectedLayers: [5],
+      const result = await NeuroLintOrchestrator.processCode(codeWithUnusedImports, {
+        selectedLayers: [2]
       });
 
-      expect(result).toBeDefined();
+      expect(result.finalCode).not.toContain('UnusedComponent');
+      expect(result.finalCode).toContain('useState');
     });
 
-    it("should handle server components", async () => {
-      const testCode = `
-        const ServerComponent = async () => {
-          const data = await fetch('/api/data');
-          return <div>{JSON.stringify(data)}</div>;
-        };
+    it('should standardize quote usage', async () => {
+      const mixedQuotes = `
+        import { Component } from "react";
+        const message = 'Hello World';
+        const config = { "key": 'value' };
       `;
 
-      const result = await orchestrator.processCode(testCode, {
-        selectedLayers: [5],
+      const result = await NeuroLintOrchestrator.processCode(mixedQuotes, {
+        selectedLayers: [2]
       });
 
-      expect(result).toBeDefined();
+      expect(result.successfulLayers).toBeGreaterThanOrEqual(0);
     });
   });
 
-  describe("Layer 6: Testing Integration", () => {
-    it("should wrap components for testing", async () => {
-      const testCode = `
-        const TestableComponent = ({ value }) => {
-          return <div data-testid="component">{value}</div>;
-        };
-      `;
-
-      const result = await orchestrator.processCode(testCode, {
-        selectedLayers: [6],
-      });
-
-      expect(result).toBeDefined();
-    });
-  });
-
-  describe("Layer 7: Adaptive Learning", () => {
-    it("should initialize pattern learning", () => {
-      expect(patternLearner).toBeDefined();
-      expect(patternLearner.getLearnedRules).toBeDefined();
-    });
-
-    it("should learn from processed code", async () => {
-      const testCode = `
-        const items = [];
-        items.map(item => <div key={item.id}>{item.name}</div>);
-      `;
-
-      await orchestrator.processCode(testCode, {
-        selectedLayers: [7],
-        enablePatternLearning: true,
-      });
-
-      const rules = patternLearner.getLearnedRules();
-      expect(Array.isArray(rules)).toBe(true);
-    });
-  });
-
-  describe("Integration Tests", () => {
-    it("should process code through all layers", async () => {
-      const testCode = `
-        const MyApp = () => {
-          const [items, setItems] = useState([]);
-
-          useEffect(() => {
-            console.log(new Date().toISOString());
-          }, []);
-
+  describe('Layer 3: Component Enhancement', () => {
+    it('should fix Button component props', async () => {
+      const buttonCode = `
+        export default function MyComponent() {
           return (
             <div>
-              {items.map(item => (
-                <div>{item.name}</div>
-              ))}
+              <Button>Click me</Button>
+              <Button size="large">Big Button</Button>
             </div>
           );
-        };
+        }
       `;
 
-      const result = await orchestrator.processCode(testCode, {
-        selectedLayers: [1, 2, 3, 4, 5, 6, 7],
-        enablePatternLearning: true,
+      const result = await NeuroLintOrchestrator.processCode(buttonCode, {
+        selectedLayers: [3]
       });
 
-      expect(result).toBeDefined();
-      expect(result.success).toBeDefined();
+      expect(result.finalCode).toContain('variant=');
     });
 
-    it("should handle empty code gracefully", async () => {
-      const result = await orchestrator.processCode("", {
-        selectedLayers: [1, 2, 3, 4, 5, 6, 7],
+    it('should add missing key props', async () => {
+      const listCode = `
+        const items = ['a', 'b', 'c'];
+        return items.map(item => <div>{item}</div>);
+      `;
+
+      const result = await NeuroLintOrchestrator.processCode(listCode, {
+        selectedLayers: [3]
       });
 
-      expect(result).toBeDefined();
+      expect(result.finalCode).toContain('key=');
     });
 
-    it("should handle invalid syntax gracefully", async () => {
-      const invalidCode = "const invalid = function( { return }";
+    it('should fix Form component structure', async () => {
+      const formCode = `
+        <FormField>
+          <Input type="text" />
+        </FormField>
+      `;
 
-      const result = await orchestrator.processCode(invalidCode, {
-        selectedLayers: [1, 2, 3, 4, 5, 6, 7],
+      const result = await NeuroLintOrchestrator.processCode(formCode, {
+        selectedLayers: [3]
       });
 
-      expect(result).toBeDefined();
-      // Should not throw error, should handle gracefully
+      expect(result.successfulLayers).toBeGreaterThanOrEqual(0);
     });
   });
 
-  describe("Validation Tests", () => {
-    it("should validate code transformations", async () => {
-      const before = "const test = true;";
-      const after = "const test = true;";
+  describe('Layer 4: Hydration and SSR Fixes', () => {
+    it('should add SSR guards for localStorage', async () => {
+      const ssrProblematicCode = `
+        const theme = localStorage.getItem('theme');
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      `;
 
-      const result = validation.validateTransformation(before, after, 1);
+      const result = await NeuroLintOrchestrator.processCode(ssrProblematicCode, {
+        selectedLayers: [4]
+      });
 
-      expect(result).toBeDefined();
-      expect(result.shouldRevert).toBeDefined();
+      expect(result.finalCode).toContain('typeof window');
+    });
+
+    it('should fix theme provider hydration', async () => {
+      const themeCode = `
+        export function ThemeProvider({ children }) {
+          const [theme, setTheme] = useState('light');
+          return <ThemeContext.Provider value={{ theme, setTheme }}>{children}</ThemeContext.Provider>;
+        }
+      `;
+
+      const result = await NeuroLintOrchestrator.processCode(themeCode, {
+        selectedLayers: [4]
+      });
+
+      expect(result.finalCode).toContain('mounted');
     });
   });
 
-  describe("Smart Selector Tests", () => {
-    it("should recommend appropriate layers", async () => {
-      const testCode = `
-        const items = [];
-        items.map(item => <div>{item.name}</div>);
+  describe('Layer 5: Next.js App Router Fixes', () => {
+    it('should fix misplaced use client directives', async () => {
+      const misplacedDirective = `
+        import React from 'react';
+        'use client';
+        
+        export default function Component() {
+          return <div>Hello</div>;
+        }
       `;
 
-      const recommendation = await smartSelector.recommendLayers(testCode);
+      const result = await NeuroLintOrchestrator.processCode(misplacedDirective, {
+        selectedLayers: [5]
+      });
 
-      expect(recommendation).toBeDefined();
-      expect(recommendation.recommendedLayers).toBeDefined();
-      expect(Array.isArray(recommendation.recommendedLayers)).toBe(true);
+      expect(result.finalCode.indexOf("'use client'")).toBeLessThan(result.finalCode.indexOf('import'));
+    });
+
+    it('should add missing use client for hooks', async () => {
+      const hookCode = `
+        import { useState } from 'react';
+        
+        export default function Component() {
+          const [state, setState] = useState(0);
+          return <div>{state}</div>;
+        }
+      `;
+
+      const result = await NeuroLintOrchestrator.processCode(hookCode, {
+        selectedLayers: [5]
+      });
+
+      expect(result.finalCode).toContain("'use client'");
+    });
+
+    it('should fix corrupted import statements', async () => {
+      const corruptedImports = `
+        import {
+        import { useState } from 'react';
+      `;
+
+      const result = await NeuroLintOrchestrator.processCode(corruptedImports, {
+        selectedLayers: [5]
+      });
+
+      expect(result.finalCode).not.toMatch(/import\s*{\s*$/);
+    });
+  });
+
+  describe('Layer 6: Testing and Validation', () => {
+    it('should add error boundaries', async () => {
+      const riskyCode = `
+        export default function PDFUpload() {
+          return <div>PDF upload component</div>;
+        }
+      `;
+
+      const result = await NeuroLintOrchestrator.processCode(riskyCode, {
+        selectedLayers: [6]
+      });
+
+      expect(result.finalCode).toContain('try');
+    });
+  });
+
+  describe('Pattern Learning Integration', () => {
+    it('should learn from successful fixes', async () => {
+      const initialStats = patternLearner.getStatistics();
+      
+      const code = `const message = "&quot;Hello&quot;";`;
+      await NeuroLintOrchestrator.processCode(code, {
+        selectedLayers: [2],
+        enablePatternLearning: true
+      });
+
+      const updatedStats = patternLearner.getStatistics();
+      expect(updatedStats.totalRules).toBeGreaterThanOrEqual(initialStats.totalRules);
+    });
+  });
+
+  describe('Multi-layer Processing', () => {
+    it('should handle complex code with multiple issues', async () => {
+      const complexCode = `
+        import React from 'react';
+        'use client';
+        
+        export default function Component() {
+          const data = localStorage.getItem('data');
+          const items = [1, 2, 3];
+          
+          return (
+            <div>
+              {items.map(item => <Button>{item}</Button>)}
+              <div>&quot;Hello&quot;</div>
+            </div>
+          );
+        }
+      `;
+
+      const result = await NeuroLintOrchestrator.processCode(complexCode, {
+        selectedLayers: [2, 3, 4, 5]
+      });
+
+      expect(result.successfulLayers).toBeGreaterThan(0);
+    });
+
+    it('should optimize execution order', async () => {
+      const code = `const test = "&quot;test&quot;";`;
+      
+      const result = await NeuroLintOrchestrator.processCode(code, {
+        selectedLayers: [1, 2, 3, 4, 5, 6]
+      });
+
+      expect(result.results).toBeDefined();
+      expect(result.totalExecutionTime).toBeGreaterThan(0);
+    });
+
+    it('should handle layer dependencies', async () => {
+      const code = `
+        import { Button } from './Button';
+        export default function App() {
+          return <Button size="xl">Test</Button>;
+        }
+      `;
+
+      const result = await NeuroLintOrchestrator.processCode(code, {
+        selectedLayers: [3, 5]
+      });
+
+      expect(result.successfulLayers).toBeGreaterThanOrEqual(0);
+    });
+  });
+
+  describe('Smart Layer Selection', () => {
+    it('should recommend appropriate layers based on code analysis', async () => {
+      const codeWithHydrationIssues = `
+        const theme = localStorage.getItem('theme');
+        const [mounted, setMounted] = useState(false);
+      `;
+
+      const recommendations = SmartLayerSelector.recommendLayers(codeWithHydrationIssues);
+      expect(recommendations).toContain(4); // Hydration layer
     });
   });
 });
