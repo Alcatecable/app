@@ -365,9 +365,13 @@ export default function AdminDashboard() {
   const loadStats = async () => {
     try {
       // Get user stats
-      const { data: userStats } = await supabase
+      const { data: userStats, error: userStatsError } = await supabase
         .from("profiles")
         .select("id, created_at, updated_at");
+
+      if (userStatsError) {
+        console.warn("Profiles table error in stats:", userStatsError.message);
+      }
 
       // Get transformation stats
       const { data: transformationStats } = await supabase
