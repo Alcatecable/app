@@ -43,6 +43,7 @@ import { NeuroLintOrchestrator, LayerExecutionResult } from "@/lib/neurolint";
 import { useAuth } from "@/contexts/AuthContext";
 import { paypalService } from "@/lib/paypal/paypal-service";
 import { supabase } from "@/integrations/supabase/client";
+import { TransformationDebugger } from "@/components/TransformationDebugger";
 
 export default function Dashboard() {
   const { user } = useAuth();
