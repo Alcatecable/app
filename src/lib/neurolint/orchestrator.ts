@@ -12,6 +12,7 @@ import { patternLearner } from "./pattern-learner";
 /**
  * Enterprise-grade NeuroLint orchestration system
  * Provides robust, scalable, and observable code transformation
+ * Following the Safe Layer Execution Pattern from the documentation
  */
 export class NeuroLintOrchestrator {
   private static readonly MAX_RETRIES = 3;
@@ -19,6 +20,7 @@ export class NeuroLintOrchestrator {
 
   /**
    * Main entry point for code transformation with enterprise features
+   * Implements Safe Layer Execution Pattern with rollback capability
    */
   static async transform(
     code: string,
@@ -176,6 +178,7 @@ export class NeuroLintOrchestrator {
 
   /**
    * Core layer execution with enhanced error handling
+   * Implements Safe Layer Execution Pattern with rollback capability
    */
   private static async executeLayers(
     code: string,
@@ -219,7 +222,7 @@ export class NeuroLintOrchestrator {
           this.createLayerTimeoutPromise(layerId),
         ]);
 
-        // Validate transformation
+        // Validate transformation using comprehensive validation
         const validation = TransformationValidator.validateTransformation(
           previous,
           transformed,
@@ -233,6 +236,7 @@ export class NeuroLintOrchestrator {
             metadata: { reason: validation.reason },
           });
 
+          // ROLLBACK: Keep previous safe state
           current = previous;
           const result: LayerResult = {
             layerId,
@@ -246,6 +250,7 @@ export class NeuroLintOrchestrator {
           results.push(result);
           metrics.recordLayerExecution(layerId, false, layerDuration, 0);
         } else {
+          // ACCEPT: Use transformed code
           current = transformed;
           states.push(current);
 
@@ -304,21 +309,33 @@ export class NeuroLintOrchestrator {
       } catch (error) {
         const layerDuration = metrics.endTimer(layerTimer);
 
+        // Categorize error using error recovery system
+        const errorInfo = ErrorRecoverySystem.categorizeError(
+          error,
+          layerId,
+          current,
+        );
+
         logger.error(`Layer ${layerId} failed`, error as Error, {
           executionId,
           layerId,
+          metadata: { errorCategory: errorInfo.category },
         });
 
         metrics.recordLayerExecution(layerId, false, layerDuration, 0);
         metrics.recordError("layer_execution", layerId);
 
+        // ROLLBACK: Keep previous safe state
         results.push({
           layerId,
           success: false,
           code: previous,
           executionTime: layerDuration,
           changeCount: 0,
-          error: (error as Error).message,
+          error: errorInfo.message,
+          errorCategory: errorInfo.category,
+          suggestion: errorInfo.suggestion,
+          recoveryOptions: errorInfo.recoveryOptions,
         });
       }
     }
