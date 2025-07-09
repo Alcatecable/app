@@ -1,5 +1,5 @@
 import { NeuroLintOrchestrator } from "./orchestrator";
-import { MetricsCollector } from "./metrics";
+import { metrics } from "./metrics";
 
 export interface BenchmarkResult {
   name: string;
@@ -23,11 +23,11 @@ export interface PerformanceSuite {
 
 export class PerformanceBenchmarks {
   private orchestrator: NeuroLintOrchestrator;
-  private metrics: MetricsCollector;
+  private metricsCollector: typeof metrics;
 
   constructor() {
     this.orchestrator = new NeuroLintOrchestrator();
-    this.metrics = new MetricsCollector();
+    this.metricsCollector = metrics;
   }
 
   async runFullBenchmark(
