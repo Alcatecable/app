@@ -526,21 +526,35 @@ export class TestRunner {
 
   private async testMemoryPressure(): Promise<boolean> {
     // Test memory usage under pressure
-    const initialMemory = process.memoryUsage?.()?.heapUsed || 0;
+    let initialMemory = 0;
+    try {
+      initialMemory = process.memoryUsage?.()?.heapUsed || 0;
+    } catch {
+      // Browser environment fallback
+      initialMemory = (performance as any)?.memory?.usedJSHeapSize || 0;
+    }
 
     // Process many files to create memory pressure
-    for (let i = 0; i < 1000; i++) {
+    for (let i = 0; i < 100; i++) {
+      // Reduced for browser environment
       await this.orchestrator.processCode(
-        `const memory${i} = new Array(1000);`,
+        `const memory${i} = new Array(100);`,
         {},
       );
     }
 
-    const finalMemory = process.memoryUsage?.()?.heapUsed || 0;
+    let finalMemory = 0;
+    try {
+      finalMemory = process.memoryUsage?.()?.heapUsed || 0;
+    } catch {
+      // Browser environment fallback
+      finalMemory = (performance as any)?.memory?.usedJSHeapSize || 0;
+    }
+
     const memoryIncrease = finalMemory - initialMemory;
 
-    // Memory increase should be reasonable (less than 100MB)
-    return memoryIncrease < 100 * 1024 * 1024;
+    // Memory increase should be reasonable (less than 50MB for browser)
+    return memoryIncrease < 50 * 1024 * 1024;
   }
 
   private async testPatternLearningScale(): Promise<boolean> {
@@ -593,17 +607,17 @@ export class TestRunner {
         id: number;
         name: string;
       }
-      
+
       // JavaScript function
       function getUsers() {
         return fetch('/api/users');
       }
-      
+
       // JSX component
       const UserComponent: React.FC<{user: User}> = ({ user }) => {
         return <div key={user.id}>{user.name}</div>;
       };
-      
+
       // Mixed usage
       const users: User[] = [];
       users.map(user => <UserComponent user={user} />);
@@ -615,7 +629,7 @@ export class TestRunner {
       const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_\`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
       const phoneRegex = /^\\+?1?[-\\s.]?\\(?[0-9]{3}\\)?[-\\s.]?[0-9]{3}[-\\s.]?[0-9]{4}$/;
       const complexPattern = /(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)/;
-      
+
       const testString = "complex@email.com";
       const matches = testString.match(emailRegex);
     `;

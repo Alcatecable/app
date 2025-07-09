@@ -151,10 +151,10 @@ export class PerformanceBenchmarks {
   private async benchmarkSmallComponent(): Promise<BenchmarkResult> {
     const testCode = `
       import React, { useState } from 'react';
-      
+
       const Counter = () => {
         const [count, setCount] = useState(0);
-        
+
         return (
           <div>
             <h1>Count: {count}</h1>
@@ -164,7 +164,7 @@ export class PerformanceBenchmarks {
           </div>
         );
       };
-      
+
       export default Counter;
     `;
 
@@ -184,7 +184,7 @@ export class PerformanceBenchmarks {
   private async benchmarkPatternRecognition(): Promise<BenchmarkResult> {
     const testCode = `
       const items = [1, 2, 3, 4, 5];
-      
+
       // Various patterns to recognize
       const mapped1 = items.map(item => <div>{item}</div>);
       const mapped2 = items.map((item, index) => <span>{index}: {item}</span>);
@@ -430,10 +430,20 @@ export class PerformanceBenchmarks {
 
   private getCurrentMemoryUsage(): number {
     if (typeof process !== "undefined" && process.memoryUsage) {
-      return process.memoryUsage().heapUsed;
+      try {
+        return process.memoryUsage().heapUsed;
+      } catch {
+        // Fallback if memoryUsage fails
+      }
     }
-    // Browser fallback - estimate based on performance
-    return Math.random() * 1024 * 1024; // Random for demo
+
+    // Browser fallback - use performance.memory if available
+    if (typeof performance !== "undefined" && (performance as any).memory) {
+      return (performance as any).memory.usedJSHeapSize || 0;
+    }
+
+    // Final fallback - estimate based on timestamp for demo
+    return Math.floor(Date.now() % (50 * 1024 * 1024)); // Simulate 0-50MB
   }
 
   private generateMediumCodebase(): string {
@@ -441,24 +451,24 @@ export class PerformanceBenchmarks {
       import React, { useState, useEffect, useCallback } from 'react';
       import { Button } from './components/Button';
       import { Modal } from './components/Modal';
-      
+
       interface User {
         id: number;
         name: string;
         email: string;
         role: string;
       }
-      
+
       const UserManagement: React.FC = () => {
         const [users, setUsers] = useState<User[]>([]);
         const [selectedUser, setSelectedUser] = useState<User | null>(null);
         const [isModalOpen, setIsModalOpen] = useState(false);
         const [loading, setLoading] = useState(false);
-        
+
         useEffect(() => {
           fetchUsers();
         }, []);
-        
+
         const fetchUsers = useCallback(async () => {
           setLoading(true);
           try {
@@ -471,21 +481,21 @@ export class PerformanceBenchmarks {
             setLoading(false);
           }
         }, []);
-        
+
         const handleUserSelect = useCallback((user: User) => {
           setSelectedUser(user);
           setIsModalOpen(true);
         }, []);
-        
+
         const handleCloseModal = useCallback(() => {
           setIsModalOpen(false);
           setSelectedUser(null);
         }, []);
-        
+
         if (loading) {
           return <div>Loading users...</div>;
         }
-        
+
         return (
           <div className="user-management">
             <h1>User Management</h1>
@@ -501,7 +511,7 @@ export class PerformanceBenchmarks {
                 </div>
               ))}
             </div>
-            
+
             {isModalOpen && selectedUser && (
               <Modal onClose={handleCloseModal}>
                 <h2>User Details</h2>
@@ -513,7 +523,7 @@ export class PerformanceBenchmarks {
           </div>
         );
       };
-      
+
       export default UserManagement;
     `;
   }
@@ -521,13 +531,13 @@ export class PerformanceBenchmarks {
   private generateComplexComponent(): string {
     return `
       import React, { useState, useEffect, useMemo, useCallback } from 'react';
-      
+
       const ComplexDashboard = ({ data, config, onUpdate }) => {
         const [filters, setFilters] = useState({});
         const [sortBy, setSortBy] = useState('name');
         const [sortOrder, setSortOrder] = useState('asc');
         const [selectedItems, setSelectedItems] = useState([]);
-        
+
         const filteredData = useMemo(() => {
           return data.filter(item => {
             return Object.entries(filters).every(([key, value]) => {
@@ -535,7 +545,7 @@ export class PerformanceBenchmarks {
             });
           });
         }, [data, filters]);
-        
+
         const sortedData = useMemo(() => {
           return [...filteredData].sort((a, b) => {
             const aVal = a[sortBy];
@@ -544,11 +554,11 @@ export class PerformanceBenchmarks {
             return aVal < bVal ? -1 * multiplier : aVal > bVal ? 1 * multiplier : 0;
           });
         }, [filteredData, sortBy, sortOrder]);
-        
+
         const handleFilterChange = useCallback((key, value) => {
           setFilters(prev => ({ ...prev, [key]: value }));
         }, []);
-        
+
         const handleSort = useCallback((field) => {
           if (sortBy === field) {
             setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
@@ -557,7 +567,7 @@ export class PerformanceBenchmarks {
             setSortOrder('asc');
           }
         }, [sortBy]);
-        
+
         const handleSelection = useCallback((item, isSelected) => {
           setSelectedItems(prev => {
             if (isSelected) {
@@ -567,7 +577,7 @@ export class PerformanceBenchmarks {
             }
           });
         }, []);
-        
+
         return (
           <div className="complex-dashboard">
             <div className="dashboard-header">
@@ -586,7 +596,7 @@ export class PerformanceBenchmarks {
                 ))}
               </div>
             </div>
-            
+
             <div className="dashboard-content">
               <div className="data-table">
                 <div className="table-header">
@@ -605,7 +615,7 @@ export class PerformanceBenchmarks {
                     </div>
                   ))}
                 </div>
-                
+
                 <div className="table-body">
                   {sortedData.map(item => (
                     <div key={item.id} className="table-row">
@@ -625,7 +635,7 @@ export class PerformanceBenchmarks {
                   ))}
                 </div>
               </div>
-              
+
               <div className="dashboard-summary">
                 <p>Total Items: {data.length}</p>
                 <p>Filtered Items: {filteredData.length}</p>
@@ -664,7 +674,7 @@ export class PerformanceBenchmarks {
           }
         }
       };
-      
+
       const complexFunction = (a, b, c) => {
         return {
           ...a,
