@@ -37,6 +37,7 @@ export function UserProfile() {
 
   const fetchProfile = async () => {
     try {
+      // First try to get profile from profiles table
       const { data, error } = await supabase
         .from("profiles")
         .select("*")
@@ -44,24 +45,62 @@ export function UserProfile() {
         .single();
 
       if (error) {
-        console.error("Error fetching profile:", error.message || error);
-        toast({
-          title: "Profile Error",
-          description: error.message || "Failed to load profile information",
-          variant: "destructive",
-        });
+        console.warn("Profile table error:", error.message);
+
+        // If profiles table doesn't exist or has issues, create a fallback profile from auth user
+        if (user) {
+          const fallbackProfile: UserProfile = {
+            email: user.email || "Unknown",
+            full_name:
+              user.user_metadata?.full_name || user.user_metadata?.name || "",
+            plan_type: "free",
+            monthly_limit: 25,
+            monthly_transformations_used: 0,
+            created_at: user.created_at || new Date().toISOString(),
+          };
+          setProfile(fallbackProfile);
+          console.info("Using fallback profile data");
+        } else {
+          toast({
+            title: "Profile Error",
+            description: "Unable to load profile information",
+            variant: "destructive",
+          });
+        }
       } else {
-        setProfile(data);
+        // Ensure all required fields exist with fallbacks
+        const profileData: UserProfile = {
+          email: data?.email || user?.email || "Unknown",
+          full_name:
+            data?.full_name ||
+            data?.name ||
+            user?.user_metadata?.full_name ||
+            "",
+          plan_type: data?.plan_type || "free",
+          monthly_limit: data?.monthly_limit || 25,
+          monthly_transformations_used: data?.monthly_transformations_used || 0,
+          created_at:
+            data?.created_at || user?.created_at || new Date().toISOString(),
+        };
+        setProfile(profileData);
       }
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error";
       console.error("Profile fetch error:", errorMessage);
-      toast({
-        title: "Profile Error",
-        description: errorMessage,
-        variant: "destructive",
-      });
+
+      // Create fallback profile even on catch
+      if (user) {
+        const fallbackProfile: UserProfile = {
+          email: user.email || "Unknown",
+          full_name: user.user_metadata?.full_name || "",
+          plan_type: "free",
+          monthly_limit: 25,
+          monthly_transformations_used: 0,
+          created_at: user.created_at || new Date().toISOString(),
+        };
+        setProfile(fallbackProfile);
+      }
     } finally {
       setLoading(false);
     }
