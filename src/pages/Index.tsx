@@ -19,9 +19,11 @@ import {
   Database,
   Upload,
   Terminal,
-  Zap
+  Zap,
+  ExternalLink
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { UnifiedHeader } from '@/components/navigation/UnifiedHeader';
 
 const Index = () => {
   const { user, signOut } = useAuth();
@@ -41,51 +43,7 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-black text-white">
-      {/* Header with neurolint.dev styling */}
-      <header className="border-b border-zinc-800/50 bg-black/95 backdrop-blur-xl">
-        <div className="mx-auto max-w-7xl px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="flex h-8 w-8 items-center justify-center rounded bg-gradient-to-br from-blue-500 to-blue-600">
-                <Terminal className="h-5 w-5 text-white" />
-              </div>
-              <span className="text-xl font-bold text-white">NeuroLint</span>
-            </div>
-            
-            <div className="flex items-center space-x-4">
-              {user ? (
-                <>
-                  <span className="text-sm text-zinc-300">{user.email}</span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => navigate('/dashboard')}
-                    className="border-zinc-600 text-zinc-300 hover:bg-zinc-800"
-                  >
-                    Dashboard
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleSignOut}
-                    className="flex items-center gap-2 text-zinc-300 hover:bg-zinc-800"
-                  >
-                    <LogOut className="h-4 w-4" />
-                    Sign Out
-                  </Button>
-                </>
-              ) : (
-                <Button
-                  onClick={() => navigate('/auth')}
-                  className="bg-white text-black hover:bg-gray-100 font-medium"
-                >
-                  Sign In
-                </Button>
-              )}
-            </div>
-          </div>
-        </div>
-      </header>
+      <UnifiedHeader />
 
       {/* Hero Section - Terminal inspired */}
       <section className="section-padding container-padding">
