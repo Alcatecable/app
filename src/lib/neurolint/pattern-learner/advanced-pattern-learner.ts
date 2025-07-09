@@ -1,6 +1,7 @@
 
 import { LearnedPattern, PatternRule, TransformationExample } from "../types";
 import { logger } from "../logger";
+import { patternStorage } from "../pattern-storage";
 
 /**
  * Advanced pattern learning system with ML-inspired techniques
@@ -10,6 +11,72 @@ export class AdvancedPatternLearner {
   private transformationHistory: TransformationExample[] = [];
   private patternConfidenceThreshold = 0.7;
   private maxPatterns = 1000;
+  private initialized = false;
+
+  /**
+   * Initialize the pattern learner and load existing patterns
+   */
+  private async initialize(): Promise<void> {
+    if (this.initialized) return;
+
+    try {
+      const storedPatterns = await patternStorage.loadPatterns();
+      
+      // Convert stored patterns to internal format
+      for (const pattern of storedPatterns) {
+        const patternKey = `${pattern.category}_${pattern.id}`;
+        
+        // Adapt stored pattern to internal format
+        const internalPattern = {
+          id: pattern.id,
+          pattern: pattern.pattern,
+          replacement: pattern.replacement,
+          confidence: pattern.confidence,
+          usage: pattern.usage,
+          category: pattern.category,
+          description: pattern.description || '',
+        };
+        
+        this.patterns.set(patternKey, internalPattern);
+      }
+
+      logger.info('Pattern learner initialized', {
+        layerId: 7,
+        metadata: { loadedPatterns: storedPatterns.length }
+      });
+      
+      this.initialized = true;
+    } catch (error) {
+      logger.error('Failed to initialize pattern learner', error instanceof Error ? error : new Error(String(error)));
+      this.initialized = true; // Continue without stored patterns
+    }
+  }
+
+  /**
+   * Save current patterns to persistent storage
+   */
+  private async persistPatterns(): Promise<void> {
+    try {
+      const patterns = Array.from(this.patterns.values()).map(pattern => ({
+        id: pattern.id,
+        pattern: pattern.pattern,
+        replacement: pattern.replacement,
+        confidence: pattern.confidence,
+        usage: pattern.usage || 1,
+        category: pattern.category || 'learned',
+        description: pattern.description || '',
+      }));
+
+      await patternStorage.savePatterns(patterns);
+      
+      logger.debug('Patterns persisted successfully', {
+        layerId: 7,
+        metadata: { patternCount: patterns.length }
+      });
+    } catch (error) {
+      logger.error('Failed to persist patterns', error instanceof Error ? error : new Error(String(error)));
+    }
+  }
 
   /**
    * Learn from successful transformations using pattern recognition
@@ -20,6 +87,8 @@ export class AdvancedPatternLearner {
     layerId: number,
     context?: { filePath?: string; projectType?: string }
   ): Promise<void> {
+    await this.initialize();
+    
     const example: TransformationExample = {
       id: this.generateId(),
       before,
@@ -38,6 +107,9 @@ export class AdvancedPatternLearner {
     // Cleanup old patterns if we exceed the limit
     this.cleanupPatterns();
     
+    // Persist changes
+    await this.persistPatterns();
+    
     logger.debug("Pattern learning updated", {
       exampleId: example.id,
       layerId,
@@ -55,14 +127,16 @@ export class AdvancedPatternLearner {
     ruleCount: number;
     executionTime: number;
   }> {
+    await this.initialize();
+    
     const startTime = Date.now();
     let transformedCode = code;
     const appliedRules: string[] = [];
 
-    // Sort patterns by confidence and frequency
+    // Sort patterns by confidence and usage
     const sortedPatterns = Array.from(this.patterns.values())
       .filter(p => p.confidence >= this.patternConfidenceThreshold)
-      .sort((a, b) => (b.confidence * b.frequency) - (a.confidence * a.frequency));
+      .sort((a, b) => (b.confidence * (b.usage || 1)) - (a.confidence * (a.usage || 1)));
 
     for (const pattern of sortedPatterns) {
       const previousCode = transformedCode;

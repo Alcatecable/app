@@ -4,6 +4,7 @@
  */
 
 import { TransformationResult, AnalysisResult, LayerExecutionResult } from './types';
+import { AdaptiveLearningLayer } from './layers/adaptive-learning';
 
 const API_BASE_URL = 'https://api.neurolint.dev';
 
@@ -119,7 +120,7 @@ export class NeuroLintAPIClient {
       console.error(`Layer ${layerId} execution failed:`, error);
       
       // Fallback to local layer execution
-      return this.fallbackLayerExecution(layerId, code, options);
+      return await this.fallbackLayerExecution(layerId, code, options);
     }
   }
 
@@ -189,6 +190,128 @@ export class NeuroLintAPIClient {
     }
   }
 
+  /**
+   * Learn from successful transformation (Layer 7)
+   */
+  static async learnFromTransformation(
+    before: string,
+    after: string,
+    layerId: number,
+    context?: { filePath?: string; projectType?: string }
+  ): Promise<{ success: boolean; patternsLearned: number }> {
+    try {
+      const response = await fetch(`${this.baseURL}/api/v1/learn`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({
+          before,
+          after,
+          layerId,
+          context,
+          timestamp: Date.now(),
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new APIError(`Learning failed: ${response.status} ${response.statusText}`, errorData);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Pattern learning failed:', error);
+      
+      // Fallback to local learning
+      return { success: false, patternsLearned: 0 };
+    }
+  }
+
+  /**
+   * Get learned patterns for Layer 7
+   */
+  static async getLearnedPatterns(): Promise<{
+    patterns: any[];
+    statistics: {
+      totalPatterns: number;
+      highConfidencePatterns: number;
+      averageConfidence: number;
+    };
+  }> {
+    try {
+      const response = await fetch(`${this.baseURL}/api/v1/patterns`, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new APIError(`Failed to get patterns: ${response.status} ${response.statusText}`, errorData);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Failed to get patterns:', error);
+      
+      // Fallback to empty patterns
+      return {
+        patterns: [],
+        statistics: {
+          totalPatterns: 0,
+          highConfidencePatterns: 0,
+          averageConfidence: 0
+        }
+      };
+    }
+  }
+
+  /**
+   * Apply Layer 7 learned patterns
+   */
+  static async applyLearnedPatterns(
+    code: string
+  ): Promise<{
+    transformedCode: string;
+    appliedRules: string[];
+    ruleCount: number;
+    executionTime: number;
+  }> {
+    try {
+      const response = await fetch(`${this.baseURL}/api/v1/apply-patterns`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({
+          code,
+          timestamp: Date.now(),
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new APIError(`Pattern application failed: ${response.status} ${response.statusText}`, errorData);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Pattern application failed:', error);
+      
+      // Fallback to no changes
+      return {
+        transformedCode: code,
+        appliedRules: [],
+        ruleCount: 0,
+        executionTime: 0
+      };
+    }
+  }
+
   // Fallback implementations for when API is unavailable
   private static fallbackAnalysis(code: string): AnalysisResult {
     const detectedIssues = [];
@@ -236,7 +359,17 @@ export class NeuroLintAPIClient {
       });
     }
 
-    const recommendedLayers = [...new Set(detectedIssues.map(issue => issue.fixedByLayer))];
+    let recommendedLayers = [...new Set(detectedIssues.map(issue => issue.fixedByLayer))];
+    
+    // Check if Layer 7 should be recommended for complex code
+    if (recommendedLayers.length > 2 && (
+      code.includes('.map(') || 
+      code.includes('useState') || 
+      code.includes('localStorage') ||
+      (code.match(/function\s+\w+/g) || []).length > 2
+    )) {
+      recommendedLayers.push(7);
+    }
 
     return {
       confidence,
@@ -333,7 +466,33 @@ export class NeuroLintAPIClient {
     };
   }
 
-  private static fallbackLayerExecution(layerId: number, code: string, options: any): LayerExecutionResult {
+  private static async fallbackLayerExecution(layerId: number, code: string, options: any): Promise<LayerExecutionResult> {
+    // Handle Layer 7 locally using the AdaptiveLearningLayer
+    if (layerId === 7) {
+      try {
+        const result = await AdaptiveLearningLayer.execute(code, options);
+        
+        return {
+          layerId,
+          layerName: this.getLayerName(layerId),
+          success: true,
+          executionTime: result.executionTime,
+          changeCount: result.changeCount,
+          improvements: result.improvements,
+          transformedCode: result.transformedCode
+        };
+      } catch (error) {
+        return {
+          layerId,
+          layerName: this.getLayerName(layerId),
+          success: false,
+          executionTime: 0,
+          changeCount: 0,
+          error: error instanceof Error ? error.message : 'Layer 7 execution failed'
+        };
+      }
+    }
+    
     return {
       layerId,
       layerName: this.getLayerName(layerId),
@@ -369,6 +528,7 @@ export class NeuroLintAPIClient {
     if (layers.includes(4)) reasoning.push('Hydration fixes required for SSR compatibility');
     if (layers.includes(5)) reasoning.push('Next.js App Router compliance fixes needed');
     if (layers.includes(6)) reasoning.push('Testing and validation improvements recommended');
+    if (layers.includes(7)) reasoning.push('Adaptive learning will apply previously learned patterns');
     
     return reasoning;
   }
@@ -380,7 +540,8 @@ export class NeuroLintAPIClient {
       3: 'Component Enhancement',
       4: 'Hydration & SSR',
       5: 'Next.js App Router',
-      6: 'Testing & Validation'
+      6: 'Testing & Validation',
+      7: 'Adaptive Learning'
     };
     return layerNames[layerId as keyof typeof layerNames] || `Layer ${layerId}`;
   }

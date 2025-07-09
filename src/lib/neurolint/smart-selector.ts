@@ -219,6 +219,11 @@ export class SmartLayerSelector {
       recommendedLayers.unshift(1);
     }
 
+    // Check if Layer 7 should be recommended based on learned patterns
+    if (this.shouldRecommendLayer7(code, recommendedLayers)) {
+      recommendedLayers.push(7);
+    }
+
     // Sort layers in execution order
     recommendedLayers.sort((a, b) => a - b);
 
@@ -289,6 +294,48 @@ export class SmartLayerSelector {
       }
     }
     
+    if (layers.includes(7)) {
+      const otherLayers = layers.filter(l => l !== 7);
+      if (otherLayers.length > 2) {
+        reasoning.push(`Adaptive learning recommended for complex codebase with ${otherLayers.length} active layers`);
+      } else {
+        reasoning.push('Adaptive learning will optimize patterns based on previous transformations');
+      }
+    }
+    
     return reasoning;
+  }
+
+  /**
+   * Determine if Layer 7 (Adaptive Learning) should be recommended
+   */
+  private static shouldRecommendLayer7(code: string, existingLayers: number[]): boolean {
+    // Layer 7 is beneficial when:
+    // 1. Multiple other layers are recommended (indicating complex code)
+    // 2. Code has patterns that could benefit from learning
+    // 3. Code has repetitive structures that adaptive learning could optimize
+
+    if (existingLayers.length < 2) {
+      return false; // Not worth it for simple transformations
+    }
+
+    // Check for repetitive patterns that adaptive learning could help with
+    const hasRepetitivePatterns = (
+      // Multiple component patterns
+      (code.match(/\.map\(/g) || []).length > 2 ||
+      // Multiple import statements
+      (code.match(/import.*from/g) || []).length > 5 ||
+      // Multiple function/component definitions
+      (code.match(/function\s+\w+|const\s+\w+\s*=/g) || []).length > 3 ||
+      // Multiple JSX elements
+      (code.match(/<\w+/g) || []).length > 5
+    );
+
+    // Layer 7 is recommended for complex codebases with patterns
+    return hasRepetitivePatterns && (
+      existingLayers.includes(3) || // Component enhancements
+      existingLayers.includes(4) || // Hydration fixes
+      existingLayers.includes(5)    // Next.js fixes
+    );
   }
 }

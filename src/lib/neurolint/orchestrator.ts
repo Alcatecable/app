@@ -7,10 +7,12 @@
 import { LayerExecutionResult, TransformationResult, AnalysisResult, ValidationResult } from "./types";
 import { NeuroLintAPIClient } from "./api-client";
 import { TransformationValidator } from "./validation";
+import { AdvancedPatternLearner } from "./pattern-learner/advanced-pattern-learner";
 import { logger } from "./logger";
 import { metrics } from "./metrics";
 
 export class NeuroLintOrchestrator {
+  private static patternLearner = new AdvancedPatternLearner();
   
   /**
    * Analyze code to detect issues and recommend layers
@@ -110,7 +112,25 @@ export class NeuroLintOrchestrator {
             logger.info(
               `Layer ${layerId} applied successfully. Changes: ${layerResult.changeCount}`
             );
-            metrics.recordLayerExecution(layerId, layerResult.changeCount || 0);
+            metrics.recordLayerExecution(layerId, true, performance.now() - layerStartTime, layerResult.changeCount || 0);
+
+            // Learn from successful transformation (for layers 1-6)
+            if (layerId >= 1 && layerId <= 6 && layerResult.changeCount && layerResult.changeCount > 0) {
+              try {
+                await this.patternLearner.learnFromTransformation(
+                  previousCode,
+                  layerResult.transformedCode,
+                  layerId,
+                  { projectType: 'neurolint-transformation' }
+                );
+                logger.info(`Pattern learning completed for Layer ${layerId}`, {
+                  layerId,
+                  metadata: { transformedCode: true }
+                });
+              } catch (error) {
+                logger.error(`Pattern learning failed for Layer ${layerId}`, error instanceof Error ? error : new Error(String(error)));
+              }
+            }
 
             results.push({
               layerId,
@@ -202,6 +222,7 @@ export class NeuroLintOrchestrator {
       4: [1, 2, 3], // Hydration depends on all previous layers
       5: [1], // Next.js fixes depend on config
       6: [1], // Testing depends on config
+      7: [1, 2, 3, 4, 5, 6], // Adaptive learning depends on all previous layers
     };
 
     const warnings: string[] = [];
@@ -286,7 +307,8 @@ export class NeuroLintOrchestrator {
       3: 'Component Enhancement',
       4: 'Hydration & SSR',
       5: 'Next.js App Router',
-      6: 'Testing & Validation'
+      6: 'Testing & Validation',
+      7: 'Adaptive Learning'
     };
     return layerNames[layerId as keyof typeof layerNames] || `Layer ${layerId}`;
   }
