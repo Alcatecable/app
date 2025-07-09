@@ -1,5 +1,5 @@
 import { NeuroLintOrchestrator } from "./orchestrator";
-import { MetricsCollector } from "./metrics";
+import { metrics } from "./metrics";
 import { ValidationService } from "./validation";
 import { PatternLearner } from "./pattern-learner";
 import { SmartLayerSelector } from "./smart-selector";
@@ -33,14 +33,14 @@ export interface TestSuite {
 
 export class TestRunner {
   private orchestrator: NeuroLintOrchestrator;
-  private metrics: MetricsCollector;
+  private metricsCollector: typeof metrics;
   private validation: ValidationService;
   private patternLearner: PatternLearner;
   private smartSelector: SmartLayerSelector;
 
   constructor() {
     this.orchestrator = new NeuroLintOrchestrator();
-    this.metrics = new MetricsCollector();
+    this.metricsCollector = metrics;
     this.validation = new ValidationService();
     this.patternLearner = new PatternLearner();
     this.smartSelector = new SmartLayerSelector();
@@ -409,7 +409,7 @@ export class TestRunner {
   }
 
   private async testMetricsCollection(): Promise<boolean> {
-    this.metrics.recordLayerExecution(1, 100, true);
+    this.metricsCollector.recordLayerExecution(1, true, 100, 0);
     return true;
   }
 
