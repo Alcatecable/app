@@ -160,7 +160,8 @@ export class TransformationPipeline {
     code: string,
     options: ExecutionOptions,
   ): Promise<string> {
-    // This will be implemented in the main orchestrator
-    throw new Error("executeLayer must be implemented by orchestrator");
+    // Delegate to the orchestrator's executeLayer method
+    const { NeuroLintOrchestrator } = await import("./orchestrator");
+    return (NeuroLintOrchestrator as any).executeLayer(layerId, code, options);
   }
 }
