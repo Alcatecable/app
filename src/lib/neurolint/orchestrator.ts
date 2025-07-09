@@ -226,6 +226,7 @@ export class NeuroLintOrchestrator {
         const validation = TransformationValidator.validateTransformation(
           previous,
           transformed,
+          layerId,
         );
         const layerDuration = metrics.endTimer(layerTimer);
 
