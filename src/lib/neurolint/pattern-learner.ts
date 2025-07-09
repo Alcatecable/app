@@ -165,8 +165,11 @@ export class PatternLearner {
 
       const executionTime = Date.now() - startTime;
       console.log(
-        `🎯 Learned ${patterns.length} patterns from Layer ${sourceLayer} in ${executionTime}ms`,
+        `��� Learned ${patterns.length} patterns from Layer ${sourceLayer} in ${executionTime}ms`,
       );
+
+      // Record metrics
+      metrics.recordPatternLearning(patterns.length, executionTime);
 
       return result;
     } catch (error) {
