@@ -1,4 +1,3 @@
-
 // Core types for the NeuroLint orchestration system
 export interface LayerConfig {
   id: number;
@@ -27,6 +26,17 @@ export interface LayerResult {
   improvements?: string[];
   revertReason?: string;
   error?: string;
+  errorCategory?:
+    | "syntax"
+    | "parsing"
+    | "filesystem"
+    | "config"
+    | "pattern"
+    | "component"
+    | "hydration"
+    | "unknown";
+  suggestion?: string;
+  recoveryOptions?: string[];
 }
 
 export interface LayerExecutionResult {
@@ -43,8 +53,8 @@ export interface ValidationResult {
 }
 
 export interface DetectedIssue {
-  type: 'config' | 'pattern' | 'component' | 'hydration';
-  severity: 'low' | 'medium' | 'high';
+  type: "config" | "pattern" | "component" | "hydration";
+  severity: "low" | "medium" | "high";
   description: string;
   fixedByLayer: number;
   pattern: string;
@@ -60,17 +70,25 @@ export interface LayerRecommendation {
 }
 
 export interface ImpactEstimate {
-  level: 'low' | 'medium' | 'high';
+  level: "low" | "medium" | "high";
   description: string;
   estimatedFixTime: string;
 }
 
 export interface ErrorInfo {
-  category: 'syntax' | 'parsing' | 'filesystem' | 'config' | 'pattern' | 'component' | 'hydration' | 'unknown';
+  category:
+    | "syntax"
+    | "parsing"
+    | "filesystem"
+    | "config"
+    | "pattern"
+    | "component"
+    | "hydration"
+    | "unknown";
   message: string;
   suggestion: string;
   recoveryOptions: string[];
-  severity: 'low' | 'medium' | 'high';
+  severity: "low" | "medium" | "high";
 }
 
 export interface ExecutionOptions {
@@ -126,27 +144,27 @@ export interface RecoverySuggestion {
 // Pattern definitions that were missing
 export const CORRUPTION_PATTERNS = [
   {
-    name: 'Double function calls',
-    regex: /onClick=\{[^}]*\([^)]*\)\s*=>\s*\(\)\s*=>/g
+    name: "Double function calls",
+    regex: /onClick=\{[^}]*\([^)]*\)\s*=>\s*\(\)\s*=>/g,
   },
   {
-    name: 'Malformed event handlers',
-    regex: /onClick=\{[^}]*\)\([^)]*\)$/g
+    name: "Malformed event handlers",
+    regex: /onClick=\{[^}]*\)\([^)]*\)$/g,
   },
   {
-    name: 'Invalid JSX attributes',
-    regex: /\w+=\{[^}]*\)[^}]*\}/g
+    name: "Invalid JSX attributes",
+    regex: /\w+=\{[^}]*\)[^}]*\}/g,
   },
   {
-    name: 'Broken import statements',
-    regex: /import\s*{\s*\n\s*import\s*{/g
-  }
+    name: "Broken import statements",
+    regex: /import\s*{\s*\n\s*import\s*{/g,
+  },
 ];
 
 export const ENTITY_PATTERNS = [
-  { pattern: /&quot;/g, name: 'HTML quote entities' },
-  { pattern: /&amp;/g, name: 'HTML ampersand entities' },
-  { pattern: /&lt;|&gt;/g, name: 'HTML bracket entities' },
-  { pattern: /console\.log\(/g, name: 'Console.log usage' },
-  { pattern: /\bvar\s+/g, name: 'Var declarations' }
+  { pattern: /&quot;/g, name: "HTML quote entities" },
+  { pattern: /&amp;/g, name: "HTML ampersand entities" },
+  { pattern: /&lt;|&gt;/g, name: "HTML bracket entities" },
+  { pattern: /console\.log\(/g, name: "Console.log usage" },
+  { pattern: /\bvar\s+/g, name: "Var declarations" },
 ];
