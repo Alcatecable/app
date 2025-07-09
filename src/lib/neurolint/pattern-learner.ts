@@ -305,6 +305,36 @@ export class PatternLearner {
   }
 
   /**
+   * Check if two ASTs are comparable for pattern extraction
+   */
+  private areASTsComparable(beforeAST: t.File, afterAST: t.File): boolean {
+    try {
+      // Simple heuristic: check if the structures are similar enough
+      const beforeNodeCount = this.countASTNodes(beforeAST);
+      const afterNodeCount = this.countASTNodes(afterAST);
+
+      // Allow up to 50% difference in node count
+      const difference = Math.abs(afterNodeCount - beforeNodeCount);
+      const maxAllowedDifference = Math.max(beforeNodeCount * 0.5, 10);
+
+      return difference <= maxAllowedDifference;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  /**
+   * Count total nodes in AST for comparison
+   */
+  private countASTNodes(ast: t.File): number {
+    let count = 0;
+    traverse(ast, {
+      enter: () => count++,
+    });
+    return count;
+  }
+
+  /**
    * Parse code to AST with comprehensive TypeScript/JSX support
    */
   private parseToAST(code: string): t.File | null {
