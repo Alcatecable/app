@@ -21,6 +21,7 @@ export class TransformationValidator {
   static validateTransformation(
     before: string,
     after: string,
+    layerId?: number,
   ): ValidationResult {
     // Skip validation if no changes were made
     if (before === after) {
@@ -52,6 +53,17 @@ export class TransformationValidator {
         shouldRevert: true,
         reason: `Logical issue: ${logicalCheck.reason}`,
       };
+    }
+
+    // AST validation for layers 3-4 (Components and Hydration)
+    if (layerId === 3 || layerId === 4) {
+      const astCheck = this.validateWithAST(before, after, layerId);
+      if (!astCheck.valid) {
+        return {
+          shouldRevert: true,
+          reason: `AST validation failed: ${astCheck.errors.join(", ")}`,
+        };
+      }
     }
 
     return { shouldRevert: false };
