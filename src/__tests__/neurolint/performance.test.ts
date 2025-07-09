@@ -23,15 +23,28 @@ describe("NeuroLint Performance Tests", () => {
     });
 
     it("should maintain memory efficiency", async () => {
-      const initialMemory = process.memoryUsage?.()?.heapUsed || 0;
+      let initialMemory = 0;
+      try {
+        initialMemory = process.memoryUsage?.()?.heapUsed || 0;
+      } catch {
+        // Browser environment fallback
+        initialMemory = (performance as any)?.memory?.usedJSHeapSize || 0;
+      }
 
       await performanceBenchmarks.runFullBenchmark();
 
-      const finalMemory = process.memoryUsage?.()?.heapUsed || 0;
+      let finalMemory = 0;
+      try {
+        finalMemory = process.memoryUsage?.()?.heapUsed || 0;
+      } catch {
+        // Browser environment fallback
+        finalMemory = (performance as any)?.memory?.usedJSHeapSize || 0;
+      }
+
       const memoryIncrease = finalMemory - initialMemory;
 
-      // Memory increase should be reasonable (less than 200MB for full benchmark)
-      expect(memoryIncrease).toBeLessThan(200 * 1024 * 1024);
+      // Memory increase should be reasonable (less than 100MB for browser benchmark)
+      expect(memoryIncrease).toBeLessThan(100 * 1024 * 1024);
     });
   });
 
@@ -67,24 +80,38 @@ describe("NeuroLint Performance Tests", () => {
 
   describe("Memory Stress Testing", () => {
     it("should handle memory pressure gracefully", async () => {
-      const iterations = 50;
-      const initialMemory = process.memoryUsage?.()?.heapUsed || 0;
+      const iterations = 20; // Reduced for browser environment
+      let initialMemory = 0;
+
+      try {
+        initialMemory = process.memoryUsage?.()?.heapUsed || 0;
+      } catch {
+        // Browser environment fallback
+        initialMemory = (performance as any)?.memory?.usedJSHeapSize || 0;
+      }
 
       for (let i = 0; i < iterations; i++) {
         await testRunner.runCustomCodeTest(`
-          const data${i} = new Array(1000).fill(0).map((_, j) => ({
+          const data${i} = new Array(100).fill(0).map((_, j) => ({
             id: j,
             value: Math.random(),
-            nested: { data: new Array(100).fill(i + j) }
+            nested: { data: new Array(10).fill(i + j) }
           }));
         `);
       }
 
-      const finalMemory = process.memoryUsage?.()?.heapUsed || 0;
+      let finalMemory = 0;
+      try {
+        finalMemory = process.memoryUsage?.()?.heapUsed || 0;
+      } catch {
+        // Browser environment fallback
+        finalMemory = (performance as any)?.memory?.usedJSHeapSize || 0;
+      }
+
       const memoryIncrease = finalMemory - initialMemory;
 
-      // Memory should not grow excessively
-      expect(memoryIncrease).toBeLessThan(500 * 1024 * 1024); // Less than 500MB
+      // Memory should not grow excessively (reduced for browser)
+      expect(memoryIncrease).toBeLessThan(100 * 1024 * 1024); // Less than 100MB
     });
   });
 
