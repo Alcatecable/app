@@ -36,6 +36,14 @@ export function UserProfile() {
   }, [user]);
 
   const fetchProfile = async () => {
+    if (!user?.id) {
+      console.warn("No user ID available for profile fetch");
+      setLoading(false);
+      return;
+    }
+
+    console.log("Fetching profile for user:", user.id);
+
     try {
       // First try to get profile from profiles table
       const { data, error } = await supabase
