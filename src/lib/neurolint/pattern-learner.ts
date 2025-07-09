@@ -1,200 +1,141 @@
+import { LearnedPattern } from "./types";
+import { logger } from "./logger";
 
-import { logger } from './logger';
-
-interface LearnedRule {
-  id: string;
-  pattern: RegExp | string;
-  replacement: string;
-  confidence: number;
-  usageCount: number;
-  successRate: number;
-  layerId: number;
-  description: string;
-  createdAt: Date;
-}
-
-interface PatternStatistics {
-  totalRules: number;
-  activeRules: number;
-  averageConfidence: number;
-  totalApplications: number;
-  successfulApplications: number;
-  overallSuccessRate: number;
-}
-
+/**
+ * Component for dynamically learning and applying code transformation patterns
+ * Integrates with the orchestrator to improve future transformations
+ */
 export class PatternLearner {
-  private rules: Map<string, LearnedRule> = new Map();
-  private maxRules = 1000;
-  private minConfidence = 0.7;
-  private learningEnabled = true;
+  private learnedPatterns: LearnedPattern[] = [];
 
-  learn(code: string, transformedCode: string, layerId: number, improvements: string[]): void {
-    if (!this.learningEnabled || code === transformedCode) {
-      return;
-    }
-
-    try {
-      const patterns = this.extractPatterns(code, transformedCode, layerId, improvements);
-      patterns.forEach(pattern => this.addOrUpdateRule(pattern));
-      
-      logger.log(`Learned ${patterns.length} new patterns from layer ${layerId}`);
-    } catch (error) {
-      logger.error('Pattern learning failed:', error);
-    }
+  constructor() {
+    // Load existing patterns from storage or database
+    this.loadPatterns();
   }
 
-  private extractPatterns(code: string, transformedCode: string, layerId: number, improvements: string[]): LearnedRule[] {
-    const patterns: LearnedRule[] = [];
-    
-    // Extract simple replacement patterns
-    const lines = code.split('\n');
-    const transformedLines = transformedCode.split('\n');
-    
-    for (let i = 0; i < Math.min(lines.length, transformedLines.length); i++) {
-      const original = lines[i].trim();
-      const transformed = transformedLines[i].trim();
-      
-      if (original !== transformed && original.length > 0 && transformed.length > 0) {
-        const pattern: LearnedRule = {
-          id: `pattern_${layerId}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-          pattern: this.escapeRegExp(original),
-          replacement: transformed,
-          confidence: 0.8,
-          usageCount: 1,
-          successRate: 1.0,
-          layerId,
-          description: `Auto-learned pattern from layer ${layerId}`,
-          createdAt: new Date()
-        };
-        
-        patterns.push(pattern);
-      }
-    }
+  private async loadPatterns(): Promise<void> {
+    // Load patterns from a database or storage
+    this.learnedPatterns = [];
+  }
 
-    // Learn from specific improvements
-    improvements.forEach(improvement => {
-      if (improvement.includes('HTML entity')) {
-        patterns.push({
-          id: `html_entity_${Date.now()}`,
-          pattern: /&quot;/g,
-          replacement: '"',
-          confidence: 0.95,
-          usageCount: 1,
-          successRate: 1.0,
-          layerId,
-          description: 'HTML entity quote fix',
-          createdAt: new Date()
-        });
-      }
+  learnFromTransformation(before: string, after: string, layerId: number): void {
+    logger.info(`Learning from transformation in layer ${layerId}`, {
+      layerId,
+      changeCount: Math.abs(before.length - after.length)
     });
 
-    return patterns;
-  }
-
-  private escapeRegExp(string: string): string {
-    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  }
-
-  private addOrUpdateRule(pattern: LearnedRule): void {
-    const existingRule = this.rules.get(pattern.id);
-    
-    if (existingRule) {
-      // Update existing rule
-      existingRule.usageCount++;
-      existingRule.confidence = Math.min(0.99, existingRule.confidence + 0.01);
-    } else {
-      // Add new rule if under limit
-      if (this.rules.size < this.maxRules) {
-        this.rules.set(pattern.id, pattern);
-      } else {
-        this.cleanupLowConfidenceRules();
-        this.rules.set(pattern.id, pattern);
-      }
+    const pattern = this.analyzePattern(before, after);
+    if (pattern) {
+      this.learnedPatterns.push(pattern);
+      this.savePattern(pattern);
     }
   }
 
-  getRecommendations(code: string): LearnedRule[] {
-    const recommendations: LearnedRule[] = [];
-    
-    for (const rule of this.rules.values()) {
-      if (rule.confidence >= this.minConfidence) {
-        try {
-          if (rule.pattern instanceof RegExp) {
-            if (rule.pattern.test(code)) {
-              recommendations.push(rule);
-            }
-          } else if (typeof rule.pattern === 'string') {
-            if (code.includes(rule.pattern)) {
-              recommendations.push(rule);
-            }
-          }
-        } catch (error) {
-          logger.error('Error testing pattern:', error);
+  private async savePattern(pattern: LearnedPattern): Promise<void> {
+    // Save the pattern to a database or storage
+  }
+
+  getLearnedPatterns(): LearnedPattern[] {
+    return this.learnedPatterns;
+  }
+
+  applyLearnedPatterns(code: string, layerId: number): string {
+    let transformedCode = code;
+    for (const pattern of this.learnedPatterns) {
+      try {
+        // Apply the pattern using a regular expression
+        const regex = new RegExp(pattern.pattern, "g");
+        transformedCode = transformedCode.replace(regex, pattern.replacement);
+      } catch (error) {
+        // Handle errors in pattern application
+        console.error(`Error applying pattern ${pattern.id}:`, error);
+      }
+    }
+    return transformedCode;
+  }
+
+  private analyzePattern(before: string, after: string): LearnedPattern | null {
+    logger.info('Analyzing transformation pattern', {
+      layerId: 0,
+      changeCount: Math.abs(before.length - after.length)
+    });
+
+    const differences = this.findDifferences(before, after);
+    if (differences.length === 0) {
+      return null;
+    }
+
+    const pattern = this.createPattern(before, after, differences);
+
+    logger.info('Pattern analysis completed', {
+      layerId: 0,
+      changeCount: differences.length
+    });
+
+    if (!pattern) {
+      return null;
+    }
+
+    logger.info(`New pattern learned: ${pattern.id}`, {
+      layerId: 0,
+      changeCount: 1
+    });
+
+    return pattern;
+  }
+
+  private findDifferences(before: string, after: string): { start: number; end: number }[] {
+    const differences: { start: number; end: number }[] = [];
+    let start = -1;
+
+    for (let i = 0; i < Math.min(before.length, after.length); i++) {
+      if (before[i] !== after[i]) {
+        if (start === -1) {
+          start = i;
         }
+      } else if (start !== -1) {
+        differences.push({ start, end: i });
+        start = -1;
       }
     }
-    
-    return recommendations.sort((a, b) => b.confidence - a.confidence);
+
+    if (start !== -1) {
+      differences.push({ start, end: Math.max(before.length, after.length) });
+    }
+
+    return differences;
   }
 
-  getStatistics(): PatternStatistics {
-    const rules = Array.from(this.rules.values());
-    const activeRules = rules.filter(r => r.confidence >= this.minConfidence);
-    
-    const totalApplications = rules.reduce((sum, r) => sum + r.usageCount, 0);
-    const successfulApplications = rules.reduce((sum, r) => sum + (r.usageCount * r.successRate), 0);
-    
+  private createPattern(
+    before: string,
+    after: string,
+    differences: { start: number; end: number }[],
+  ): LearnedPattern | null {
+    if (differences.length === 0) {
+      return null;
+    }
+
+    const { start, end } = differences[0];
+    const pattern = before.substring(start, end);
+    const replacement = after.substring(start, end);
+
+    if (!pattern || !replacement) {
+      return null;
+    }
+
     return {
-      totalRules: rules.length,
-      activeRules: activeRules.length,
-      averageConfidence: activeRules.length > 0 ? 
-        activeRules.reduce((sum, r) => sum + r.confidence, 0) / activeRules.length : 0,
-      totalApplications,
-      successfulApplications: Math.round(successfulApplications),
-      overallSuccessRate: totalApplications > 0 ? successfulApplications / totalApplications : 0
+      id: `pattern-${Date.now()}`,
+      pattern: this.escapeRegExp(pattern),
+      replacement: replacement,
+      confidence: 0.8,
+      usage: 0,
+      category: "generic",
+      description: `Learned pattern from code transformation`,
     };
   }
 
-  clearRules(): void {
-    this.rules.clear();
-    logger.log('Pattern learner rules cleared');
-  }
-
-  getLearnedRules(): LearnedRule[] {
-    return Array.from(this.rules.values())
-      .filter(rule => rule.confidence >= this.minConfidence)
-      .sort((a, b) => b.confidence - a.confidence);
-  }
-
-  private cleanupLowConfidenceRules(): void {
-    const lowConfidenceRules = Array.from(this.rules.entries())
-      .filter(([_, rule]) => rule.confidence < this.minConfidence)
-      .sort(([_, a], [__, b]) => a.confidence - b.confidence);
-    
-    // Remove bottom 10% of low confidence rules
-    const toRemove = Math.max(1, Math.floor(lowConfidenceRules.length * 0.1));
-    for (let i = 0; i < toRemove && i < lowConfidenceRules.length; i++) {
-      this.rules.delete(lowConfidenceRules[i][0]);
-    }
-  }
-
-  setLearningEnabled(enabled: boolean): void {
-    this.learningEnabled = enabled;
-    logger.log(`Pattern learning ${enabled ? 'enabled' : 'disabled'}`);
-  }
-
-  exportRules(): string {
-    return JSON.stringify(Array.from(this.rules.entries()), null, 2);
-  }
-
-  importRules(rulesJson: string): void {
-    try {
-      const importedRules = JSON.parse(rulesJson);
-      this.rules = new Map(importedRules);
-      logger.log(`Imported ${this.rules.size} rules`);
-    } catch (error) {
-      logger.error('Failed to import rules:', error);
-    }
+  private escapeRegExp(string: string): string {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); // $& means the whole matched string
   }
 }
 

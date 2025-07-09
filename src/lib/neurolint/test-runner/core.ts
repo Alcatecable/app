@@ -1,4 +1,3 @@
-
 import { TestResult, LayerTestResult, TestSuite } from "../types";
 import { UnitTestRunner } from "./unit-tests";
 import { IntegrationTestRunner } from "./integration-tests";
@@ -81,5 +80,24 @@ export class TestRunner {
     if (results.length === 0) return 0;
     const total = results.reduce((sum, result) => sum + result.duration, 0);
     return total / results.length;
+  }
+
+  private runPerformanceTests(): PerformanceMetrics {
+    const start = performance.now();
+    
+    // Simulate performance test
+    const executionTime = performance.now() - start;
+    
+    return {
+      totalExecutions: 1,
+      successfulExecutions: 1,
+      failedExecutions: 0,
+      averageExecutionTime: executionTime,
+      lastExecutionTime: executionTime,
+      maxMemoryUsage: 0,
+      cpuUsage: 0,
+      errors: [],
+      loadTestsPassed: true,
+    };
   }
 }

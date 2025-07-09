@@ -24,6 +24,11 @@ export interface LayerExecutionResult {
   errorCategory?: string;
   suggestion?: string;
   recoveryOptions?: string[];
+  // Properties for compatibility with TransformationResult
+  results?: LayerExecutionResult[];
+  successfulLayers?: number;
+  totalExecutionTime?: number;
+  finalCode?: string;
 }
 
 // Extended result type for orchestrator
@@ -54,6 +59,12 @@ export interface LayerTestResult {
   changeCount: number;
   error?: string;
   improvements?: string[];
+  passed?: boolean;
+  duration?: number;
+  changes?: number;
+  issues?: string[];
+  before?: string;
+  after?: string;
 }
 
 export interface TestSuite {
@@ -120,7 +131,6 @@ export interface RecoverySuggestion {
   priority: number;
   estimatedEffectiveness: number;
   type?: string;
-  title?: string;
   actions?: string[];
 }
 
@@ -243,4 +253,36 @@ export interface LogContext {
   exampleId?: string;
   patternId?: string;
   removedPatterns?: number;
+  strategy?: string;
+  codeLength?: number;
+  successfulLayers?: number;
+}
+
+// Pattern learner types
+export interface LearnedPattern {
+  id: string;
+  pattern: string;
+  replacement: string;
+  confidence: number;
+  usage: number;
+  category: string;
+  description?: string;
+}
+
+export interface PatternRule {
+  id: string;
+  pattern: RegExp;
+  replacement: string;
+  description: string;
+  category: string;
+  confidence: number;
+}
+
+export interface TransformationExample {
+  id: string;
+  before: string;
+  after: string;
+  description: string;
+  category: string;
+  patterns: string[];
 }

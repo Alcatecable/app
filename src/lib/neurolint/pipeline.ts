@@ -3,6 +3,7 @@ import {
   PipelineResult,
   LayerMetadata,
   ExecutionOptions,
+  ErrorInfo,
 } from "./types";
 
 /**
@@ -15,6 +16,9 @@ export class TransformationPipeline {
 
   constructor(private initialCode: string) {
     this.states.push({
+      currentLayer: 0,
+      completed: false,
+      errors: [],
       step: 0,
       layerId: null,
       code: initialCode,
@@ -28,9 +32,10 @@ export class TransformationPipeline {
    */
   async execute(
     layers: number[],
-    options: ExecutionOptions = {},
+    options: ExecutionOptions = { verbose: false, dryRun: false },
   ): Promise<PipelineResult> {
     let current = this.initialCode;
+    const results: any[] = [];
 
     for (let i = 0; i < layers.length; i++) {
       const layerId = layers[i];
@@ -43,11 +48,21 @@ export class TransformationPipeline {
 
         // Record successful state
         this.recordState({
+          currentLayer: layerId,
+          completed: false,
+          errors: [],
           step: i + 1,
           layerId,
           code: current,
           timestamp: Date.now(),
           description: `After Layer ${layerId}`,
+          success: true,
+          executionTime: performance.now() - startTime,
+          changeCount: this.calculateChanges(previous, current),
+        });
+
+        results.push({
+          layerId,
           success: true,
           executionTime: performance.now() - startTime,
           changeCount: this.calculateChanges(previous, current),
@@ -59,14 +74,29 @@ export class TransformationPipeline {
       } catch (error) {
         // Record failed state (keep previous code)
         this.recordState({
+          currentLayer: layerId,
+          completed: false,
+          errors: [{
+            code: 'LAYER_EXECUTION_FAILED',
+            message: (error as Error).message,
+            layer: layerId,
+            severity: 'high' as const
+          }],
           step: i + 1,
           layerId,
           code: previous, // Keep previous safe state
           timestamp: Date.now(),
           description: `Layer ${layerId} failed`,
           success: false,
+          executionTime: performance.now() - startTime,
+        });
+
+        results.push({
+          layerId,
+          success: false,
           error: (error as Error).message,
           executionTime: performance.now() - startTime,
+          changeCount: 0,
         });
 
         console.error(`❌ Layer ${layerId} failed:`, (error as Error).message);
@@ -76,7 +106,7 @@ export class TransformationPipeline {
       }
     }
 
-    return this.generateResult(current);
+    return this.generateResult(current, results);
   }
 
   /**
@@ -87,11 +117,15 @@ export class TransformationPipeline {
 
     if (state.layerId) {
       this.metadata.push({
+        id: state.layerId,
+        name: `Layer ${state.layerId}`,
+        version: "1.0.0",
+        dependencies: [],
         layerId: state.layerId,
         success: state.success || false,
         executionTime: state.executionTime || 0,
         changeCount: state.changeCount || 0,
-        error: state.error,
+        error: state.errors?.[0]?.message,
         improvements: state.success ? this.detectImprovements(state) : [],
       });
     }
@@ -114,14 +148,17 @@ export class TransformationPipeline {
     }
 
     console.log(`🔄 Rolling back to step ${step}: ${state.description}`);
-    return state.code;
+    return state.code || '';
   }
 
   /**
    * Generate comprehensive pipeline result
    */
-  private generateResult(finalCode: string): PipelineResult {
+  private generateResult(finalCode: string, results: any[]): PipelineResult {
     return {
+      success: results.some(r => r.success),
+      results,
+      totalTime: this.metadata.reduce((sum, m) => sum + m.executionTime, 0),
       finalCode,
       states: this.states,
       metadata: this.metadata,

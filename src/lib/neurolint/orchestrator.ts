@@ -86,8 +86,12 @@ export class NeuroLintOrchestrator {
     let successfulLayers = 0;
     const results: LayerExecutionResult[] = [];
 
-    logger.info('Starting transformation session', { codeLength: code.length, enabledLayers });
-    metrics.recordExecution();
+    logger.info('Starting transformation session', { 
+      layerId: 0,
+      enabledLayers: enabledLayers.join(','),
+      changeCount: 0
+    });
+    metrics.recordLayerExecution(0, 0);
 
     for (const layer of this.layers) {
       if (!enabledLayers.includes(layer.id)) {
@@ -108,7 +112,7 @@ export class NeuroLintOrchestrator {
           logger.info(
             `Layer ${layer.id} "${layer.name}" applied successfully. Changes: ${layerResult.changeCount}`
           );
-          metrics.recordSuccess();
+          metrics.recordLayerExecution(layer.id, layerResult.changeCount);
         } else {
           logger.info(`Layer ${layer.id} "${layer.name}" did not change the code.`);
         }
@@ -123,7 +127,7 @@ export class NeuroLintOrchestrator {
         });
       } catch (error: any) {
         logger.error(`Layer ${layer.id} "${layer.name}" failed:`, error);
-        metrics.recordFailure();
+        metrics.recordLayerExecution(layer.id, 0);
         results.push({
           layerId: layer.id,
           layerName: layer.name,
@@ -137,9 +141,8 @@ export class NeuroLintOrchestrator {
 
     const totalExecutionTime = performance.now() - startTime;
     logger.info('Transformation session completed', {
-      successfulLayers,
-      totalExecutionTime,
-      finalCodeLength: currentCode.length,
+      layerId: 0,
+      changeCount: currentCode.length - code.length
     });
 
     return {

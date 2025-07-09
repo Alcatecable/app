@@ -26,7 +26,10 @@ export class CustomCodeTestRunner {
     try {
       progressCallback?.(10, "Starting NeuroLint processing...");
 
-      const result = await NeuroLintOrchestrator.transform(code, [1, 2, 3, 4, 5, 6, 7]);
+      const result = await NeuroLintOrchestrator.transform(code, [1, 2, 3, 4, 5, 6, 7], {
+        verbose: false,
+        dryRun: false
+      });
 
       progressCallback?.(80, "Analyzing layer results...");
 
@@ -38,6 +41,11 @@ export class CustomCodeTestRunner {
         const testResult: LayerTestResult = {
           layerId,
           layerName,
+          success: layerResult?.success || false,
+          executionTime: layerResult?.executionTime || 0,
+          changeCount: layerResult?.changeCount || 0,
+          error: layerResult?.error,
+          improvements: layerResult?.improvements || [],
           passed: layerResult?.success || false,
           duration: layerResult?.executionTime || 0,
           changes: layerResult?.changeCount || 0,
@@ -62,6 +70,11 @@ export class CustomCodeTestRunner {
         layerResults.push({
           layerId: i + 1,
           layerName: layerNames[i],
+          success: false,
+          executionTime: 0,
+          changeCount: 0,
+          error: error instanceof Error ? error.message : "Unknown error",
+          improvements: [],
           passed: false,
           duration: 0,
           changes: 0,
