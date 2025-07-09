@@ -6,6 +6,7 @@
 import { parse, ParserOptions } from "@babel/parser";
 import traverse from "@babel/traverse";
 import * as t from "@babel/types";
+import { metrics } from "./metrics";
 
 export interface LearnedRule {
   id: string;
