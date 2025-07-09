@@ -460,13 +460,60 @@ export default function Dashboard() {
   const handleGithubFileSelect = useCallback(
     async (file: any) => {
       try {
-        const response = await fetch(file.download_url);
+        if (!file.download_url) {
+          toast({
+            title: "Invalid file",
+            description: "This file cannot be loaded directly from GitHub.",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        const response = await fetch(file.download_url, {
+          headers: {
+            "User-Agent": "NeuroLint-App",
+          },
+        });
+
+        if (!response.ok) {
+          let errorMessage = "Failed to download file";
+
+          switch (response.status) {
+            case 404:
+              errorMessage =
+                "File not found. It may have been moved or deleted.";
+              break;
+            case 403:
+              errorMessage =
+                "Access denied. The file might be from a private repository.";
+              break;
+            case 429:
+              errorMessage = "Rate limit exceeded. Please try again later.";
+              break;
+            default:
+              errorMessage = `GitHub API error (${response.status}). Please try again.`;
+          }
+
+          throw new Error(errorMessage);
+        }
+
         const content = await response.text();
 
         if (content.length > 2 * 1024 * 1024) {
           toast({
             title: "File too large",
-            description: "Selected file is too large (max 2MB).",
+            description: `Selected file is too large (${(content.length / 1024 / 1024).toFixed(1)}MB). Maximum size is 2MB.`,
+            variant: "destructive",
+          });
+          return;
+        }
+
+        // Validate file content is text-based
+        if (content.includes("\0")) {
+          toast({
+            title: "Binary file detected",
+            description:
+              "Cannot load binary files. Please select a text-based code file.",
             variant: "destructive",
           });
           return;
@@ -478,12 +525,19 @@ export default function Dashboard() {
 
         toast({
           title: "File loaded from GitHub",
-          description: `Loaded ${file.name} from repository`,
+          description: `Loaded ${file.name} (${(content.length / 1024).toFixed(1)} KB) from repository`,
         });
       } catch (error) {
+        console.error("GitHub file load failed:", error);
+
+        let errorMessage = "Could not load the selected file from GitHub.";
+        if (error instanceof Error) {
+          errorMessage = error.message;
+        }
+
         toast({
           title: "Failed to load file",
-          description: "Could not load the selected file from GitHub.",
+          description: errorMessage,
           variant: "destructive",
         });
       }
