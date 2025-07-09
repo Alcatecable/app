@@ -17,257 +17,131 @@ import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import {
   Upload,
-  Code2,
-  Github,
-  Zap,
   FileText,
+  Github,
   Settings,
-  BarChart3,
-  Clock,
-  CheckCircle,
-  AlertTriangle,
   Download,
-  Copy,
-  Lightbulb,
-  Eye,
-  EyeOff,
   RefreshCw,
-  X,
+  AlertCircle,
+  CheckCircle,
+  Clock,
   FileCode,
-  FolderOpen,
   GitBranch,
-  Star,
-  Users,
+  Database,
+  Activity,
+  Terminal,
+  Code2,
+  Zap
 } from "lucide-react";
-import { NeuroLintOrchestrator, LayerExecutionResult } from "@/lib/neurolint";
+import { NeuroLintOrchestrator } from "@/lib/neurolint/orchestrator";
+import { TransformationResult } from "@/lib/neurolint/types";
 import { useAuth } from "@/contexts/AuthContext";
-import { paypalService } from "@/lib/paypal/paypal-service";
-import { supabase } from "@/integrations/supabase/client";
-import { TransformationDebugger } from "@/components/TransformationDebugger";
 
 export default function Dashboard() {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  // Main states
+  // Core states
   const [code, setCode] = useState("");
-  const [githubUrl, setGithubUrl] = useState("");
-  const [selectedLayers, setSelectedLayers] = useState<number[]>([1, 2, 3, 4]);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [results, setResults] = useState<LayerExecutionResult | null>(null);
+  const [results, setResults] = useState<TransformationResult | null>(null);
+  const [selectedLayers, setSelectedLayers] = useState<number[]>([1, 2, 3, 4, 5, 6]);
+  
+  // File upload states
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
-
-  // Enhanced states
   const [isDragOver, setIsDragOver] = useState(false);
-  const [layerSuggestions, setLayerSuggestions] = useState<{
-    recommendedLayers: number[];
-    reasons: string[];
-    confidence: number;
-  } | null>(null);
-  const [githubRepos, setGithubRepos] = useState<any[]>([]);
-  const [isLoadingGithub, setIsLoadingGithub] = useState(false);
-  const [selectedGithubFile, setSelectedGithubFile] = useState<{
-    path: string;
-    content: string;
-  } | null>(null);
-  const [showLayerDetails, setShowLayerDetails] = useState(false);
-  const [realTimeAnalysis, setRealTimeAnalysis] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // GitHub integration states
+  const [githubUrl, setGithubUrl] = useState("");
+  const [isLoadingGithub, setIsLoadingGithub] = useState(false);
+  const [githubFiles, setGithubFiles] = useState<any[]>([]);
 
-  // User subscription state
-  const [userPlan, setUserPlan] = useState({
-    plan_name: "Free",
-    transformation_limit: 25,
-    current_usage: 0,
-    remaining_transformations: 25,
-    can_transform: true,
-  });
+  // Layer definitions with terminal-inspired descriptions
+  const layerDefinitions = [
+    { id: 1, name: "Configuration", description: "TypeScript and Next.js configuration optimization", color: "text-blue-400" },
+    { id: 2, name: "Pattern Recognition", description: "HTML entities, imports, and code patterns", color: "text-green-400" },
+    { id: 3, name: "Component Enhancement", description: "React components and Button variants", color: "text-purple-400" },
+    { id: 4, name: "Hydration & SSR", description: "Client-side guards and theme providers", color: "text-orange-400" },
+    { id: 5, name: "Next.js App Router", description: "Use client placement and import cleanup", color: "text-pink-400" },
+    { id: 6, name: "Testing & Validation", description: "Error boundaries and accessibility", color: "text-cyan-400" },
+    { id: 7, name: "Adaptive Learning", description: "Apply learned patterns from previous transformations", color: "text-yellow-400" },
+  ];
 
-  // Load user subscription data on mount
-  useEffect(() => {
-    if (user) {
-      loadUserSubscription();
-    }
-  }, [user]);
-
-  // Real-time code analysis
-  useEffect(() => {
-    if (code.trim() && realTimeAnalysis) {
-      const debounceTimer = setTimeout(async () => {
-        try {
-          const analysis = await NeuroLintOrchestrator.analyze(code);
-          setLayerSuggestions({
-            recommendedLayers: analysis.recommendedLayers,
-            reasons: analysis.reasoning,
-            confidence: analysis.confidence,
-          });
-        } catch (error) {
-          console.warn("Real-time analysis failed:", error);
-        }
-      }, 1000);
-
-      return () => clearTimeout(debounceTimer);
-    } else {
-      setLayerSuggestions(null);
-    }
-  }, [code, realTimeAnalysis]);
-
-  const loadUserSubscription = async () => {
-    try {
-      const subscription = await paypalService.getUserSubscription();
-      setUserPlan({
-        plan_name: subscription.plan_name,
-        transformation_limit: subscription.transformation_limit,
-        current_usage: subscription.current_usage,
-        remaining_transformations: subscription.remaining_transformations,
-        can_transform: subscription.can_transform,
-      });
-    } catch (error) {
-      console.warn(
-        "Failed to load user subscription:",
-        error instanceof Error ? error.message : "Unknown error",
-      );
-      toast({
-        title: "Subscription info unavailable",
-        description:
-          "Using default free plan settings. Your usage data may not be accurate.",
-        variant: "default",
-      });
-    }
-  };
-
-  // Handle code transformation
+  // Transform code using the real orchestrator
   const handleTransform = useCallback(async () => {
     if (!code.trim()) {
       toast({
-        title: "No code provided",
-        description: "Please paste some code or upload a file first.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!userPlan.can_transform) {
-      toast({
-        title: "Usage limit reached",
-        description:
-          "You've reached your monthly transformation limit. Upgrade to continue.",
+        title: "No Code Provided",
+        description: "Please provide code to transform.",
         variant: "destructive",
       });
       return;
     }
 
     setIsProcessing(true);
+    setResults(null);
 
     try {
-      const result = await NeuroLintOrchestrator.transform(
-        code,
-        selectedLayers,
-        {
-          verbose: true,
-          dryRun: false,
-        },
-      );
+      const result = await NeuroLintOrchestrator.transform(code, selectedLayers, {
+        verbose: true,
+        dryRun: false,
+      });
 
       setResults(result);
-
-      // Track transformation in database
-      if (user) {
-        await supabase.from("transformations").insert({
-          user_id: user.id,
-          original_code_length: code.length,
-          transformed_code_length: result.finalCode.length,
-          layers_used: selectedLayers,
-          changes_count: result.results.reduce(
-            (sum, r) => sum + r.changeCount,
-            0,
-          ),
-          execution_time_ms: result.totalExecutionTime,
-          success: result.successfulLayers > 0,
-          file_name: uploadedFile?.name || null,
-        });
-
-        // Refresh user subscription data
-        await loadUserSubscription();
-      }
-
+      
       toast({
-        title: "Transformation completed!",
-        description: `Successfully processed ${result.successfulLayers} out of ${selectedLayers.length} layers.`,
+        title: "Transformation Complete",
+        description: `Processed ${result.successfulLayers} of ${selectedLayers.length} layers successfully.`,
       });
     } catch (error) {
       console.error("Transformation failed:", error);
       toast({
-        title: "Transformation failed",
-        description:
-          "An error occurred while processing your code. Please try again.",
+        title: "Transformation Failed",
+        description: error instanceof Error ? error.message : "An unexpected error occurred.",
         variant: "destructive",
       });
     } finally {
       setIsProcessing(false);
     }
-  }, [code, selectedLayers, userPlan, user, uploadedFile, toast]);
+  }, [code, selectedLayers, toast]);
 
-  // Enhanced file upload with drag and drop
-  const handleFileUpload = useCallback(
-    (file: File) => {
-      // Check file type
-      const validTypes = [
-        ".js",
-        ".jsx",
-        ".ts",
-        ".tsx",
-        ".json",
-        ".md",
-        ".vue",
-        ".svelte",
-      ];
-      const fileExtension = "." + file.name.split(".").pop()?.toLowerCase();
+  // Handle file upload
+  const handleFileUpload = useCallback((file: File) => {
+    const validTypes = ['.js', '.jsx', '.ts', '.tsx', '.json', '.md', '.vue', '.svelte'];
+    const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase();
 
-      if (!validTypes.includes(fileExtension)) {
-        toast({
-          title: "Invalid file type",
-          description:
-            "Please upload a JavaScript, TypeScript, Vue, Svelte, JSON, or Markdown file.",
-          variant: "destructive",
-        });
-        return;
-      }
+    if (!validTypes.includes(fileExtension)) {
+      toast({
+        title: "Invalid File Type",
+        description: "Please upload a JavaScript, TypeScript, Vue, Svelte, JSON, or Markdown file.",
+        variant: "destructive",
+      });
+      return;
+    }
 
-      // Check file size (max 2MB)
-      if (file.size > 2 * 1024 * 1024) {
-        toast({
-          title: "File too large",
-          description: "Please upload a file smaller than 2MB.",
-          variant: "destructive",
-        });
-        return;
-      }
+    if (file.size > 2 * 1024 * 1024) {
+      toast({
+        title: "File Too Large",
+        description: "Please upload a file smaller than 2MB.",
+        variant: "destructive",
+      });
+      return;
+    }
 
-      setUploadedFile(file);
-
-      // Read file content
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const content = e.target?.result as string;
-        setCode(content);
-        toast({
-          title: "File uploaded successfully",
-          description: `Loaded ${file.name} (${(file.size / 1024).toFixed(1)} KB)`,
-        });
-      };
-      reader.readAsText(file);
-    },
-    [toast],
-  );
-
-  const handleFileInputChange = useCallback(
-    (event: React.ChangeEvent<HTMLInputElement>) => {
-      const file = event.target.files?.[0];
-      if (file) handleFileUpload(file);
-    },
-    [handleFileUpload],
-  );
+    setUploadedFile(file);
+    
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const content = e.target?.result as string;
+      setCode(content);
+      toast({
+        title: "File Uploaded",
+        description: `Loaded ${file.name} (${(file.size / 1024).toFixed(1)} KB)`,
+      });
+    };
+    reader.readAsText(file);
+  }, [toast]);
 
   // Drag and drop handlers
   const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -277,179 +151,75 @@ export default function Dashboard() {
 
   const handleDragLeave = useCallback((e: React.DragEvent) => {
     e.preventDefault();
-    if (e.currentTarget.contains(e.relatedTarget as Node)) return;
     setIsDragOver(false);
   }, []);
 
-  const handleDrop = useCallback(
-    (e: React.DragEvent) => {
-      e.preventDefault();
-      setIsDragOver(false);
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+    
+    const files = Array.from(e.dataTransfer.files);
+    if (files.length > 0) {
+      handleFileUpload(files[0]);
+    }
+  }, [handleFileUpload]);
 
-      const files = Array.from(e.dataTransfer.files);
-      if (files.length > 0) {
-        handleFileUpload(files[0]);
-      }
-    },
-    [handleFileUpload],
-  );
-
-  // Enhanced GitHub integration
+  // GitHub repository integration
   const handleGithubImport = useCallback(async () => {
     if (!githubUrl.trim()) {
       toast({
-        title: "No GitHub URL provided",
+        title: "No URL Provided",
         description: "Please enter a GitHub repository URL.",
         variant: "destructive",
       });
       return;
     }
 
-    // Enhanced GitHub URL validation with better pattern matching
-    const githubPattern =
-      /^https:\/\/github\.com\/([a-zA-Z0-9](?:[a-zA-Z0-9]|-(?![a-zA-Z0-9]))*[a-zA-Z0-9])\/([a-zA-Z0-9._-]+)(?:\/.*)?$/;
+    const githubPattern = /^https:\/\/github\.com\/([^\/]+)\/([^\/]+)(?:\/.*)?$/;
     const match = githubUrl.trim().match(githubPattern);
 
     if (!match) {
       toast({
-        title: "Invalid GitHub URL",
-        description:
-          "Please enter a valid GitHub repository URL (e.g., https://github.com/facebook/react).",
+        title: "Invalid URL",
+        description: "Please enter a valid GitHub repository URL.",
         variant: "destructive",
       });
       return;
     }
 
-    const [, owner, repoWithPath] = match;
-    // Extract just the repo name, ignore any path
-    const repo = repoWithPath.split("/")[0];
-
+    const [, owner, repo] = match;
     setIsLoadingGithub(true);
 
     try {
-      console.log(`Fetching repository: ${owner}/${repo}`);
-
-      // First, check if the repository exists and is accessible
-      const repoResponse = await fetch(
-        `https://api.github.com/repos/${owner}/${repo}`,
-        {
-          headers: {
-            Accept: "application/vnd.github.v3+json",
-            "User-Agent": "NeuroLint-App",
-          },
+      const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents`, {
+        headers: {
+          'Accept': 'application/vnd.github.v3+json',
+          'User-Agent': 'NeuroLint-App',
         },
-      );
+      });
 
-      if (!repoResponse.ok) {
-        let errorMessage = "Failed to access repository";
-
-        switch (repoResponse.status) {
-          case 404:
-            errorMessage = `Repository "${owner}/${repo}" not found. Please check the URL and make sure the repository is public.`;
-            break;
-          case 403:
-            const rateLimitRemaining = repoResponse.headers.get(
-              "X-RateLimit-Remaining",
-            );
-            if (rateLimitRemaining === "0") {
-              errorMessage =
-                "GitHub rate limit exceeded. Please try again in an hour.";
-            } else {
-              errorMessage = `Access forbidden to "${owner}/${repo}". The repository might be private.`;
-            }
-            break;
-          case 301:
-          case 302:
-            errorMessage = `Repository "${owner}/${repo}" has been moved or renamed. Please check the current URL.`;
-            break;
-          default:
-            errorMessage = `GitHub API error (${repoResponse.status}). Please try again later.`;
-        }
-
-        throw new Error(errorMessage);
+      if (!response.ok) {
+        throw new Error(`Repository not found or inaccessible: ${response.status}`);
       }
 
-      const repoData = await repoResponse.json();
+      const contents = await response.json();
+      const codeFiles = Array.isArray(contents) 
+        ? contents.filter((item: any) => 
+            item.type === 'file' && 
+            /\.(js|jsx|ts|tsx|vue|svelte|json|md)$/i.test(item.name) &&
+            item.size < 1024 * 1024
+          )
+        : [];
 
-      // Check if repository is empty
-      if (repoData.size === 0) {
-        toast({
-          title: "Empty repository",
-          description: `The repository "${owner}/${repo}" appears to be empty.`,
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Now fetch the contents
-      const contentsResponse = await fetch(
-        `https://api.github.com/repos/${owner}/${repo}/contents`,
-        {
-          headers: {
-            Accept: "application/vnd.github.v3+json",
-            "User-Agent": "NeuroLint-App",
-          },
-        },
-      );
-
-      if (!contentsResponse.ok) {
-        throw new Error(
-          `Failed to fetch repository contents (${contentsResponse.status})`,
-        );
-      }
-
-      const contents = await contentsResponse.json();
-
-      // Handle single file vs directory contents
-      const items = Array.isArray(contents) ? contents : [contents];
-
-      // Filter for code files
-      const codeFiles = items.filter(
-        (item: any) =>
-          item.type === "file" &&
-          /\.(js|jsx|ts|tsx|vue|svelte|json|md)$/i.test(item.name) &&
-          item.size < 1024 * 1024, // Skip files larger than 1MB
-      );
-
-      if (codeFiles.length === 0) {
-        // Check if there are any files at all
-        const allFiles = items.filter((item: any) => item.type === "file");
-
-        if (allFiles.length === 0) {
-          toast({
-            title: "No files found",
-            description: `No files found in the root directory of "${owner}/${repo}". Try a repository with source code in the root.`,
-            variant: "destructive",
-          });
-        } else {
-          toast({
-            title: "No supported code files found",
-            description: `Found ${allFiles.length} files, but none are supported. Supported: .js, .jsx, .ts, .tsx, .vue, .svelte, .json, .md`,
-            variant: "destructive",
-          });
-        }
-        return;
-      }
-
-      setGithubRepos(codeFiles);
+      setGithubFiles(codeFiles);
       toast({
-        title: "Repository loaded successfully",
-        description: `Found ${codeFiles.length} code files in "${owner}/${repo}". ${repoData.description ? `\n${repoData.description}` : ""}`,
+        title: "Repository Loaded",
+        description: `Found ${codeFiles.length} code files in ${owner}/${repo}.`,
       });
     } catch (error) {
-      console.error("GitHub import failed:", error);
-
-      let userFriendlyMessage = "Failed to load repository";
-
-      if (error instanceof Error) {
-        userFriendlyMessage = error.message;
-      } else if (typeof error === "string") {
-        userFriendlyMessage = error;
-      }
-
       toast({
-        title: "GitHub import failed",
-        description: userFriendlyMessage,
+        title: "GitHub Import Failed",
+        description: error instanceof Error ? error.message : "Failed to load repository.",
         variant: "destructive",
       });
     } finally {
@@ -457,896 +227,408 @@ export default function Dashboard() {
     }
   }, [githubUrl, toast]);
 
-  // Load GitHub file content
-  const handleGithubFileSelect = useCallback(
-    async (file: any) => {
-      try {
-        if (!file.download_url) {
-          toast({
-            title: "Invalid file",
-            description: "This file cannot be loaded directly from GitHub.",
-            variant: "destructive",
-          });
-          return;
-        }
+  // Load file from GitHub
+  const handleGithubFileSelect = useCallback(async (file: any) => {
+    try {
+      const response = await fetch(file.download_url);
+      if (!response.ok) throw new Error('Failed to download file');
+      
+      const content = await response.text();
+      setCode(content);
+      toast({
+        title: "File Loaded",
+        description: `Loaded ${file.name} from GitHub.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Download Failed",
+        description: "Failed to load file from GitHub.",
+        variant: "destructive",
+      });
+    }
+  }, [toast]);
 
-        const response = await fetch(file.download_url, {
-          headers: {
-            "User-Agent": "NeuroLint-App",
-          },
-        });
+  // Layer selection handlers
+  const toggleLayer = (layerId: number) => {
+    setSelectedLayers(prev => 
+      prev.includes(layerId)
+        ? prev.filter(id => id !== layerId)
+        : [...prev, layerId].sort()
+    );
+  };
 
-        if (!response.ok) {
-          let errorMessage = "Failed to download file";
+  const selectAllLayers = () => {
+    setSelectedLayers([1, 2, 3, 4, 5, 6, 7]);
+  };
 
-          switch (response.status) {
-            case 404:
-              errorMessage =
-                "File not found. It may have been moved or deleted.";
-              break;
-            case 403:
-              errorMessage =
-                "Access denied. The file might be from a private repository.";
-              break;
-            case 429:
-              errorMessage = "Rate limit exceeded. Please try again later.";
-              break;
-            default:
-              errorMessage = `GitHub API error (${response.status}). Please try again.`;
-          }
+  const clearAllLayers = () => {
+    setSelectedLayers([]);
+  };
 
-          throw new Error(errorMessage);
-        }
-
-        const content = await response.text();
-
-        if (content.length > 2 * 1024 * 1024) {
-          toast({
-            title: "File too large",
-            description: `Selected file is too large (${(content.length / 1024 / 1024).toFixed(1)}MB). Maximum size is 2MB.`,
-            variant: "destructive",
-          });
-          return;
-        }
-
-        // Validate file content is text-based
-        if (content.includes("\0")) {
-          toast({
-            title: "Binary file detected",
-            description:
-              "Cannot load binary files. Please select a text-based code file.",
-            variant: "destructive",
-          });
-          return;
-        }
-
-        setSelectedGithubFile({ path: file.path, content });
-        setCode(content);
-        setUploadedFile(null); // Clear any uploaded file
-
-        toast({
-          title: "File loaded from GitHub",
-          description: `Loaded ${file.name} (${(content.length / 1024).toFixed(1)} KB) from repository`,
-        });
-      } catch (error) {
-        console.error("GitHub file load failed:", error);
-
-        let errorMessage = "Could not load the selected file from GitHub.";
-        if (error instanceof Error) {
-          errorMessage = error.message;
-        }
-
-        toast({
-          title: "Failed to load file",
-          description: errorMessage,
-          variant: "destructive",
-        });
-      }
-    },
-    [toast],
-  );
-
-  // Calculate usage percentage
-  const usagePercentage =
-    userPlan.transformation_limit > 0
-      ? (userPlan.current_usage / userPlan.transformation_limit) * 100
-      : 0;
+  // Download transformed code
+  const downloadTransformedCode = () => {
+    if (!results) return;
+    
+    const blob = new Blob([results.finalCode], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = uploadedFile?.name.replace(/\.[^/.]+$/, '_transformed.js') || 'transformed_code.js';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen bg-background">
-        <div className="container mx-auto py-6 space-y-6">
-          {/* Header */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <img
-                src="/lovable-uploads/145ebbd8-c7fe-45ec-b822-b47d5b279d23.png"
-                alt="NeuroLint"
-                className="h-8 w-auto"
-              />
-              <div>
-                <h1 className="text-2xl font-bold">NeuroLint Dashboard</h1>
-                <p className="text-muted-foreground">
-                  Welcome back, {user?.email}
-                </p>
+      <div className="min-h-screen bg-black text-white">
+        {/* Terminal-styled header */}
+        <div className="border-b border-zinc-800/50 bg-black/95 backdrop-blur-xl">
+          <div className="mx-auto max-w-7xl px-4 py-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <div className="flex h-8 w-8 items-center justify-center rounded bg-gradient-to-br from-blue-500 to-blue-600">
+                  <Terminal className="h-5 w-5 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-xl font-bold text-white">NeuroLint</h1>
+                  <p className="text-sm text-zinc-400">Advanced Code Transformation Platform</p>
+                </div>
               </div>
-            </div>
-            <div className="flex items-center space-x-4">
-              <Badge
-                variant={
-                  userPlan.plan_name === "Free" ? "secondary" : "default"
-                }
-              >
-                {userPlan.plan_name} Plan
-              </Badge>
-              <Button variant="outline" asChild>
-                <a href="/profile">Settings</a>
-              </Button>
-              <Button variant="outline" asChild>
-                <a href="/admin">Admin</a>
-              </Button>
             </div>
           </div>
+        </div>
 
-          {/* Usage Stats */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <BarChart3 className="h-5 w-5" />
-                Monthly Usage
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span>Transformations Used</span>
-                  <span className="font-medium">
-                    {userPlan.current_usage} / {userPlan.transformation_limit}
-                  </span>
-                </div>
-                <Progress value={usagePercentage} className="h-2" />
-                <p className="text-xs text-muted-foreground">
-                  {userPlan.remaining_transformations} transformations remaining
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Main Dashboard */}
+        <div className="mx-auto max-w-7xl px-4 py-8">
           <Tabs defaultValue="transform" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-5">
-              <TabsTrigger value="transform">Transform Code</TabsTrigger>
-              <TabsTrigger value="upload">Upload File</TabsTrigger>
-              <TabsTrigger value="github">GitHub Import</TabsTrigger>
-              <TabsTrigger value="results">Results</TabsTrigger>
-              <TabsTrigger value="debug">Debug</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-3 bg-zinc-900/50 border border-zinc-800">
+              <TabsTrigger value="transform" className="data-[state=active]:bg-zinc-800 data-[state=active]:text-white">
+                <Code2 className="mr-2 h-4 w-4" />
+                Transform Code
+              </TabsTrigger>
+              <TabsTrigger value="github" className="data-[state=active]:bg-zinc-800 data-[state=active]:text-white">
+                <Github className="mr-2 h-4 w-4" />
+                GitHub Integration
+              </TabsTrigger>
+              <TabsTrigger value="settings" className="data-[state=active]:bg-zinc-800 data-[state=active]:text-white">
+                <Settings className="mr-2 h-4 w-4" />
+                Layer Settings
+              </TabsTrigger>
             </TabsList>
 
-            {/* Code Transform Tab */}
             <TabsContent value="transform" className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Code2 className="h-5 w-5" />
-                    Code Input
-                  </CardTitle>
-                  <CardDescription>
-                    Paste your code below and select which layers to apply
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="code-input">Code</Label>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setRealTimeAnalysis(!realTimeAnalysis)}
-                        >
-                          {realTimeAnalysis ? (
-                            <Eye className="h-4 w-4" />
-                          ) : (
-                            <EyeOff className="h-4 w-4" />
-                          )}
-                          Real-time Analysis
-                        </Button>
-                        {code && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setCode("")}
-                          >
-                            <X className="h-4 w-4" />
-                            Clear
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                    <Textarea
-                      id="code-input"
-                      placeholder="Paste your JavaScript, TypeScript, Vue, Svelte, or React code here..."
-                      value={code}
-                      onChange={(e) => setCode(e.target.value)}
-                      rows={15}
-                      className="font-mono text-sm"
-                    />
-                    <div className="flex items-center justify-between text-xs text-muted-foreground">
-                      <span>
-                        {code.length.toLocaleString()} characters |{" "}
-                        {code.split("\n").length} lines
-                      </span>
-                      <span>
-                        {uploadedFile
-                          ? `📁 ${uploadedFile.name}`
-                          : selectedGithubFile
-                            ? `🔗 ${selectedGithubFile.path}`
-                            : "No file loaded"}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Real-time Layer Suggestions */}
-                  {layerSuggestions && layerSuggestions.confidence > 0.6 && (
-                    <Card className="border-blue-200 bg-blue-50">
-                      <CardContent className="pt-4">
-                        <div className="flex items-start gap-2">
-                          <Lightbulb className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                          <div className="space-y-2">
-                            <div className="flex items-center gap-2">
-                              <h4 className="font-medium text-blue-900">
-                                Smart Layer Suggestions
-                              </h4>
-                              <Badge variant="secondary">
-                                {Math.round(layerSuggestions.confidence * 100)}%
-                                confidence
-                              </Badge>
-                            </div>
-                            <p className="text-sm text-blue-800">
-                              Based on your code analysis, we recommend layers:{" "}
-                              {layerSuggestions.recommendedLayers.join(", ")}
-                            </p>
-                            <div className="flex gap-2">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() =>
-                                  setSelectedLayers(
-                                    layerSuggestions.recommendedLayers,
-                                  )
-                                }
-                              >
-                                Apply Suggestions
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() =>
-                                  setShowLayerDetails(!showLayerDetails)
-                                }
-                              >
-                                {showLayerDetails ? "Hide" : "Show"} Details
-                              </Button>
-                            </div>
-                            {showLayerDetails && (
-                              <div className="mt-2 space-y-1">
-                                {layerSuggestions.reasons.map(
-                                  (reason, index) => (
-                                    <p
-                                      key={index}
-                                      className="text-xs text-blue-700"
-                                    >
-                                      • {reason}
-                                    </p>
-                                  ),
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  )}
-
-                  {/* Layer Selection */}
-                  <div className="space-y-3">
-                    <Label>Transformation Layers</Label>
-                    <div className="grid grid-cols-2 gap-3">
-                      {[
-                        {
-                          id: 1,
-                          name: "Configuration",
-                          desc: "TypeScript & build config fixes",
-                        },
-                        {
-                          id: 2,
-                          name: "Entity Cleanup",
-                          desc: "HTML entities & patterns",
-                        },
-                        {
-                          id: 3,
-                          name: "Components",
-                          desc: "React component improvements",
-                        },
-                        { id: 4, name: "Hydration", desc: "SSR safety guards" },
-                        {
-                          id: 5,
-                          name: "Next.js",
-                          desc: "App Router & optimization",
-                        },
-                        {
-                          id: 6,
-                          name: "Testing",
-                          desc: "Performance & accessibility",
-                        },
-                        {
-                          id: 7,
-                          name: "AI Learning",
-                          desc: "Adaptive pattern learning",
-                          beta: true,
-                        },
-                      ].map((layer) => (
-                        <div
-                          key={layer.id}
-                          className="flex items-center space-x-2"
-                        >
-                          <input
-                            type="checkbox"
-                            id={`layer-${layer.id}`}
-                            checked={selectedLayers.includes(layer.id)}
-                            onChange={(e) => {
-                              if (e.target.checked) {
-                                setSelectedLayers((prev) =>
-                                  [...prev, layer.id].sort(),
-                                );
-                              } else {
-                                setSelectedLayers((prev) =>
-                                  prev.filter((id) => id !== layer.id),
-                                );
-                              }
-                            }}
-                            className="rounded"
-                          />
-                          <div>
-                            <label
-                              htmlFor={`layer-${layer.id}`}
-                              className="text-sm font-medium cursor-pointer flex items-center gap-2"
-                            >
-                              Layer {layer.id}: {layer.name}
-                              {layer.beta && (
-                                <Badge variant="secondary" className="text-xs">
-                                  🧠 AI
-                                </Badge>
-                              )}
-                            </label>
-                            <p className="text-xs text-muted-foreground">
-                              {layer.desc}
-                            </p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <Button
-                    onClick={handleTransform}
-                    disabled={
-                      !code.trim() || isProcessing || !userPlan.can_transform
-                    }
-                    className="w-full"
-                    size="lg"
-                  >
-                    {isProcessing ? (
-                      <>
-                        <Clock className="w-4 h-4 mr-2 animate-spin" />
-                        Processing...
-                      </>
-                    ) : (
-                      <>
-                        <Zap className="w-4 h-4 mr-2" />
-                        Transform Code ({
-                          userPlan.remaining_transformations
-                        }{" "}
-                        remaining)
-                      </>
-                    )}
-                  </Button>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            {/* Enhanced File Upload Tab */}
-            <TabsContent value="upload" className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Upload className="h-5 w-5" />
-                    Upload Code File
-                  </CardTitle>
-                  <CardDescription>
-                    Upload JavaScript, TypeScript, Vue, Svelte, JSON, or
-                    Markdown files
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div
-                    className={`border-2 border-dashed rounded-lg p-8 text-center space-y-4 transition-colors ${
-                      isDragOver
-                        ? "border-blue-400 bg-blue-50"
-                        : "border-muted-foreground/25"
-                    }`}
-                    onDragOver={handleDragOver}
-                    onDragLeave={handleDragLeave}
-                    onDrop={handleDrop}
-                  >
+              <div className="grid gap-6 lg:grid-cols-2">
+                {/* Input Section */}
+                <Card className="bg-zinc-900/50 border-zinc-800">
+                  <CardHeader>
+                    <CardTitle className="flex items-center space-x-2 text-white">
+                      <FileCode className="h-5 w-5" />
+                      <span>Code Input</span>
+                    </CardTitle>
+                    <CardDescription className="text-zinc-400">
+                      Paste your code, upload a file, or import from GitHub
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {/* Terminal-styled File Upload Area */}
                     <div
-                      className={`transition-transform ${isDragOver ? "scale-110" : ""}`}
+                      className={`rounded-lg border-2 border-dashed p-6 text-center transition-all duration-300 ${
+                        isDragOver
+                          ? 'border-blue-500 bg-blue-500/10 shadow-lg shadow-blue-500/20'
+                          : 'border-zinc-700 hover:border-zinc-600 hover:bg-zinc-800/30'
+                      }`}
+                      onDragOver={handleDragOver}
+                      onDragLeave={handleDragLeave}
+                      onDrop={handleDrop}
                     >
-                      <Upload
-                        className={`h-12 w-12 mx-auto ${isDragOver ? "text-blue-600" : "text-muted-foreground"}`}
-                      />
-                    </div>
-                    <div>
-                      <p className="text-lg font-medium">
-                        {isDragOver
-                          ? "Drop your file here"
-                          : "Drag & drop your file here"}
+                      <Upload className="mx-auto h-8 w-8 text-zinc-400" />
+                      <p className="mt-2 text-sm text-zinc-300">
+                        Drag and drop a file here, or{' '}
+                        <button
+                          type="button"
+                          className="text-blue-400 hover:text-blue-300 transition-colors"
+                          onClick={() => fileInputRef.current?.click()}
+                        >
+                          browse
+                        </button>
                       </p>
-                      <p className="text-sm text-muted-foreground">
-                        Supports .js, .jsx, .ts, .tsx, .vue, .svelte, .json, .md
-                        files (max 2MB)
+                      <p className="mt-1 text-xs text-zinc-500">
+                        Supports .js, .jsx, .ts, .tsx, .json, .md files (max 2MB)
                       </p>
-                    </div>
-                    <div className="flex gap-2 justify-center">
                       <input
                         ref={fileInputRef}
                         type="file"
-                        accept=".js,.jsx,.ts,.tsx,.vue,.svelte,.json,.md"
-                        onChange={handleFileInputChange}
                         className="hidden"
-                        id="file-upload"
+                        accept=".js,.jsx,.ts,.tsx,.json,.md,.vue,.svelte"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) handleFileUpload(file);
+                        }}
                       />
-                      <Button
-                        asChild
-                        variant={isDragOver ? "default" : "outline"}
-                      >
-                        <label htmlFor="file-upload" className="cursor-pointer">
-                          <FileCode className="w-4 h-4 mr-2" />
-                          Choose File
-                        </label>
-                      </Button>
-                      {uploadedFile && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            setUploadedFile(null);
-                            if (fileInputRef.current) {
-                              fileInputRef.current.value = "";
-                            }
-                          }}
-                        >
-                          <X className="w-4 h-4 mr-1" />
-                          Remove
-                        </Button>
-                      )}
                     </div>
-                  </div>
 
-                  {uploadedFile && (
-                    <Card className="border-green-200 bg-green-50">
-                      <CardContent className="pt-4">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <CheckCircle className="h-5 w-5 text-green-600" />
+                    {uploadedFile && (
+                      <div className="flex items-center space-x-2 rounded-md bg-green-500/10 border border-green-500/20 p-3">
+                        <FileText className="h-4 w-4 text-green-400" />
+                        <span className="text-sm text-green-300">{uploadedFile.name}</span>
+                        <Badge variant="secondary" className="ml-auto bg-zinc-800 text-zinc-300">
+                          {(uploadedFile.size / 1024).toFixed(1)} KB
+                        </Badge>
+                      </div>
+                    )}
+
+                    {/* Terminal-styled Code Textarea */}
+                    <div>
+                      <Label htmlFor="code-input" className="text-zinc-300">Code</Label>
+                      <Textarea
+                        id="code-input"
+                        placeholder="// Paste your JavaScript, TypeScript, or React code here..."
+                        value={code}
+                        onChange={(e) => setCode(e.target.value)}
+                        className="min-h-[300px] font-mono text-sm bg-zinc-900/50 border-zinc-700 text-zinc-100 placeholder:text-zinc-500"
+                      />
+                    </div>
+
+                    {/* Transform Button */}
+                    <Button
+                      onClick={handleTransform}
+                      disabled={!code.trim() || isProcessing}
+                      className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium"
+                      size="lg"
+                    >
+                      {isProcessing ? (
+                        <>
+                          <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                          Processing...
+                        </>
+                      ) : (
+                        <>
+                          <Zap className="mr-2 h-4 w-4" />
+                          Transform Code
+                        </>
+                      )}
+                    </Button>
+                  </CardContent>
+                </Card>
+
+                {/* Results Section */}
+                <Card className="bg-zinc-900/50 border-zinc-800">
+                  <CardHeader>
+                    <CardTitle className="flex items-center space-x-2 text-white">
+                      <Database className="h-5 w-5" />
+                      <span>Transformation Results</span>
+                    </CardTitle>
+                    <CardDescription className="text-zinc-400">
+                      View the transformed code and layer execution details
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {isProcessing ? (
+                      <div className="flex flex-col items-center space-y-4 py-8">
+                        <RefreshCw className="h-8 w-8 animate-spin text-blue-500" />
+                        <p className="text-sm text-zinc-400">Processing your code...</p>
+                        <Progress value={33} className="w-full bg-zinc-800" />
+                      </div>
+                    ) : results ? (
+                      <div className="space-y-4">
+                        {/* Summary */}
+                        <div className="rounded-lg bg-zinc-800/50 border border-zinc-700 p-4">
+                          <div className="flex items-center justify-between">
                             <div>
-                              <p className="font-medium text-green-900">
-                                {uploadedFile.name}
+                              <p className="text-sm font-medium text-white">
+                                {results.successfulLayers} of {selectedLayers.length} layers completed
                               </p>
-                              <p className="text-sm text-green-700">
-                                {(uploadedFile.size / 1024).toFixed(1)} KB •
-                                Last modified:{" "}
-                                {new Date(
-                                  uploadedFile.lastModified,
-                                ).toLocaleDateString()}
+                              <p className="text-xs text-zinc-400">
+                                Execution time: {results.totalExecutionTime.toFixed(2)}ms
                               </p>
                             </div>
-                          </div>
-                          <div className="flex gap-2">
-                            <Button
-                              variant="outline"
+                            <Button 
+                              onClick={downloadTransformedCode} 
+                              variant="outline" 
                               size="sm"
-                              onClick={() => {
-                                navigator.clipboard.writeText(code);
-                                toast({
-                                  title: "Copied to clipboard",
-                                  description:
-                                    "File content has been copied to your clipboard.",
-                                });
-                              }}
+                              className="border-zinc-600 text-zinc-300 hover:bg-zinc-700"
                             >
-                              <Copy className="w-4 h-4" />
+                              <Download className="mr-2 h-4 w-4" />
+                              Download
                             </Button>
                           </div>
                         </div>
-                      </CardContent>
-                    </Card>
-                  )}
-                </CardContent>
-              </Card>
+
+                        {/* Layer Results */}
+                        <div className="space-y-2">
+                          {results.results.map((result) => (
+                            <div
+                              key={result.layerId}
+                              className="flex items-center justify-between rounded-md border border-zinc-700 bg-zinc-800/30 p-3"
+                            >
+                              <div className="flex items-center space-x-3">
+                                {result.success ? (
+                                  <CheckCircle className="h-4 w-4 text-green-400" />
+                                ) : (
+                                  <AlertCircle className="h-4 w-4 text-red-400" />
+                                )}
+                                <div>
+                                  <p className="text-sm font-medium text-white">
+                                    Layer {result.layerId}: {result.layerName || `Layer ${result.layerId}`}
+                                  </p>
+                                  <p className="text-xs text-zinc-400">
+                                    {result.success 
+                                      ? `${result.changeCount} changes in ${result.executionTime.toFixed(2)}ms`
+                                      : result.error
+                                    }
+                                  </p>
+                                </div>
+                              </div>
+                              <Badge 
+                                variant={result.success ? "default" : "destructive"}
+                                className={result.success ? "bg-green-600 hover:bg-green-700" : ""}
+                              >
+                                {result.success ? "Success" : "Failed"}
+                              </Badge>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Transformed Code */}
+                        <div>
+                          <Label htmlFor="transformed-code" className="text-zinc-300">Transformed Code</Label>
+                          <Textarea
+                            id="transformed-code"
+                            value={results.finalCode}
+                            readOnly
+                            className="min-h-[200px] font-mono text-sm bg-zinc-900/50 border-zinc-700 text-zinc-100"
+                          />
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center space-y-4 py-8 text-center">
+                        <Clock className="h-8 w-8 text-zinc-500" />
+                        <p className="text-sm text-zinc-400">
+                          Transformation results will appear here
+                        </p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
             </TabsContent>
 
-            {/* Enhanced GitHub Integration Tab */}
             <TabsContent value="github" className="space-y-6">
-              <Card>
+              <Card className="bg-zinc-900/50 border-zinc-800">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
+                  <CardTitle className="flex items-center space-x-2 text-white">
                     <Github className="h-5 w-5" />
-                    GitHub Repository Import
+                    <span>GitHub Repository Integration</span>
                   </CardTitle>
-                  <CardDescription>
-                    Import code directly from public GitHub repositories (live
-                    integration)
+                  <CardDescription className="text-zinc-400">
+                    Import code directly from public GitHub repositories
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="github-url">Repository URL</Label>
-                    <div className="flex gap-2">
-                      <Input
-                        id="github-url"
-                        type="url"
-                        placeholder="https://github.com/username/repository"
-                        value={githubUrl}
-                        onChange={(e) => setGithubUrl(e.target.value)}
-                        className="flex-1"
-                      />
-                      <Button
-                        onClick={handleGithubImport}
-                        disabled={isLoadingGithub || !githubUrl.trim()}
-                      >
-                        {isLoadingGithub ? (
-                          <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                        ) : (
-                          <Github className="w-4 h-4 mr-2" />
-                        )}
-                        Load Repo
-                      </Button>
-                    </div>
+                  <div className="flex space-x-2">
+                    <Input
+                      placeholder="https://github.com/username/repository"
+                      value={githubUrl}
+                      onChange={(e) => setGithubUrl(e.target.value)}
+                      className="flex-1 bg-zinc-900/50 border-zinc-700 text-zinc-100 placeholder:text-zinc-500"
+                    />
+                    <Button 
+                      onClick={handleGithubImport} 
+                      disabled={isLoadingGithub}
+                      className="bg-zinc-800 hover:bg-zinc-700 text-white"
+                    >
+                      {isLoadingGithub ? (
+                        <RefreshCw className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <GitBranch className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
+
+                  {githubFiles.length > 0 && (
                     <div className="space-y-2">
-                      <p className="text-xs text-muted-foreground">
-                        Supports public repositories • Examples to try:
-                      </p>
-                      <div className="flex flex-wrap gap-1">
-                        {[
-                          "https://github.com/facebook/react",
-                          "https://github.com/vercel/next.js",
-                          "https://github.com/vuejs/core",
-                        ].map((exampleUrl) => (
+                      <Label className="text-zinc-300">Available Files</Label>
+                      <div className="max-h-60 space-y-1 overflow-y-auto rounded-md border border-zinc-700 bg-zinc-900/30 p-2">
+                        {githubFiles.map((file) => (
                           <button
-                            key={exampleUrl}
-                            onClick={() => setGithubUrl(exampleUrl)}
-                            className="px-2 py-1 text-xs bg-muted hover:bg-muted/80 rounded transition-colors"
+                            key={file.sha}
+                            onClick={() => handleGithubFileSelect(file)}
+                            className="flex w-full items-center space-x-2 rounded-md p-2 text-left hover:bg-zinc-700/50 transition-colors"
                           >
-                            {exampleUrl.split("/").slice(-2).join("/")}
+                            <FileText className="h-4 w-4 text-zinc-400" />
+                            <span className="text-sm text-zinc-300">{file.name}</span>
+                            <Badge variant="outline" className="ml-auto border-zinc-600 text-zinc-400">
+                              {(file.size / 1024).toFixed(1)} KB
+                            </Badge>
                           </button>
                         ))}
                       </div>
                     </div>
-                  </div>
-
-                  {githubRepos.length > 0 && (
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-2">
-                        <FolderOpen className="h-4 w-4" />
-                        <h4 className="font-medium">
-                          Repository Files ({githubRepos.length})
-                        </h4>
-                      </div>
-                      <div className="grid gap-2 max-h-64 overflow-y-auto">
-                        {githubRepos.map((file, index) => (
-                          <div
-                            key={index}
-                            className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 cursor-pointer transition-colors"
-                            onClick={() => handleGithubFileSelect(file)}
-                          >
-                            <div className="flex items-center gap-2">
-                              <FileCode className="h-4 w-4 text-muted-foreground" />
-                              <span className="font-mono text-sm">
-                                {file.name}
-                              </span>
-                              {file.size && (
-                                <Badge variant="secondary" className="text-xs">
-                                  {(file.size / 1024).toFixed(1)} KB
-                                </Badge>
-                              )}
-                            </div>
-                            <div className="text-xs text-muted-foreground">
-                              Click to load
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
                   )}
-
-                  {selectedGithubFile && (
-                    <Card className="border-blue-200 bg-blue-50">
-                      <CardContent className="pt-4">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <GitBranch className="h-4 w-4 text-blue-600" />
-                            <span className="font-mono text-sm text-blue-900">
-                              {selectedGithubFile.path}
-                            </span>
-                          </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setSelectedGithubFile(null)}
-                          >
-                            <X className="w-4 h-4" />
-                          </Button>
-                        </div>
-                        <p className="text-xs text-blue-700 mt-1">
-                          File loaded from GitHub •{" "}
-                          {selectedGithubFile.content.length.toLocaleString()}{" "}
-                          characters
-                        </p>
-                      </CardContent>
-                    </Card>
-                  )}
-
-                  <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-                    <div className="flex items-start space-x-2">
-                      <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
-                      <div className="space-y-1">
-                        <p className="text-sm font-medium text-green-900">
-                          Live GitHub Integration Active
-                        </p>
-                        <p className="text-xs text-green-700">
-                          Real GitHub API integration is now functional. Load
-                          any public repository and select files to transform.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
                 </CardContent>
               </Card>
             </TabsContent>
 
-            <TabsContent value="results" className="space-y-6">
-              <Card>
+            <TabsContent value="settings" className="space-y-6">
+              <Card className="bg-zinc-900/50 border-zinc-800">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <FileText className="h-5 w-5" />
-                    Transformation Results
+                  <CardTitle className="flex items-center space-x-2 text-white">
+                    <Settings className="h-5 w-5" />
+                    <span>Layer Configuration</span>
                   </CardTitle>
+                  <CardDescription className="text-zinc-400">
+                    Select which transformation layers to apply to your code
+                  </CardDescription>
                 </CardHeader>
-                <CardContent>
-                  {results ? (
-                    <div className="space-y-6">
-                      {/* Summary Stats */}
-                      <div className="grid grid-cols-4 gap-4">
-                        <div className="text-center p-4 bg-muted rounded-lg">
-                          <div className="text-2xl font-bold text-green-600">
-                            {results.successfulLayers}
+                <CardContent className="space-y-4">
+                  <div className="flex space-x-2">
+                    <Button onClick={selectAllLayers} variant="outline" size="sm" className="border-zinc-600 text-zinc-300 hover:bg-zinc-700">
+                      Select All
+                    </Button>
+                    <Button onClick={clearAllLayers} variant="outline" size="sm" className="border-zinc-600 text-zinc-300 hover:bg-zinc-700">
+                      Clear All
+                    </Button>
+                  </div>
+
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    {layerDefinitions.map((layer) => (
+                      <div
+                        key={layer.id}
+                        className={`rounded-lg border p-4 transition-all duration-300 cursor-pointer ${
+                          selectedLayers.includes(layer.id)
+                            ? 'border-blue-500 bg-blue-500/10 shadow-lg shadow-blue-500/20'
+                            : 'border-zinc-700 hover:border-zinc-600 hover:bg-zinc-800/30'
+                        }`}
+                        onClick={() => toggleLayer(layer.id)}
+                      >
+                        <label className="flex cursor-pointer items-start space-x-3">
+                          <input
+                            type="checkbox"
+                            checked={selectedLayers.includes(layer.id)}
+                            onChange={() => toggleLayer(layer.id)}
+                            className="mt-1 rounded border-zinc-600 bg-zinc-900 text-blue-500 focus:ring-blue-500 focus:ring-offset-0"
+                          />
+                          <div className="flex-1">
+                            <h3 className={`text-sm font-medium ${layer.color}`}>
+                              Layer {layer.id}: {layer.name}
+                            </h3>
+                            <p className="mt-1 text-xs text-zinc-400">
+                              {layer.description}
+                            </p>
                           </div>
-                          <div className="text-sm text-muted-foreground">
-                            Successful
-                          </div>
-                        </div>
-                        <div className="text-center p-4 bg-muted rounded-lg">
-                          <div className="text-2xl font-bold text-red-600">
-                            {results.results.length - results.successfulLayers}
-                          </div>
-                          <div className="text-sm text-muted-foreground">
-                            Failed
-                          </div>
-                        </div>
-                        <div className="text-center p-4 bg-muted rounded-lg">
-                          <div className="text-2xl font-bold">
-                            {Math.round(results.totalExecutionTime)}ms
-                          </div>
-                          <div className="text-sm text-muted-foreground">
-                            Total Time
-                          </div>
-                        </div>
-                        <div className="text-center p-4 bg-muted rounded-lg">
-                          <div className="text-2xl font-bold">
-                            {results.results.reduce(
-                              (sum, r) => sum + r.changeCount,
-                              0,
-                            )}
-                          </div>
-                          <div className="text-sm text-muted-foreground">
-                            Changes
-                          </div>
-                        </div>
+                        </label>
                       </div>
+                    ))}
+                  </div>
 
-                      {/* Layer Results */}
-                      <div className="space-y-3">
-                        <h3 className="text-lg font-semibold">Layer Results</h3>
-                        {results.results.map((result, index) => (
-                          <div
-                            key={index}
-                            className="flex items-center justify-between p-4 border rounded-lg"
-                          >
-                            <div className="flex items-center gap-3">
-                              {result.success ? (
-                                <CheckCircle className="w-5 h-5 text-green-600" />
-                              ) : (
-                                <AlertTriangle className="w-5 h-5 text-red-600" />
-                              )}
-                              <div>
-                                <div className="font-medium">
-                                  Layer {result.layerId}
-                                </div>
-                                {result.error && (
-                                  <div className="text-sm text-red-600">
-                                    {result.error}
-                                  </div>
-                                )}
-                                {result.improvements &&
-                                  result.improvements.length > 0 && (
-                                    <div className="text-sm text-green-600">
-                                      {result.improvements.join(", ")}
-                                    </div>
-                                  )}
-                              </div>
-                            </div>
-                            <div className="text-right text-sm text-muted-foreground">
-                              <div>{Math.round(result.executionTime)}ms</div>
-                              <div>{result.changeCount} changes</div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-
-                      {/* Enhanced Transformed Code Display */}
-                      {results.finalCode !== code && (
-                        <div className="space-y-4">
-                          <div className="flex items-center justify-between">
-                            <Label className="text-lg font-semibold">
-                              Transformed Code
-                            </Label>
-                            <div className="flex gap-2">
-                              <Button
-                                onClick={() => {
-                                  navigator.clipboard.writeText(
-                                    results.finalCode,
-                                  );
-                                  toast({
-                                    title: "Copied to clipboard",
-                                    description:
-                                      "Transformed code has been copied to your clipboard.",
-                                  });
-                                }}
-                                variant="outline"
-                                size="sm"
-                              >
-                                <Copy className="w-4 h-4 mr-1" />
-                                Copy Code
-                              </Button>
-                              <Button
-                                onClick={() => {
-                                  const blob = new Blob([results.finalCode], {
-                                    type: "text/plain",
-                                  });
-                                  const url = URL.createObjectURL(blob);
-                                  const a = document.createElement("a");
-                                  a.href = url;
-                                  a.download =
-                                    uploadedFile?.name?.replace(
-                                      /\.[^/.]+$/,
-                                      "_transformed$&",
-                                    ) || "transformed_code.txt";
-                                  document.body.appendChild(a);
-                                  a.click();
-                                  document.body.removeChild(a);
-                                  URL.revokeObjectURL(url);
-                                  toast({
-                                    title: "Download started",
-                                    description:
-                                      "Transformed code is being downloaded.",
-                                  });
-                                }}
-                                variant="outline"
-                                size="sm"
-                              >
-                                <Download className="w-4 h-4 mr-1" />
-                                Download
-                              </Button>
-                            </div>
-                          </div>
-
-                          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                            {/* Before */}
-                            <div className="space-y-2">
-                              <Label className="text-sm font-medium text-muted-foreground">
-                                Before (Original)
-                              </Label>
-                              <Textarea
-                                value={code}
-                                readOnly
-                                rows={12}
-                                className="font-mono text-xs bg-muted/50"
-                              />
-                            </div>
-
-                            {/* After */}
-                            <div className="space-y-2">
-                              <Label className="text-sm font-medium text-green-700">
-                                After (Transformed)
-                              </Label>
-                              <Textarea
-                                value={results.finalCode}
-                                readOnly
-                                rows={12}
-                                className="font-mono text-xs border-green-200 bg-green-50"
-                              />
-                            </div>
-                          </div>
-
-                          <div className="p-3 bg-muted rounded-lg">
-                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                              <CheckCircle className="h-4 w-4 text-green-600" />
-                              <span>
-                                Transformation complete •
-                                {Math.abs(
-                                  results.finalCode.length - code.length,
-                                )}{" "}
-                                character difference •
-                                {results.results.reduce(
-                                  (sum, r) => sum + r.changeCount,
-                                  0,
-                                )}{" "}
-                                total changes
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="text-center py-12">
-                      <div className="space-y-4">
-                        <div className="flex justify-center">
-                          <div className="p-4 bg-muted/50 rounded-full">
-                            <FileText className="h-12 w-12 text-muted-foreground" />
-                          </div>
-                        </div>
-                        <div>
-                          <p className="text-lg font-medium">
-                            No transformations yet
-                          </p>
-                          <p className="text-muted-foreground max-w-md mx-auto">
-                            Upload a file, paste code, or import from GitHub,
-                            then run a transformation to see detailed results
-                            and comparisons here.
-                          </p>
-                        </div>
-                        {code && (
-                          <Button
-                            onClick={handleTransform}
-                            disabled={!userPlan.can_transform}
-                            className="mx-auto"
-                          >
-                            <Zap className="w-4 h-4 mr-2" />
-                            Transform Current Code
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  )}
+                  <div className="rounded-lg bg-blue-500/10 border border-blue-500/20 p-4">
+                    <p className="text-sm text-blue-300">
+                      <strong className="text-blue-200">{selectedLayers.length}</strong> layers selected for transformation
+                    </p>
+                  </div>
                 </CardContent>
               </Card>
-            </TabsContent>
-
-            {/* Debug Tab */}
-            <TabsContent value="debug" className="space-y-6">
-              <TransformationDebugger />
             </TabsContent>
           </Tabs>
         </div>

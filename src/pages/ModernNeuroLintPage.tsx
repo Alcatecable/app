@@ -2,7 +2,7 @@ import React from "react";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
-import { NeuroLintClient } from "@/components/neurolint/NeuroLintClient";
+import NeuroLintClient from "@/components/neurolint/NeuroLintClient";
 
 const ModernNeuroLintPage: React.FC = () => {
   return (

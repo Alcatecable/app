@@ -24,7 +24,7 @@ class CredentialStorageService {
    * In production, use proper encryption with backend key management
    */
   private async getEncryptionKey(): Promise<CryptoKey> {
-    let keyData = localStorage.getItem(this.ENCRYPTION_KEY_STORAGE);
+    const keyData = localStorage.getItem(this.ENCRYPTION_KEY_STORAGE);
 
     if (!keyData) {
       // Generate new key if none exists
