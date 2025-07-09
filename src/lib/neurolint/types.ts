@@ -1,6 +1,30 @@
 
 import { Rule } from "./rules";
 
+// Corruption patterns for validation
+export const CORRUPTION_PATTERNS = [
+  {
+    name: 'Double function calls',
+    regex: /onClick=\{[^}]*\([^)]*\)\s*=>\s*\(\)\s*=>/g
+  },
+  {
+    name: 'Malformed event handlers',
+    regex: /onClick=\{[^}]*\)\([^)]*\)$/g
+  },
+  {
+    name: 'Invalid JSX attributes',
+    regex: /\w+=\{[^}]*\)[^}]*\}/g
+  },
+  {
+    name: 'Broken import statements',
+    regex: /import\s*{\s*\n\s*import\s*{/g
+  },
+  {
+    name: 'Unclosed arrow functions',
+    regex: /(\w+)\s*\(\s*\)\s*=>\s*\(\s*\)\s*=>/g
+  }
+];
+
 export interface LayerConfig {
   id: number;
   name: string;

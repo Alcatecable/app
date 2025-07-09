@@ -69,7 +69,7 @@ export default function NeuroLintClient() {
       let layersToUse = selectedLayers;
 
       if (smartMode) {
-        const recommendations = SmartLayerSelector.recommendLayers(code);
+        const recommendations = await SmartLayerSelector.recommendLayers(code);
         layersToUse = recommendations;
         toast.info(`Smart mode selected ${recommendations.length} layers`);
       }
