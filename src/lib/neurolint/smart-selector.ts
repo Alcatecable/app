@@ -230,4 +230,92 @@ export class SmartLayerSelector {
       estimatedFixTime: Math.max(30, totalIssues * 10) + " seconds",
     };
   }
+
+  /**
+   * Check if Layer 7 (Adaptive Pattern Learning) should be recommended
+   */
+  private static checkLayer7Recommendation(code: string): {
+    shouldRecommend: boolean;
+    reason: string;
+  } {
+    try {
+      const learnedRules = patternLearner.getRules();
+
+      // Don't recommend if no rules learned yet
+      if (learnedRules.length === 0) {
+        return {
+          shouldRecommend: false,
+          reason: "No learned patterns available yet",
+        };
+      }
+
+      // Check if any high-confidence learned rules match the code
+      const matchingRules = learnedRules.filter((rule) => {
+        if (rule.confidence < 0.7) return false;
+
+        try {
+          const regex = new RegExp(rule.pattern, "gm");
+          return regex.test(code);
+        } catch (error) {
+          return false;
+        }
+      });
+
+      if (matchingRules.length > 0) {
+        return {
+          shouldRecommend: true,
+          reason: `Layer 7: ${matchingRules.length} learned patterns match this code`,
+        };
+      }
+
+      // Recommend if code has patterns similar to what was learned before
+      const hasLearnablePatterns = this.hasLearnablePatterns(
+        code,
+        learnedRules,
+      );
+      if (hasLearnablePatterns) {
+        return {
+          shouldRecommend: true,
+          reason:
+            "Layer 7: Code contains patterns similar to previously learned transformations",
+        };
+      }
+    } catch (error) {
+      console.warn("Layer 7 recommendation check failed:", error);
+    }
+
+    return {
+      shouldRecommend: false,
+      reason: "No applicable learned patterns found",
+    };
+  }
+
+  /**
+   * Check if code has patterns similar to learned patterns
+   */
+  private static hasLearnablePatterns(
+    code: string,
+    learnedRules: any[],
+  ): boolean {
+    // Check for patterns that have been learned from different layers
+    const layerPatterns = {
+      3: code.includes(".map(") && code.includes("<"), // Component patterns
+      4: code.includes("localStorage") || code.includes("window"), // Hydration patterns
+      5:
+        code.includes("import") &&
+        (code.includes("useState") || code.includes("useEffect")), // Next.js patterns
+      6: code.includes("function") && code.includes("return"), // Testing patterns
+    };
+
+    // If we have learned rules from layers that could apply to this code
+    const applicableLayers = Object.entries(layerPatterns)
+      .filter(([, hasPattern]) => hasPattern)
+      .map(([layer]) => parseInt(layer));
+
+    const learnedLayers = [
+      ...new Set(learnedRules.map((rule) => rule.sourceLayer)),
+    ];
+
+    return applicableLayers.some((layer) => learnedLayers.includes(layer));
+  }
 }
