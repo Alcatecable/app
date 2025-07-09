@@ -29,6 +29,9 @@ import {
   GitBranch,
   Database,
   Activity,
+  Terminal,
+  Code2,
+  Zap
 } from "lucide-react";
 import { NeuroLintOrchestrator } from "@/lib/neurolint/orchestrator";
 import { TransformationResult } from "@/lib/neurolint/types";
@@ -54,22 +57,22 @@ export default function Dashboard() {
   const [isLoadingGithub, setIsLoadingGithub] = useState(false);
   const [githubFiles, setGithubFiles] = useState<any[]>([]);
 
-  // Layer definitions
+  // Layer definitions with terminal-inspired descriptions
   const layerDefinitions = [
-    { id: 1, name: "Configuration", description: "TypeScript and Next.js configuration optimization" },
-    { id: 2, name: "Pattern Recognition", description: "HTML entities, imports, and code patterns" },
-    { id: 3, name: "Component Enhancement", description: "React components and Button variants" },
-    { id: 4, name: "Hydration & SSR", description: "Client-side guards and theme providers" },
-    { id: 5, name: "Next.js App Router", description: "Use client placement and import cleanup" },
-    { id: 6, name: "Testing & Validation", description: "Error boundaries and accessibility" },
-    { id: 7, name: "Adaptive Learning", description: "Apply learned patterns from previous transformations" },
+    { id: 1, name: "Configuration", description: "TypeScript and Next.js configuration optimization", color: "text-blue-400" },
+    { id: 2, name: "Pattern Recognition", description: "HTML entities, imports, and code patterns", color: "text-green-400" },
+    { id: 3, name: "Component Enhancement", description: "React components and Button variants", color: "text-purple-400" },
+    { id: 4, name: "Hydration & SSR", description: "Client-side guards and theme providers", color: "text-orange-400" },
+    { id: 5, name: "Next.js App Router", description: "Use client placement and import cleanup", color: "text-pink-400" },
+    { id: 6, name: "Testing & Validation", description: "Error boundaries and accessibility", color: "text-cyan-400" },
+    { id: 7, name: "Adaptive Learning", description: "Apply learned patterns from previous transformations", color: "text-yellow-400" },
   ];
 
   // Transform code using the real orchestrator
   const handleTransform = useCallback(async () => {
     if (!code.trim()) {
       toast({
-        title: "Error",
+        title: "No Code Provided",
         description: "Please provide code to transform.",
         variant: "destructive",
       });
@@ -165,7 +168,7 @@ export default function Dashboard() {
   const handleGithubImport = useCallback(async () => {
     if (!githubUrl.trim()) {
       toast({
-        title: "Error",
+        title: "No URL Provided",
         description: "Please enter a GitHub repository URL.",
         variant: "destructive",
       });
@@ -279,20 +282,18 @@ export default function Dashboard() {
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen bg-gray-50">
-        <div className="border-b bg-white">
+      <div className="min-h-screen bg-black text-white">
+        {/* Terminal-styled header */}
+        <div className="border-b border-zinc-800/50 bg-black/95 backdrop-blur-xl">
           <div className="mx-auto max-w-7xl px-4 py-6">
             <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-2xl font-semibold text-gray-900">NeuroLint</h1>
-                <p className="mt-1 text-sm text-gray-600">
-                  Intelligent code analysis and transformation platform
-                </p>
-              </div>
               <div className="flex items-center space-x-4">
-                <div className="text-right">
-                  <p className="text-sm font-medium text-gray-900">Welcome, {user?.email}</p>
-                  <p className="text-xs text-gray-500">Free Plan</p>
+                <div className="flex h-8 w-8 items-center justify-center rounded bg-gradient-to-br from-blue-500 to-blue-600">
+                  <Terminal className="h-5 w-5 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-xl font-bold text-white">NeuroLint</h1>
+                  <p className="text-sm text-zinc-400">Advanced Code Transformation Platform</p>
                 </div>
               </div>
             </div>
@@ -301,49 +302,58 @@ export default function Dashboard() {
 
         <div className="mx-auto max-w-7xl px-4 py-8">
           <Tabs defaultValue="transform" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="transform">Transform Code</TabsTrigger>
-              <TabsTrigger value="github">GitHub Integration</TabsTrigger>
-              <TabsTrigger value="settings">Layer Settings</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-3 bg-zinc-900/50 border border-zinc-800">
+              <TabsTrigger value="transform" className="data-[state=active]:bg-zinc-800 data-[state=active]:text-white">
+                <Code2 className="mr-2 h-4 w-4" />
+                Transform Code
+              </TabsTrigger>
+              <TabsTrigger value="github" className="data-[state=active]:bg-zinc-800 data-[state=active]:text-white">
+                <Github className="mr-2 h-4 w-4" />
+                GitHub Integration
+              </TabsTrigger>
+              <TabsTrigger value="settings" className="data-[state=active]:bg-zinc-800 data-[state=active]:text-white">
+                <Settings className="mr-2 h-4 w-4" />
+                Layer Settings
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="transform" className="space-y-6">
               <div className="grid gap-6 lg:grid-cols-2">
                 {/* Input Section */}
-                <Card>
+                <Card className="bg-zinc-900/50 border-zinc-800">
                   <CardHeader>
-                    <CardTitle className="flex items-center space-x-2">
+                    <CardTitle className="flex items-center space-x-2 text-white">
                       <FileCode className="h-5 w-5" />
                       <span>Code Input</span>
                     </CardTitle>
-                    <CardDescription>
+                    <CardDescription className="text-zinc-400">
                       Paste your code, upload a file, or import from GitHub
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    {/* File Upload Area */}
+                    {/* Terminal-styled File Upload Area */}
                     <div
-                      className={`rounded-lg border-2 border-dashed p-6 text-center transition-colors ${
+                      className={`rounded-lg border-2 border-dashed p-6 text-center transition-all duration-300 ${
                         isDragOver
-                          ? 'border-blue-500 bg-blue-50'
-                          : 'border-gray-300 hover:border-gray-400'
+                          ? 'border-blue-500 bg-blue-500/10 shadow-lg shadow-blue-500/20'
+                          : 'border-zinc-700 hover:border-zinc-600 hover:bg-zinc-800/30'
                       }`}
                       onDragOver={handleDragOver}
                       onDragLeave={handleDragLeave}
                       onDrop={handleDrop}
                     >
-                      <Upload className="mx-auto h-8 w-8 text-gray-400" />
-                      <p className="mt-2 text-sm text-gray-600">
+                      <Upload className="mx-auto h-8 w-8 text-zinc-400" />
+                      <p className="mt-2 text-sm text-zinc-300">
                         Drag and drop a file here, or{' '}
                         <button
                           type="button"
-                          className="text-blue-600 hover:text-blue-500"
+                          className="text-blue-400 hover:text-blue-300 transition-colors"
                           onClick={() => fileInputRef.current?.click()}
                         >
                           browse
                         </button>
                       </p>
-                      <p className="mt-1 text-xs text-gray-500">
+                      <p className="mt-1 text-xs text-zinc-500">
                         Supports .js, .jsx, .ts, .tsx, .json, .md files (max 2MB)
                       </p>
                       <input
@@ -359,24 +369,24 @@ export default function Dashboard() {
                     </div>
 
                     {uploadedFile && (
-                      <div className="flex items-center space-x-2 rounded-md bg-green-50 p-3">
-                        <FileText className="h-4 w-4 text-green-600" />
-                        <span className="text-sm text-green-800">{uploadedFile.name}</span>
-                        <Badge variant="secondary" className="ml-auto">
+                      <div className="flex items-center space-x-2 rounded-md bg-green-500/10 border border-green-500/20 p-3">
+                        <FileText className="h-4 w-4 text-green-400" />
+                        <span className="text-sm text-green-300">{uploadedFile.name}</span>
+                        <Badge variant="secondary" className="ml-auto bg-zinc-800 text-zinc-300">
                           {(uploadedFile.size / 1024).toFixed(1)} KB
                         </Badge>
                       </div>
                     )}
 
-                    {/* Code Textarea */}
+                    {/* Terminal-styled Code Textarea */}
                     <div>
-                      <Label htmlFor="code-input">Code</Label>
+                      <Label htmlFor="code-input" className="text-zinc-300">Code</Label>
                       <Textarea
                         id="code-input"
-                        placeholder="Paste your JavaScript, TypeScript, or React code here..."
+                        placeholder="// Paste your JavaScript, TypeScript, or React code here..."
                         value={code}
                         onChange={(e) => setCode(e.target.value)}
-                        className="min-h-[300px] font-mono text-sm"
+                        className="min-h-[300px] font-mono text-sm bg-zinc-900/50 border-zinc-700 text-zinc-100 placeholder:text-zinc-500"
                       />
                     </div>
 
@@ -384,7 +394,7 @@ export default function Dashboard() {
                     <Button
                       onClick={handleTransform}
                       disabled={!code.trim() || isProcessing}
-                      className="w-full"
+                      className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium"
                       size="lg"
                     >
                       {isProcessing ? (
@@ -394,7 +404,7 @@ export default function Dashboard() {
                         </>
                       ) : (
                         <>
-                          <Activity className="mr-2 h-4 w-4" />
+                          <Zap className="mr-2 h-4 w-4" />
                           Transform Code
                         </>
                       )}
@@ -403,37 +413,42 @@ export default function Dashboard() {
                 </Card>
 
                 {/* Results Section */}
-                <Card>
+                <Card className="bg-zinc-900/50 border-zinc-800">
                   <CardHeader>
-                    <CardTitle className="flex items-center space-x-2">
+                    <CardTitle className="flex items-center space-x-2 text-white">
                       <Database className="h-5 w-5" />
                       <span>Transformation Results</span>
                     </CardTitle>
-                    <CardDescription>
+                    <CardDescription className="text-zinc-400">
                       View the transformed code and layer execution details
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
                     {isProcessing ? (
                       <div className="flex flex-col items-center space-y-4 py-8">
-                        <RefreshCw className="h-8 w-8 animate-spin text-blue-600" />
-                        <p className="text-sm text-gray-600">Processing your code...</p>
-                        <Progress value={33} className="w-full" />
+                        <RefreshCw className="h-8 w-8 animate-spin text-blue-500" />
+                        <p className="text-sm text-zinc-400">Processing your code...</p>
+                        <Progress value={33} className="w-full bg-zinc-800" />
                       </div>
                     ) : results ? (
                       <div className="space-y-4">
                         {/* Summary */}
-                        <div className="rounded-lg bg-gray-50 p-4">
+                        <div className="rounded-lg bg-zinc-800/50 border border-zinc-700 p-4">
                           <div className="flex items-center justify-between">
                             <div>
-                              <p className="text-sm font-medium text-gray-900">
+                              <p className="text-sm font-medium text-white">
                                 {results.successfulLayers} of {selectedLayers.length} layers completed
                               </p>
-                              <p className="text-xs text-gray-500">
+                              <p className="text-xs text-zinc-400">
                                 Execution time: {results.totalExecutionTime.toFixed(2)}ms
                               </p>
                             </div>
-                            <Button onClick={downloadTransformedCode} variant="outline" size="sm">
+                            <Button 
+                              onClick={downloadTransformedCode} 
+                              variant="outline" 
+                              size="sm"
+                              className="border-zinc-600 text-zinc-300 hover:bg-zinc-700"
+                            >
                               <Download className="mr-2 h-4 w-4" />
                               Download
                             </Button>
@@ -445,27 +460,30 @@ export default function Dashboard() {
                           {results.results.map((result) => (
                             <div
                               key={result.layerId}
-                              className="flex items-center justify-between rounded-md border p-3"
+                              className="flex items-center justify-between rounded-md border border-zinc-700 bg-zinc-800/30 p-3"
                             >
                               <div className="flex items-center space-x-3">
                                 {result.success ? (
-                                  <CheckCircle className="h-4 w-4 text-green-600" />
+                                  <CheckCircle className="h-4 w-4 text-green-400" />
                                 ) : (
-                                  <AlertCircle className="h-4 w-4 text-red-600" />
+                                  <AlertCircle className="h-4 w-4 text-red-400" />
                                 )}
-                                                                 <div>
-                                   <p className="text-sm font-medium text-gray-900">
-                                     Layer {result.layerId}: {result.layerName || `Layer ${result.layerId}`}
-                                   </p>
-                                   <p className="text-xs text-gray-500">
-                                     {result.success 
-                                       ? `${result.changeCount} changes in ${result.executionTime.toFixed(2)}ms`
-                                       : result.error
-                                     }
-                                   </p>
-                                 </div>
+                                <div>
+                                  <p className="text-sm font-medium text-white">
+                                    Layer {result.layerId}: {result.layerName || `Layer ${result.layerId}`}
+                                  </p>
+                                  <p className="text-xs text-zinc-400">
+                                    {result.success 
+                                      ? `${result.changeCount} changes in ${result.executionTime.toFixed(2)}ms`
+                                      : result.error
+                                    }
+                                  </p>
+                                </div>
                               </div>
-                              <Badge variant={result.success ? "default" : "destructive"}>
+                              <Badge 
+                                variant={result.success ? "default" : "destructive"}
+                                className={result.success ? "bg-green-600 hover:bg-green-700" : ""}
+                              >
                                 {result.success ? "Success" : "Failed"}
                               </Badge>
                             </div>
@@ -474,19 +492,19 @@ export default function Dashboard() {
 
                         {/* Transformed Code */}
                         <div>
-                          <Label htmlFor="transformed-code">Transformed Code</Label>
+                          <Label htmlFor="transformed-code" className="text-zinc-300">Transformed Code</Label>
                           <Textarea
                             id="transformed-code"
                             value={results.finalCode}
                             readOnly
-                            className="min-h-[200px] font-mono text-sm"
+                            className="min-h-[200px] font-mono text-sm bg-zinc-900/50 border-zinc-700 text-zinc-100"
                           />
                         </div>
                       </div>
                     ) : (
                       <div className="flex flex-col items-center space-y-4 py-8 text-center">
-                        <Clock className="h-8 w-8 text-gray-400" />
-                        <p className="text-sm text-gray-600">
+                        <Clock className="h-8 w-8 text-zinc-500" />
+                        <p className="text-sm text-zinc-400">
                           Transformation results will appear here
                         </p>
                       </div>
@@ -497,13 +515,13 @@ export default function Dashboard() {
             </TabsContent>
 
             <TabsContent value="github" className="space-y-6">
-              <Card>
+              <Card className="bg-zinc-900/50 border-zinc-800">
                 <CardHeader>
-                  <CardTitle className="flex items-center space-x-2">
+                  <CardTitle className="flex items-center space-x-2 text-white">
                     <Github className="h-5 w-5" />
                     <span>GitHub Repository Integration</span>
                   </CardTitle>
-                  <CardDescription>
+                  <CardDescription className="text-zinc-400">
                     Import code directly from public GitHub repositories
                   </CardDescription>
                 </CardHeader>
@@ -513,11 +531,12 @@ export default function Dashboard() {
                       placeholder="https://github.com/username/repository"
                       value={githubUrl}
                       onChange={(e) => setGithubUrl(e.target.value)}
-                      className="flex-1"
+                      className="flex-1 bg-zinc-900/50 border-zinc-700 text-zinc-100 placeholder:text-zinc-500"
                     />
                     <Button 
                       onClick={handleGithubImport} 
                       disabled={isLoadingGithub}
+                      className="bg-zinc-800 hover:bg-zinc-700 text-white"
                     >
                       {isLoadingGithub ? (
                         <RefreshCw className="h-4 w-4 animate-spin" />
@@ -529,17 +548,17 @@ export default function Dashboard() {
 
                   {githubFiles.length > 0 && (
                     <div className="space-y-2">
-                      <Label>Available Files</Label>
-                      <div className="max-h-60 space-y-1 overflow-y-auto rounded-md border p-2">
+                      <Label className="text-zinc-300">Available Files</Label>
+                      <div className="max-h-60 space-y-1 overflow-y-auto rounded-md border border-zinc-700 bg-zinc-900/30 p-2">
                         {githubFiles.map((file) => (
                           <button
                             key={file.sha}
                             onClick={() => handleGithubFileSelect(file)}
-                            className="flex w-full items-center space-x-2 rounded-md p-2 text-left hover:bg-gray-100"
+                            className="flex w-full items-center space-x-2 rounded-md p-2 text-left hover:bg-zinc-700/50 transition-colors"
                           >
-                            <FileText className="h-4 w-4 text-gray-400" />
-                            <span className="text-sm">{file.name}</span>
-                            <Badge variant="outline" className="ml-auto">
+                            <FileText className="h-4 w-4 text-zinc-400" />
+                            <span className="text-sm text-zinc-300">{file.name}</span>
+                            <Badge variant="outline" className="ml-auto border-zinc-600 text-zinc-400">
                               {(file.size / 1024).toFixed(1)} KB
                             </Badge>
                           </button>
@@ -552,22 +571,22 @@ export default function Dashboard() {
             </TabsContent>
 
             <TabsContent value="settings" className="space-y-6">
-              <Card>
+              <Card className="bg-zinc-900/50 border-zinc-800">
                 <CardHeader>
-                  <CardTitle className="flex items-center space-x-2">
+                  <CardTitle className="flex items-center space-x-2 text-white">
                     <Settings className="h-5 w-5" />
                     <span>Layer Configuration</span>
                   </CardTitle>
-                  <CardDescription>
+                  <CardDescription className="text-zinc-400">
                     Select which transformation layers to apply to your code
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="flex space-x-2">
-                    <Button onClick={selectAllLayers} variant="outline" size="sm">
+                    <Button onClick={selectAllLayers} variant="outline" size="sm" className="border-zinc-600 text-zinc-300 hover:bg-zinc-700">
                       Select All
                     </Button>
-                    <Button onClick={clearAllLayers} variant="outline" size="sm">
+                    <Button onClick={clearAllLayers} variant="outline" size="sm" className="border-zinc-600 text-zinc-300 hover:bg-zinc-700">
                       Clear All
                     </Button>
                   </div>
@@ -576,24 +595,25 @@ export default function Dashboard() {
                     {layerDefinitions.map((layer) => (
                       <div
                         key={layer.id}
-                        className={`rounded-lg border p-4 transition-colors ${
+                        className={`rounded-lg border p-4 transition-all duration-300 cursor-pointer ${
                           selectedLayers.includes(layer.id)
-                            ? 'border-blue-500 bg-blue-50'
-                            : 'border-gray-200 hover:border-gray-300'
+                            ? 'border-blue-500 bg-blue-500/10 shadow-lg shadow-blue-500/20'
+                            : 'border-zinc-700 hover:border-zinc-600 hover:bg-zinc-800/30'
                         }`}
+                        onClick={() => toggleLayer(layer.id)}
                       >
                         <label className="flex cursor-pointer items-start space-x-3">
                           <input
                             type="checkbox"
                             checked={selectedLayers.includes(layer.id)}
                             onChange={() => toggleLayer(layer.id)}
-                            className="mt-1"
+                            className="mt-1 rounded border-zinc-600 bg-zinc-900 text-blue-500 focus:ring-blue-500 focus:ring-offset-0"
                           />
                           <div className="flex-1">
-                            <h3 className="text-sm font-medium text-gray-900">
+                            <h3 className={`text-sm font-medium ${layer.color}`}>
                               Layer {layer.id}: {layer.name}
                             </h3>
-                            <p className="mt-1 text-xs text-gray-600">
+                            <p className="mt-1 text-xs text-zinc-400">
                               {layer.description}
                             </p>
                           </div>
@@ -602,9 +622,9 @@ export default function Dashboard() {
                     ))}
                   </div>
 
-                  <div className="rounded-lg bg-blue-50 p-4">
-                    <p className="text-sm text-blue-800">
-                      <strong>{selectedLayers.length}</strong> layers selected for transformation
+                  <div className="rounded-lg bg-blue-500/10 border border-blue-500/20 p-4">
+                    <p className="text-sm text-blue-300">
+                      <strong className="text-blue-200">{selectedLayers.length}</strong> layers selected for transformation
                     </p>
                   </div>
                 </CardContent>
