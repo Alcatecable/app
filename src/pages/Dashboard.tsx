@@ -614,11 +614,12 @@ export default function Dashboard() {
 
           {/* Main Dashboard */}
           <Tabs defaultValue="transform" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="transform">Transform Code</TabsTrigger>
               <TabsTrigger value="upload">Upload File</TabsTrigger>
               <TabsTrigger value="github">GitHub Import</TabsTrigger>
               <TabsTrigger value="results">Results</TabsTrigger>
+              <TabsTrigger value="debug">Debug</TabsTrigger>
             </TabsList>
 
             {/* Code Transform Tab */}
