@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { NeuroLintOrchestrator } from "@/lib/neurolint";
+import { DocumentComplianceTest } from "@/lib/neurolint/document-compliance-test";
 
 export const TransformationDebugger: React.FC = () => {
   const [testCode, setTestCode] = useState(`const test = "Hello World";
