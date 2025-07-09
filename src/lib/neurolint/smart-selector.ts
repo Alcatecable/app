@@ -1,8 +1,10 @@
 import { LayerRecommendation, DetectedIssue, ImpactEstimate } from "./types";
+import { patternLearner } from "./pattern-learner";
 
 /**
  * Intelligent layer selection based on code analysis
  * Recommends optimal layer combinations for specific issues
+ * Integrates with adaptive pattern learning for Layer 7 recommendations
  */
 export class SmartLayerSelector {
   /**
