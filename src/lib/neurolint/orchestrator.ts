@@ -431,7 +431,7 @@ export class NeuroLintOrchestrator {
     return recommendation.recommendedLayers;
   }
 
-  private static async executeLayer(
+  static async executeLayer(
     layerId: number,
     code: string,
     options: ExecutionOptions,
