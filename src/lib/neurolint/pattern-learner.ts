@@ -1,7 +1,11 @@
 /**
- * Browser-compatible Pattern Learner for Layer 7: Adaptive Pattern Learning
- * Uses localStorage for persistence instead of file system
+ * Enterprise Pattern Learner for Layer 7: Adaptive Pattern Learning
+ * Supports both regex and AST-based pattern learning with browser/Node.js compatibility
  */
+
+import { parse, ParserOptions } from "@babel/parser";
+import traverse from "@babel/traverse";
+import * as t from "@babel/types";
 
 export interface LearnedRule {
   id: string;
