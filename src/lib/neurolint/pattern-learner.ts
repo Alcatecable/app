@@ -955,6 +955,42 @@ export class PatternLearner {
   }
 
   /**
+   * Clean up low-performing rules automatically
+   */
+  public cleanupRules(): number {
+    const initialCount = this.rules.length;
+    const now = Date.now();
+    const maxAge = 30 * 24 * 60 * 60 * 1000; // 30 days
+
+    this.rules = this.rules.filter((rule) => {
+      // Remove rules that are too old and rarely used
+      if (now - rule.createdAt > maxAge && rule.frequency < 3) {
+        return false;
+      }
+
+      // Remove rules with very low confidence
+      if (rule.confidence < 0.2) {
+        return false;
+      }
+
+      // Remove rules with poor success rate
+      if (rule.successRate < 0.5 && rule.frequency > 5) {
+        return false;
+      }
+
+      return true;
+    });
+
+    const removedCount = initialCount - this.rules.length;
+    if (removedCount > 0) {
+      this.saveRules();
+      console.log(`🧹 Cleaned up ${removedCount} low-performing rules`);
+    }
+
+    return removedCount;
+  }
+
+  /**
    * Get learning statistics
    */
   public getStatistics(): {
