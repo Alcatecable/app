@@ -1343,6 +1343,11 @@ export default function Dashboard() {
                 </CardContent>
               </Card>
             </TabsContent>
+
+            {/* Debug Tab */}
+            <TabsContent value="debug" className="space-y-6">
+              <TransformationDebugger />
+            </TabsContent>
           </Tabs>
         </div>
       </div>
