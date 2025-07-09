@@ -86,12 +86,12 @@ export class NeuroLintOrchestrator {
     let successfulLayers = 0;
     const results: LayerExecutionResult[] = [];
 
-    logger.startSession({ codeLength: code.length, enabledLayers });
-    metrics.incrementTotalExecutions();
+    logger.info('Starting transformation session', { codeLength: code.length, enabledLayers });
+    metrics.recordExecution();
 
     for (const layer of this.layers) {
       if (!enabledLayers.includes(layer.id)) {
-        logger.log(`Layer ${layer.id} "${layer.name}" skipped.`);
+        logger.info(`Layer ${layer.id} "${layer.name}" skipped.`);
         continue;
       }
 
@@ -99,18 +99,18 @@ export class NeuroLintOrchestrator {
       let layerResult;
 
       try {
-        logger.log(`Executing layer ${layer.id} "${layer.name}"...`);
+        logger.info(`Executing layer ${layer.id} "${layer.name}"...`);
         layerResult = await layer.execute(currentCode, options);
 
         if (layerResult.transformedCode !== currentCode) {
           currentCode = layerResult.transformedCode;
           successfulLayers++;
-          logger.log(
+          logger.info(
             `Layer ${layer.id} "${layer.name}" applied successfully. Changes: ${layerResult.changeCount}`
           );
-          metrics.incrementSuccessfulExecutions();
+          metrics.recordSuccess();
         } else {
-          logger.log(`Layer ${layer.id} "${layer.name}" did not change the code.`);
+          logger.info(`Layer ${layer.id} "${layer.name}" did not change the code.`);
         }
 
         results.push({
@@ -123,7 +123,7 @@ export class NeuroLintOrchestrator {
         });
       } catch (error: any) {
         logger.error(`Layer ${layer.id} "${layer.name}" failed:`, error);
-        metrics.incrementFailedExecutions();
+        metrics.recordFailure();
         results.push({
           layerId: layer.id,
           layerName: layer.name,
@@ -136,7 +136,7 @@ export class NeuroLintOrchestrator {
     }
 
     const totalExecutionTime = performance.now() - startTime;
-    logger.endSession({
+    logger.info('Transformation session completed', {
       successfulLayers,
       totalExecutionTime,
       finalCodeLength: currentCode.length,

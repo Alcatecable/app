@@ -2,7 +2,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { NeuroLintOrchestrator, LayerExecutionResult } from '@/lib/neurolint';
+import { NeuroLintOrchestrator, LayerExecutionResult, TransformationResult } from '@/lib/neurolint';
 import { logger } from '@/lib/neurolint/logger';
 import { metrics, PerformanceMetrics } from '@/lib/neurolint/metrics';
 
@@ -18,6 +18,21 @@ import { LogsSection } from './enterprise/LogsSection';
 
 interface EnterpriseNeuroLintClientProps {
   className?: string;
+}
+
+// Convert TransformationResult to LayerExecutionResult format
+function convertToLayerExecutionResult(result: TransformationResult): LayerExecutionResult {
+  return {
+    layerId: 0, // Summary result
+    layerName: 'Complete Transformation',
+    success: result.results.every(r => r.success),
+    executionTime: result.totalExecutionTime,
+    changeCount: result.results.reduce((sum, r) => sum + r.changeCount, 0),
+    originalCode: result.originalCode,
+    modifiedCode: result.finalCode,
+    transformedCode: result.finalCode,
+    improvements: result.results.flatMap(r => r.improvements || []),
+  };
 }
 
 export function EnterpriseNeuroLintClient({ className }: EnterpriseNeuroLintClientProps) {
@@ -83,8 +98,11 @@ export function EnterpriseNeuroLintClient({ className }: EnterpriseNeuroLintClie
       });
 
       clearInterval(progressInterval);
-      setResults(result);
-      setExecutionHistory(prev => [result, ...prev.slice(0, 9)]);
+      
+      // Convert TransformationResult to LayerExecutionResult
+      const convertedResult = convertToLayerExecutionResult(result);
+      setResults(convertedResult);
+      setExecutionHistory(prev => [convertedResult, ...prev.slice(0, 9)]);
       setActiveTab('results');
 
       const updatedMetrics = metrics.getPerformanceMetrics();

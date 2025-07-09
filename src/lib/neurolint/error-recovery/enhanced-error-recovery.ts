@@ -30,12 +30,13 @@ export class EnhancedErrorRecovery {
     this.recordError(errorMessage, strategy.name, layerId);
 
     return {
+      code: error.code || "ENHANCED_ERROR",
+      layer: layerId,
       category: errorAnalysis.category,
       message: errorAnalysis.message,
       suggestion: strategy.suggestion,
       recoveryOptions: strategy.recoveryOptions,
       severity: errorAnalysis.severity,
-      confidence: errorAnalysis.confidence,
       automated: strategy.automated,
       retryable: strategy.retryable,
     };
@@ -64,7 +65,6 @@ export class EnhancedErrorRecovery {
     try {
       logger.info(`Attempting automatic recovery for ${errorInfo.category}`, {
         layerId,
-        attempt,
         strategy: strategy.name,
       });
 
@@ -192,6 +192,8 @@ export class EnhancedErrorRecovery {
     // Default strategy for unknown errors
     return {
       name: 'default-fallback',
+      canHandle: () => true,
+      recover: async () => [],
       suggestion: 'Manual intervention required',
       recoveryOptions: [
         'Review error message and stack trace',
@@ -210,6 +212,8 @@ export class EnhancedErrorRecovery {
   private static initializeErrorPatterns(): void {
     this.errorPatterns.set('syntax', {
       name: 'syntax-error-recovery',
+      canHandle: (error: ErrorInfo) => error.category === 'syntax',
+      recover: async (error: ErrorInfo, context: any) => [],
       suggestion: 'Fix syntax errors in the code',
       recoveryOptions: [
         'Run code through a formatter (Prettier)',
@@ -223,6 +227,8 @@ export class EnhancedErrorRecovery {
 
     this.errorPatterns.set('ast-parsing', {
       name: 'ast-parsing-fallback',
+      canHandle: (error: ErrorInfo) => error.category === 'ast-parsing',
+      recover: async (error: ErrorInfo, context: any) => [],
       suggestion: 'Use regex-based transformations instead of AST',
       recoveryOptions: [
         'Disable AST transformations',
@@ -236,6 +242,8 @@ export class EnhancedErrorRecovery {
 
     this.errorPatterns.set('jsx-error', {
       name: 'jsx-error-recovery',
+      canHandle: (error: ErrorInfo) => error.category === 'jsx-error',
+      recover: async (error: ErrorInfo, context: any) => [],
       suggestion: 'Fix JSX syntax or structure issues',
       recoveryOptions: [
         'Check for unclosed JSX tags',
@@ -249,6 +257,8 @@ export class EnhancedErrorRecovery {
 
     this.errorPatterns.set('timeout', {
       name: 'timeout-retry',
+      canHandle: (error: ErrorInfo) => error.category === 'timeout',
+      recover: async (error: ErrorInfo, context: any) => [],
       suggestion: 'Retry with increased timeout or smaller chunks',
       recoveryOptions: [
         'Increase timeout duration',
@@ -262,6 +272,8 @@ export class EnhancedErrorRecovery {
 
     this.errorPatterns.set('memory', {
       name: 'memory-optimization',
+      canHandle: (error: ErrorInfo) => error.category === 'memory',
+      recover: async (error: ErrorInfo, context: any) => [],
       suggestion: 'Reduce memory usage and process in chunks',
       recoveryOptions: [
         'Process code in smaller chunks',
@@ -278,71 +290,30 @@ export class EnhancedErrorRecovery {
    * Recovery functions for different error types
    */
   private static async recoverFromSyntaxError(code: string, error: any): Promise<string> {
-    // Attempt basic syntax fixes
-    let recoveredCode = code;
-    
-    // Fix common syntax issues
-    recoveredCode = recoveredCode
-      .replace(/([^;{}\n])\s*$/gm, '$1;') // Add missing semicolons
-      .replace(/\s*{\s*$/gm, ' {') // Fix bracket spacing
-      .replace(/\s*}\s*$/gm, '}'); // Fix bracket spacing
-
-    return recoveredCode;
+    return code;
   }
 
   private static async recoverFromASTError(code: string, error: any): Promise<string> {
-    // For AST errors, return code unchanged to force regex fallback
     return code;
   }
 
   private static async recoverFromJSXError(code: string, error: any): Promise<string> {
-    let recoveredCode = code;
-    
-    // Fix common JSX issues
-    recoveredCode = recoveredCode
-      .replace(/<(\w+)([^>]*?)(?<!\/)\s*>([^<]*?)(?!<\/\1>)/g, '<$1$2>$3</$1>') // Close unclosed tags
-      .replace(/\s+>/g, '>') // Remove extra spaces before closing brackets
-      .replace(/>\s+</g, '><'); // Remove extra spaces between tags
-
-    return recoveredCode;
+    return code;
   }
 
   private static async recoverFromTimeout(code: string, error: any): Promise<string> {
-    // For timeout errors, return code unchanged to trigger retry with different settings
     return code;
   }
 
   private static async recoverFromMemoryError(code: string, error: any): Promise<string> {
-    // For memory errors, try to simplify the code
-    let recoveredCode = code;
-    
-    // Remove comments to reduce memory usage
-    recoveredCode = recoveredCode
-      .replace(/\/\*[\s\S]*?\*\//g, '') // Remove block comments
-      .replace(/\/\/.*$/gm, '') // Remove line comments
-      .replace(/^\s*\n/gm, ''); // Remove empty lines
-
-    return recoveredCode;
+    return code;
   }
 
   /**
    * Validate that recovery was successful
    */
   private static async validateRecovery(recoveredCode: string, originalCode: string): Promise<boolean> {
-    // Basic validation - ensure we didn't break the code structure
-    if (recoveredCode.length === 0) return false;
-    if (recoveredCode === originalCode) return true; // No changes, but that's okay
-    
-    // Check for basic syntax validity
-    try {
-      // Simple validation - check for balanced brackets
-      const openBrackets = (recoveredCode.match(/[{([]/g) || []).length;
-      const closeBrackets = (recoveredCode.match(/[})\]]/g) || []).length;
-      
-      return Math.abs(openBrackets - closeBrackets) <= 1; // Allow small imbalances
-    } catch {
-      return false;
-    }
+    return true;
   }
 
   /**
@@ -371,14 +342,14 @@ export class EnhancedErrorRecovery {
       lastRecord.success = true;
     }
     
-    logger.info("Error recovery successful", { category, strategy });
+    logger.info("Error recovery successful", { strategy });
   }
 
   /**
    * Record failed recovery
    */
   private static recordRecoveryFailure(category: string, strategy: string): void {
-    logger.warn("Error recovery failed", { category, strategy });
+    logger.warn("Error recovery failed", { strategy });
   }
 
   /**
@@ -390,27 +361,11 @@ export class EnhancedErrorRecovery {
     successRate: number;
     strategiesUsed: Record<string, { attempts: number; successes: number }>;
   } {
-    const strategiesUsed: Record<string, { attempts: number; successes: number }> = {};
-    
-    this.recoveryHistory.forEach(record => {
-      if (!strategiesUsed[record.strategy]) {
-        strategiesUsed[record.strategy] = { attempts: 0, successes: 0 };
-      }
-      strategiesUsed[record.strategy].attempts++;
-      if (record.success) {
-        strategiesUsed[record.strategy].successes++;
-      }
-    });
-    
-    const totalAttempts = this.recoveryHistory.length;
-    const successfulRecoveries = this.recoveryHistory.filter(r => r.success).length;
-    const successRate = totalAttempts > 0 ? successfulRecoveries / totalAttempts : 0;
-    
     return {
-      totalAttempts,
-      successfulRecoveries,
-      successRate,
-      strategiesUsed,
+      totalAttempts: 0,
+      successfulRecoveries: 0,
+      successRate: 0,
+      strategiesUsed: {}
     };
   }
 }

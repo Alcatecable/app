@@ -1,3 +1,4 @@
+
 import { ErrorInfo, RecoverySuggestion, LayerResult } from "./types";
 
 /**
@@ -17,6 +18,8 @@ export class ErrorRecoverySystem {
       errorMessage.includes("Unexpected token")
     ) {
       return {
+        code: error.code || "SYNTAX_ERROR",
+        layer: layerId,
         category: "syntax",
         message: "Code syntax prevented transformation",
         suggestion: "Fix syntax errors before running NeuroLint",
@@ -32,6 +35,8 @@ export class ErrorRecoverySystem {
     // AST parsing errors
     if (errorMessage.includes("AST") || errorMessage.includes("parse")) {
       return {
+        code: error.code || "AST_PARSE_ERROR",
+        layer: layerId,
         category: "parsing",
         message: "Complex code structure not supported by AST parser",
         suggestion:
@@ -51,6 +56,8 @@ export class ErrorRecoverySystem {
       errorMessage.includes("permission")
     ) {
       return {
+        code: error.code || "FILESYSTEM_ERROR",
+        layer: layerId,
         category: "filesystem",
         message: "File system access error",
         suggestion: "Check file permissions and paths",
@@ -74,6 +81,8 @@ export class ErrorRecoverySystem {
 
     // Generic errors
     return {
+      code: error.code || "UNKNOWN_ERROR",
+      layer: layerId,
       category: "unknown",
       message: `Unexpected error in Layer ${layerId}`,
       suggestion: "Please report this issue with your code sample",
@@ -97,6 +106,8 @@ export class ErrorRecoverySystem {
       case 1: // Configuration layer
         if (errorMessage.includes("JSON")) {
           return {
+            code: "JSON_PARSE_ERROR",
+            layer: layerId,
             category: "config",
             message: "Invalid JSON in configuration file",
             suggestion: "Validate JSON syntax in config files",
@@ -112,6 +123,8 @@ export class ErrorRecoverySystem {
       case 2: // Pattern layer
         if (errorMessage.includes("replace")) {
           return {
+            code: "PATTERN_ERROR",
+            layer: layerId,
             category: "pattern",
             message: "Pattern replacement failed",
             suggestion: "Some patterns may conflict with your code structure",
@@ -127,6 +140,8 @@ export class ErrorRecoverySystem {
       case 3: // Component layer
         if (errorMessage.includes("JSX")) {
           return {
+            code: "JSX_ERROR",
+            layer: layerId,
             category: "component",
             message: "JSX transformation error",
             suggestion: "Complex JSX structures may need manual fixing",
@@ -142,6 +157,8 @@ export class ErrorRecoverySystem {
           errorMessage.includes("window")
         ) {
           return {
+            code: "HYDRATION_ERROR",
+            layer: layerId,
             category: "hydration",
             message: "Browser API protection failed",
             suggestion: "Manual SSR guards may be needed for complex cases",
@@ -176,10 +193,12 @@ export class ErrorRecoverySystem {
 
     if (syntaxErrors.length > 0) {
       suggestions.push({
+        action: "fix-syntax",
+        description: "Multiple syntax errors detected. Consider fixing these manually before running NeuroLint.",
+        priority: 1,
+        estimatedEffectiveness: 0.9,
         type: "syntax",
         title: "Fix Syntax Errors First",
-        description:
-          "Multiple syntax errors detected. Consider fixing these manually before running NeuroLint.",
         actions: [
           "Run code through a formatter (Prettier)",
           "Use ESLint to identify syntax issues",
@@ -190,10 +209,12 @@ export class ErrorRecoverySystem {
 
     if (parsingErrors.length > 0) {
       suggestions.push({
+        action: "simplify-code",
+        description: "AST parser struggled with code complexity. Consider simplification.",
+        priority: 2,
+        estimatedEffectiveness: 0.7,
         type: "parsing",
         title: "Simplify Complex Code",
-        description:
-          "AST parser struggled with code complexity. Consider simplification.",
         actions: [
           "Break down complex expressions",
           "Separate complex JSX into smaller components",

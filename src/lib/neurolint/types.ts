@@ -18,12 +18,12 @@ export interface LayerExecutionResult {
   improvements?: string[];
   originalCode?: string;
   modifiedCode?: string;
-  // Add properties to match TransformationResult usage
-  successfulLayers?: number;
-  results?: LayerResult[];
-  totalExecutionTime?: number;
-  finalCode?: string;
-  states?: any[];
+  code?: string;
+  transformedCode?: string;
+  revertReason?: string;
+  errorCategory?: string;
+  suggestion?: string;
+  recoveryOptions?: string[];
 }
 
 // Extended result type for orchestrator
@@ -95,6 +95,8 @@ export interface DetectedIssue {
   pattern: string;
   description: string;
   fixedByLayer: number;
+  type?: string;
+  count?: number;
 }
 
 // Error recovery types
@@ -104,12 +106,12 @@ export interface ErrorInfo {
   layer: number;
   severity: 'low' | 'medium' | 'high' | 'critical';
   context?: any;
-  // Add missing properties
   category?: string;
   suggestion?: string;
   recoveryOptions?: string[];
   automated?: boolean;
   retryable?: boolean;
+  confidence?: number;
 }
 
 export interface RecoverySuggestion {
@@ -117,8 +119,9 @@ export interface RecoverySuggestion {
   description: string;
   priority: number;
   estimatedEffectiveness: number;
-  // Add missing properties
   type?: string;
+  title?: string;
+  actions?: string[];
 }
 
 export interface LayerResult {
@@ -135,7 +138,6 @@ export interface ErrorRecoveryStrategy {
   name: string;
   canHandle: (error: ErrorInfo) => boolean;
   recover: (error: ErrorInfo, context: any) => Promise<RecoverySuggestion[]>;
-  // Add missing properties
   suggestion?: string;
   recoveryOptions?: string[];
   automated?: boolean;
@@ -149,36 +151,64 @@ export interface ValidationResult {
   shouldRevert: boolean;
   errors: string[];
   warnings: string[];
+  reason?: string;
 }
 
 export interface LayerRecommendation {
   layerId: number;
   confidence: number;
   reasoning: string;
+  recommendedLayers?: number[];
+  detectedIssues?: DetectedIssue[];
+  estimatedImpact?: ImpactEstimate;
 }
 
 export interface ImpactEstimate {
   level: 'low' | 'medium' | 'high';
   timeEstimate: string;
   riskLevel: number;
+  description?: string;
+  estimatedFixTime?: string;
 }
 
 export interface ExecutionOptions {
   verbose: boolean;
   dryRun: boolean;
   timeout?: number;
+  useCache?: boolean;
+  skipUnnecessary?: boolean;
+  preProcess?: boolean;
+  postProcess?: boolean;
 }
 
 export interface PipelineState {
   currentLayer: number;
   completed: boolean;
   errors: ErrorInfo[];
+  step?: number;
+  layerId?: number | null;
+  code?: string;
+  timestamp?: number;
+  description?: string;
+  success?: boolean;
+  executionTime?: number;
+  changeCount?: number;
 }
 
 export interface PipelineResult {
   success: boolean;
   results: LayerResult[];
   totalTime: number;
+  finalCode?: string;
+  states?: PipelineState[];
+  metadata?: LayerMetadata[];
+  summary?: {
+    totalSteps: number;
+    successfulLayers: number;
+    failedLayers: number;
+    totalExecutionTime: number;
+    totalChanges: number;
+  };
 }
 
 export interface LayerMetadata {
@@ -186,6 +216,12 @@ export interface LayerMetadata {
   name: string;
   version: string;
   dependencies: number[];
+  layerId?: number;
+  success?: boolean;
+  executionTime?: number;
+  changeCount?: number;
+  error?: string;
+  improvements?: string[];
 }
 
 export interface LogEntry {
