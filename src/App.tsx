@@ -7,6 +7,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import Dashboard from "./pages/Dashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 import NeuroLintPage from "./pages/NeuroLintPage";
+import NeuroLintTestingPage from "./pages/NeuroLintTestingPage";
 import AuthPage from "./pages/AuthPage";
 import ProfilePage from "./pages/ProfilePage";
 import SubscriptionPage from "./pages/SubscriptionPage";
@@ -27,6 +28,11 @@ const App = () => (
             <Route path="/" element={<Dashboard />} />
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/neurolint" element={<NeuroLintPage />} />
+            <Route path="/testing" element={<NeuroLintTestingPage />} />
+            <Route
+              path="/neurolint/testing"
+              element={<NeuroLintTestingPage />}
+            />
             <Route path="/auth" element={<AuthPage />} />
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/subscription" element={<SubscriptionPage />} />
