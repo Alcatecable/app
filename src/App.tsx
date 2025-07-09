@@ -4,13 +4,13 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
-import Dashboard from "./pages/Dashboard";
-import AdminDashboard from "./pages/AdminDashboard";
-import NeuroLintPage from "./pages/NeuroLintPage";
-import NeuroLintTestingPage from "./pages/NeuroLintTestingPage";
+import ModernDashboard from "./pages/ModernDashboard";
+import ModernAdminDashboard from "./pages/ModernAdminDashboard";
+import ModernNeuroLintPage from "./pages/ModernNeuroLintPage";
+import ModernTestingPage from "./pages/ModernTestingPage";
+import ModernProfilePage from "./pages/ModernProfilePage";
+import ModernSubscriptionPage from "./pages/ModernSubscriptionPage";
 import AuthPage from "./pages/AuthPage";
-import ProfilePage from "./pages/ProfilePage";
-import SubscriptionPage from "./pages/SubscriptionPage";
 import SubscriptionSuccess from "./pages/SubscriptionSuccess";
 import SubscriptionCancel from "./pages/SubscriptionCancel";
 import NotFound from "./pages/NotFound";
@@ -25,17 +25,14 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/admin" element={<AdminDashboard />} />
-            <Route path="/neurolint" element={<NeuroLintPage />} />
-            <Route path="/testing" element={<NeuroLintTestingPage />} />
-            <Route
-              path="/neurolint/testing"
-              element={<NeuroLintTestingPage />}
-            />
+            <Route path="/" element={<ModernDashboard />} />
+            <Route path="/admin" element={<ModernAdminDashboard />} />
+            <Route path="/neurolint" element={<ModernNeuroLintPage />} />
+            <Route path="/testing" element={<ModernTestingPage />} />
+            <Route path="/neurolint/testing" element={<ModernTestingPage />} />
             <Route path="/auth" element={<AuthPage />} />
-            <Route path="/profile" element={<ProfilePage />} />
-            <Route path="/subscription" element={<SubscriptionPage />} />
+            <Route path="/profile" element={<ModernProfilePage />} />
+            <Route path="/subscription" element={<ModernSubscriptionPage />} />
             <Route
               path="/subscription/success"
               element={<SubscriptionSuccess />}
