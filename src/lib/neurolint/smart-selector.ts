@@ -70,7 +70,7 @@ export class SmartLayerSelector {
    */
   private static fallbackAnalysis(code: string): AnalysisResult {
     const detectedIssues = [];
-    let confidence = 0.7;
+    const confidence = 0.7;
 
     // Layer 1: Configuration issues
     if (code.includes('tsconfig') || code.includes('next.config') || code.includes('package.json')) {
@@ -242,7 +242,7 @@ export class SmartLayerSelector {
   /**
    * Generate reasoning for layer recommendations
    */
-  private static generateReasoning(layers: number[], issues: any[]): string[] {
+  private static generateReasoning(layers: number[], issues: Array<{ type: string; severity: string }>): string[] {
     const reasoning: string[] = [];
     
     if (layers.includes(1)) {

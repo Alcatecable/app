@@ -8,10 +8,10 @@ import { AdaptiveLearningLayer } from './layers/adaptive-learning';
 
 const API_BASE_URL = 'https://api.neurolint.dev';
 
-interface APIError {
+interface APIErrorInterface {
   message: string;
   code?: string;
-  details?: any;
+  details?: unknown;
 }
 
 export class NeuroLintAPIClient {
@@ -94,7 +94,7 @@ export class NeuroLintAPIClient {
   static async executeLayer(
     layerId: number,
     code: string,
-    options: any = {}
+    options: Record<string, unknown> = {}
   ): Promise<LayerExecutionResult> {
     try {
       const response = await fetch(`${this.baseURL}/api/v1/layers/${layerId}/execute`, {
@@ -315,7 +315,7 @@ export class NeuroLintAPIClient {
   // Fallback implementations for when API is unavailable
   private static fallbackAnalysis(code: string): AnalysisResult {
     const detectedIssues = [];
-    let confidence = 0.7;
+    const confidence = 0.7;
 
     // Basic pattern detection
     if (code.includes('&quot;') || code.includes('&#x27;') || code.includes('&amp;')) {
@@ -359,17 +359,15 @@ export class NeuroLintAPIClient {
       });
     }
 
-    let recommendedLayers = [...new Set(detectedIssues.map(issue => issue.fixedByLayer))];
+    const baseRecommendedLayers = [...new Set(detectedIssues.map(issue => issue.fixedByLayer))];
     
     // Check if Layer 7 should be recommended for complex code
-    if (recommendedLayers.length > 2 && (
+    const recommendedLayers = baseRecommendedLayers.length > 2 && (
       code.includes('.map(') || 
       code.includes('useState') || 
       code.includes('localStorage') ||
       (code.match(/function\s+\w+/g) || []).length > 2
-    )) {
-      recommendedLayers.push(7);
-    }
+    ) ? [...baseRecommendedLayers, 7] : baseRecommendedLayers;
 
     return {
       confidence,
@@ -548,7 +546,7 @@ export class NeuroLintAPIClient {
 }
 
 class APIError extends Error {
-  constructor(message: string, public details?: any) {
+  constructor(message: string, public details?: unknown) {
     super(message);
     this.name = 'APIError';
   }

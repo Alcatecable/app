@@ -117,7 +117,7 @@ export class PerformanceBenchmarks {
   private async runMultipleCodeTests(code: string, iterations: number = 5): Promise<TestResult> {
     let totalPassed = 0;
     let totalDuration = 0;
-    let allDetails: any[] = [];
+    const allDetails: unknown[] = [];
     const startTime = performance.now();
   
     for (let i = 0; i < iterations; i++) {
@@ -227,4 +227,30 @@ export class PerformanceBenchmarks {
       complexCodeTestResult,
     ];
   }
+
+  async runFullBenchmark(progressCallback?: (progress: number, testName: string) => void): Promise<{
+    passed: boolean;
+    tests: TestResult[];
+    totalDuration: number;
+    averageDuration: number;
+  }> {
+    const tests = await this.runPerformanceTests();
+    
+    if (progressCallback) {
+      for (let i = 0; i < tests.length; i++) {
+        progressCallback((i / tests.length) * 100, tests[i].name);
+      }
+      progressCallback(100, 'Benchmark completed');
+    }
+    
+    return {
+      passed: tests.every(test => test.passed),
+      tests,
+      totalDuration: tests.reduce((sum, test) => sum + test.duration, 0),
+      averageDuration: tests.reduce((sum, test) => sum + test.duration, 0) / tests.length
+    };
+  }
 }
+
+// Export a singleton instance for convenience
+export const performanceBenchmarks = new PerformanceBenchmarks();

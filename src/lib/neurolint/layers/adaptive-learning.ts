@@ -11,7 +11,7 @@ export const AdaptiveLearningLayer = {
   id: 7,
   name: 'Adaptive Learning',
   
-  async execute(code: string, options: any) {
+  async execute(code: string, options: Record<string, unknown>) {
     const startTime = performance.now();
     let transformedCode = code;
     let changeCount = 0;
