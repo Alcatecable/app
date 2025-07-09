@@ -1,10 +1,11 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
-import ModernDashboard from "./pages/ModernDashboard";
+import Index from "./pages/Index";
 import ModernAdminDashboard from "./pages/ModernAdminDashboard";
 import ModernNeuroLintPage from "./pages/ModernNeuroLintPage";
 import ModernTestingPage from "./pages/ModernTestingPage";
@@ -25,7 +26,7 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
-            <Route path="/" element={<ModernDashboard />} />
+            <Route path="/" element={<Index />} />
             <Route path="/admin" element={<ModernAdminDashboard />} />
             <Route path="/neurolint" element={<ModernNeuroLintPage />} />
             <Route path="/testing" element={<ModernTestingPage />} />

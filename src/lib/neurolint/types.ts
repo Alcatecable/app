@@ -1,3 +1,4 @@
+
 export interface PipelineState {
   step: number;
   layerId: number | null;
@@ -72,6 +73,81 @@ export interface RecoverySuggestion {
   title: string;
   description: string;
   actions: string[];
+}
+
+// Add missing types needed by other files
+export interface LayerConfig {
+  id: number;
+  name: string;
+  description: string;
+  supportsAST: boolean;
+  critical: boolean;
+}
+
+export interface TransformationResult {
+  success: boolean;
+  code: string;
+  originalCode: string;
+  error?: string;
+  executionTime: number;
+  changeCount: number;
+}
+
+export interface ValidationResult {
+  shouldRevert: boolean;
+  reason?: string;
+}
+
+export interface DetectedIssue {
+  type: string;
+  severity: 'low' | 'medium' | 'high' | 'critical';
+  description: string;
+  fixedByLayer: number;
+  pattern: string;
+  count?: number;
+}
+
+export interface LayerRecommendation {
+  recommendedLayers: number[];
+  detectedIssues: DetectedIssue[];
+  reasoning: string[];
+  confidence: number;
+  estimatedImpact: ImpactEstimate;
+}
+
+export interface ImpactEstimate {
+  level: 'low' | 'medium' | 'high';
+  description: string;
+  estimatedFixTime: string;
+}
+
+// Test runner types
+export interface TestResult {
+  name: string;
+  success: boolean;
+  duration: number;
+  error?: string;
+  details?: any;
+}
+
+export interface LayerTestResult {
+  layerId: number;
+  success: boolean;
+  duration: number;
+  changeCount: number;
+  error?: string;
+}
+
+export interface TestSuite {
+  unitTestResults: TestResult[];
+  integrationResults: TestResult[];
+  layerResults: LayerTestResult[];
+  performanceResults: {
+    loadTestsPassed: boolean;
+    averageExecutionTime: number;
+  };
+  edgeCaseResults: TestResult[];
+  loadTestResults: TestResult[];
 }
 
 // Enhanced types for new features

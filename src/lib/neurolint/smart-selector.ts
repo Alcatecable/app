@@ -34,6 +34,13 @@ export class SmartLayerSelector {
   }
 
   /**
+   * Alias for analyzeAndRecommend to maintain backward compatibility
+   */
+  static async recommendLayers(code: string): Promise<LayerRecommendation> {
+    return this.analyzeAndRecommend(code);
+  }
+
+  /**
    * Detect specific issues in code that layers can fix
    */
   private static detectIssues(
@@ -250,7 +257,7 @@ export class SmartLayerSelector {
       }
 
       // Check if any high-confidence learned rules match the code
-      const matchingRules = learnedRules.filter((rule) => {
+      const matchingRules = learnedRules.filter((rule: any) => {
         if (rule.confidence < 0.7) return false;
 
         try {

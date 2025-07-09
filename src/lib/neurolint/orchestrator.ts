@@ -96,6 +96,16 @@ export class NeuroLintOrchestrator {
   }
 
   /**
+   * Alias for transform method to maintain backward compatibility
+   */
+  static async processCode(
+    code: string,
+    options: ExecutionOptions = {}
+  ): Promise<LayerExecutionResult> {
+    return this.transform(code, options.selectedLayers, options);
+  }
+
+  /**
    * Analyze code with comprehensive reporting
    */
   static analyze(code: string, filePath?: string) {
