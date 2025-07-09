@@ -15,6 +15,8 @@ localStorage.setItem("test", "value");`);
 
   const [isDebugging, setIsDebugging] = useState(false);
   const [debugResult, setDebugResult] = useState<any>(null);
+  const [isTestingCompliance, setIsTestingCompliance] = useState(false);
+  const [complianceResult, setComplianceResult] = useState<any>(null);
 
   const runDebugTransformation = async () => {
     setIsDebugging(true);
