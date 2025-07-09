@@ -565,21 +565,34 @@ export class PatternLearner {
     if (!callback) return false;
 
     let hasKey = false;
-    const callbackAST = t.isBlockStatement(callback.body)
-      ? callback.body
-      : t.program([t.expressionStatement(callback.body)]);
 
-    traverse(
-      t.program([callbackAST]),
-      {
-        JSXAttribute: (jsxPath) => {
-          if (t.isJSXIdentifier(jsxPath.node.name, { name: "key" })) {
-            hasKey = true;
-          }
+    try {
+      // Create a proper AST structure for traversal
+      let astToTraverse: t.Node;
+
+      if (t.isBlockStatement(callback.body)) {
+        astToTraverse = t.program(callback.body.body);
+      } else if (t.isExpression(callback.body)) {
+        astToTraverse = t.program([t.expressionStatement(callback.body)]);
+      } else {
+        return false;
+      }
+
+      traverse(
+        astToTraverse,
+        {
+          JSXAttribute: (jsxPath) => {
+            if (t.isJSXIdentifier(jsxPath.node.name, { name: "key" })) {
+              hasKey = true;
+            }
+          },
         },
-      },
-      path.scope,
-    );
+        path.scope,
+      );
+    } catch (error) {
+      console.warn("Error checking for key props:", error);
+      return false;
+    }
 
     return hasKey;
   }
