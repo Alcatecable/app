@@ -44,6 +44,27 @@ localStorage.setItem("test", "value");`);
     }
   };
 
+  const runComplianceTest = async () => {
+    setIsTestingCompliance(true);
+    try {
+      console.log("Running document compliance verification...");
+
+      const result = await DocumentComplianceTest.verifyDocumentCompliance();
+
+      console.log("Compliance test result:", result);
+      setComplianceResult(result);
+    } catch (error) {
+      console.error("Compliance test error:", error);
+      setComplianceResult({
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+        results: [],
+      });
+    } finally {
+      setIsTestingCompliance(false);
+    }
+  };
+
   return (
     <Card className="w-full">
       <CardHeader>
