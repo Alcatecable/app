@@ -162,6 +162,6 @@ export class TransformationPipeline {
   ): Promise<string> {
     // Delegate to the orchestrator's executeLayer method
     const { NeuroLintOrchestrator } = await import("./orchestrator");
-    return (NeuroLintOrchestrator as any).executeLayer(layerId, code, options);
+    return NeuroLintOrchestrator.executeLayer(layerId, code, options);
   }
 }
