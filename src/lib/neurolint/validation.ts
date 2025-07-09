@@ -1,8 +1,18 @@
 import { ValidationResult, CORRUPTION_PATTERNS } from "./types";
+import { parse, ParserOptions } from "@babel/parser";
+import traverse from "@babel/traverse";
+import * as t from "@babel/types";
+
+interface ASTValidationResult {
+  valid: boolean;
+  errors: string[];
+  warnings: string[];
+}
 
 /**
  * Comprehensive validation system for transformations
  * Catches syntax errors, corruption, and logical issues
+ * Includes AST validation for layers 3-4 (Components and Hydration)
  */
 export class TransformationValidator {
   /**
