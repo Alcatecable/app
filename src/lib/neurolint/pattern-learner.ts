@@ -251,12 +251,28 @@ export class PatternLearner {
   ): Omit<LearnedRule, "id" | "examples">[] {
     const patterns: Omit<LearnedRule, "id" | "examples">[] = [];
 
+    // Skip AST extraction for very large files to prevent performance issues
+    if (before.length > 50000 || after.length > 50000) {
+      console.warn(
+        `Skipping AST extraction for layer ${sourceLayer}: file too large`,
+      );
+      return patterns;
+    }
+
     try {
       const beforeAST = this.parseToAST(before);
       const afterAST = this.parseToAST(after);
 
       if (!beforeAST || !afterAST) {
         return patterns; // Fallback to regex patterns only
+      }
+
+      // Verify ASTs are valid and similar in structure
+      if (!this.areASTsComparable(beforeAST, afterAST)) {
+        console.warn(
+          `ASTs too different for layer ${sourceLayer}, skipping AST pattern extraction`,
+        );
+        return patterns;
       }
 
       // Layer 3: Component AST patterns
