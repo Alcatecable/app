@@ -304,67 +304,151 @@ export default function Dashboard() {
       return;
     }
 
-    // Enhanced GitHub URL validation
+    // Enhanced GitHub URL validation with better pattern matching
     const githubPattern =
-      /^https:\/\/github\.com\/([\w.-]+)\/([\w.-]+)(\/.*)?$/;
-    const match = githubUrl.match(githubPattern);
+      /^https:\/\/github\.com\/([a-zA-Z0-9](?:[a-zA-Z0-9]|-(?![a-zA-Z0-9]))*[a-zA-Z0-9])\/([a-zA-Z0-9._-]+)(?:\/.*)?$/;
+    const match = githubUrl.trim().match(githubPattern);
 
     if (!match) {
       toast({
         title: "Invalid GitHub URL",
         description:
-          "Please enter a valid GitHub repository URL (e.g., https://github.com/user/repo).",
+          "Please enter a valid GitHub repository URL (e.g., https://github.com/facebook/react).",
         variant: "destructive",
       });
       return;
     }
 
-    const [, owner, repo] = match;
+    const [, owner, repoWithPath] = match;
+    // Extract just the repo name, ignore any path
+    const repo = repoWithPath.split("/")[0];
+
     setIsLoadingGithub(true);
 
     try {
-      // Fetch repository contents from GitHub API
-      const response = await fetch(
-        `https://api.github.com/repos/${owner}/${repo}/contents`,
+      console.log(`Fetching repository: ${owner}/${repo}`);
+
+      // First, check if the repository exists and is accessible
+      const repoResponse = await fetch(
+        `https://api.github.com/repos/${owner}/${repo}`,
+        {
+          headers: {
+            Accept: "application/vnd.github.v3+json",
+            "User-Agent": "NeuroLint-App",
+          },
+        },
       );
 
-      if (!response.ok) {
-        if (response.status === 404) {
-          throw new Error("Repository not found or is private");
+      if (!repoResponse.ok) {
+        let errorMessage = "Failed to access repository";
+
+        switch (repoResponse.status) {
+          case 404:
+            errorMessage = `Repository "${owner}/${repo}" not found. Please check the URL and make sure the repository is public.`;
+            break;
+          case 403:
+            const rateLimitRemaining = repoResponse.headers.get(
+              "X-RateLimit-Remaining",
+            );
+            if (rateLimitRemaining === "0") {
+              errorMessage =
+                "GitHub rate limit exceeded. Please try again in an hour.";
+            } else {
+              errorMessage = `Access forbidden to "${owner}/${repo}". The repository might be private.`;
+            }
+            break;
+          case 301:
+          case 302:
+            errorMessage = `Repository "${owner}/${repo}" has been moved or renamed. Please check the current URL.`;
+            break;
+          default:
+            errorMessage = `GitHub API error (${repoResponse.status}). Please try again later.`;
         }
-        throw new Error(`GitHub API error: ${response.status}`);
+
+        throw new Error(errorMessage);
       }
 
-      const contents = await response.json();
+      const repoData = await repoResponse.json();
 
-      // Filter for code files
-      const codeFiles = contents.filter(
-        (item: any) =>
-          item.type === "file" &&
-          /\.(js|jsx|ts|tsx|vue|svelte|json|md)$/i.test(item.name),
-      );
-
-      if (codeFiles.length === 0) {
+      // Check if repository is empty
+      if (repoData.size === 0) {
         toast({
-          title: "No code files found",
-          description:
-            "This repository doesn't contain any supported code files.",
+          title: "Empty repository",
+          description: `The repository "${owner}/${repo}" appears to be empty.`,
           variant: "destructive",
         });
         return;
       }
 
+      // Now fetch the contents
+      const contentsResponse = await fetch(
+        `https://api.github.com/repos/${owner}/${repo}/contents`,
+        {
+          headers: {
+            Accept: "application/vnd.github.v3+json",
+            "User-Agent": "NeuroLint-App",
+          },
+        },
+      );
+
+      if (!contentsResponse.ok) {
+        throw new Error(
+          `Failed to fetch repository contents (${contentsResponse.status})`,
+        );
+      }
+
+      const contents = await contentsResponse.json();
+
+      // Handle single file vs directory contents
+      const items = Array.isArray(contents) ? contents : [contents];
+
+      // Filter for code files
+      const codeFiles = items.filter(
+        (item: any) =>
+          item.type === "file" &&
+          /\.(js|jsx|ts|tsx|vue|svelte|json|md)$/i.test(item.name) &&
+          item.size < 1024 * 1024, // Skip files larger than 1MB
+      );
+
+      if (codeFiles.length === 0) {
+        // Check if there are any files at all
+        const allFiles = items.filter((item: any) => item.type === "file");
+
+        if (allFiles.length === 0) {
+          toast({
+            title: "No files found",
+            description: `No files found in the root directory of "${owner}/${repo}". Try a repository with source code in the root.`,
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "No supported code files found",
+            description: `Found ${allFiles.length} files, but none are supported. Supported: .js, .jsx, .ts, .tsx, .vue, .svelte, .json, .md`,
+            variant: "destructive",
+          });
+        }
+        return;
+      }
+
       setGithubRepos(codeFiles);
       toast({
-        title: "Repository loaded",
-        description: `Found ${codeFiles.length} code files in ${owner}/${repo}`,
+        title: "Repository loaded successfully",
+        description: `Found ${codeFiles.length} code files in "${owner}/${repo}". ${repoData.description ? `\n${repoData.description}` : ""}`,
       });
     } catch (error) {
       console.error("GitHub import failed:", error);
+
+      let userFriendlyMessage = "Failed to load repository";
+
+      if (error instanceof Error) {
+        userFriendlyMessage = error.message;
+      } else if (typeof error === "string") {
+        userFriendlyMessage = error;
+      }
+
       toast({
         title: "GitHub import failed",
-        description:
-          error instanceof Error ? error.message : "Failed to load repository",
+        description: userFriendlyMessage,
         variant: "destructive",
       });
     } finally {
