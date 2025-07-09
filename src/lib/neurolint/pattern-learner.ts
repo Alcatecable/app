@@ -165,7 +165,7 @@ export class PatternLearner {
 
       const executionTime = Date.now() - startTime;
       console.log(
-        `��� Learned ${patterns.length} patterns from Layer ${sourceLayer} in ${executionTime}ms`,
+        `🎯 Learned ${patterns.length} patterns from Layer ${sourceLayer} in ${executionTime}ms`,
       );
 
       // Record metrics
@@ -838,6 +838,9 @@ export class PatternLearner {
     }
 
     const executionTime = Date.now() - startTime;
+
+    // Record metrics
+    metrics.recordPatternApplication(appliedRules.length, executionTime);
 
     return {
       appliedRules,
