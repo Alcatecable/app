@@ -61,7 +61,7 @@ export const LAYER_CONFIGS: Record<number, LayerConfig> = {
   7: {
     id: 7,
     name: "Adaptive Learning",
-    description: "AI-powered pattern learning and application",
+    description: "Adaptive pattern learning and application",
     supportsAST: false,
     critical: false,
   },
