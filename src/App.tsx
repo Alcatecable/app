@@ -14,6 +14,7 @@ import ModernSubscriptionPage from "./pages/ModernSubscriptionPage";
 import AuthPage from "./pages/AuthPage";
 import SubscriptionSuccess from "./pages/SubscriptionSuccess";
 import SubscriptionCancel from "./pages/SubscriptionCancel";
+import ContactPage from "./pages/ContactPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -34,6 +35,7 @@ const App = () => (
             <Route path="/auth" element={<AuthPage />} />
             <Route path="/profile" element={<ModernProfilePage />} />
             <Route path="/subscription" element={<ModernSubscriptionPage />} />
+            <Route path="/contact" element={<ContactPage />} />
             <Route
               path="/subscription/success"
               element={<SubscriptionSuccess />}
