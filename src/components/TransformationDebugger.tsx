@@ -167,6 +167,63 @@ localStorage.setItem("test", "value");`);
             )}
           </div>
         )}
+
+        {complianceResult && (
+          <div className="space-y-2">
+            <h3 className="font-semibold">Document Compliance Test Results:</h3>
+
+            {complianceResult.error ? (
+              <div className="text-red-600 font-mono text-sm p-2 bg-red-50 rounded">
+                Error: {complianceResult.error}
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="flex gap-2">
+                  <Badge
+                    variant={
+                      complianceResult.success ? "default" : "destructive"
+                    }
+                  >
+                    {complianceResult.success
+                      ? "✅ COMPLIANT"
+                      : "❌ NON-COMPLIANT"}
+                  </Badge>
+                  <Badge variant="outline">
+                    {complianceResult.results?.filter((r: any) => r.passed)
+                      .length || 0}
+                    /{complianceResult.results?.length || 0} Tests Passed
+                  </Badge>
+                </div>
+
+                <div className="space-y-2">
+                  <h4 className="font-medium">Test Results:</h4>
+                  {complianceResult.results?.map(
+                    (result: any, index: number) => (
+                      <div
+                        key={index}
+                        className="p-2 bg-gray-50 rounded text-sm"
+                      >
+                        <div className="flex justify-between items-center">
+                          <span className="font-medium">{result.test}</span>
+                          <Badge
+                            variant={result.passed ? "default" : "destructive"}
+                          >
+                            {result.passed ? "✅ PASS" : "❌ FAIL"}
+                          </Badge>
+                        </div>
+                        {result.details && (
+                          <div className="text-gray-600 mt-1 text-xs">
+                            {result.details}
+                          </div>
+                        )}
+                      </div>
+                    ),
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </CardContent>
     </Card>
   );
