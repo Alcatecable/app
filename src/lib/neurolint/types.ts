@@ -1,3 +1,4 @@
+
 import { Rule } from "./rules";
 
 export interface LayerConfig {
@@ -17,6 +18,16 @@ export interface LayerExecutionResult {
   improvements?: string[];
   originalCode?: string;
   modifiedCode?: string;
+}
+
+// Extended result type for orchestrator
+export interface TransformationResult {
+  originalCode: string;
+  finalCode: string;
+  results: LayerExecutionResult[];
+  successfulLayers: number;
+  totalExecutionTime: number;
+  states?: any[];
 }
 
 export interface TestResult {
@@ -57,6 +68,7 @@ export interface PerformanceMetrics {
   maxMemoryUsage: number;
   cpuUsage: number;
   errors: string[];
+  loadTestsPassed?: boolean;
 }
 
 export interface AnalysisResult {
@@ -77,6 +89,82 @@ export interface DetectedIssue {
   pattern: string;
   description: string;
   fixedByLayer: number;
+}
+
+// Error recovery types
+export interface ErrorInfo {
+  code: string;
+  message: string;
+  layer: number;
+  severity: 'low' | 'medium' | 'high' | 'critical';
+  context?: any;
+}
+
+export interface RecoverySuggestion {
+  action: string;
+  description: string;
+  priority: number;
+  estimatedEffectiveness: number;
+}
+
+export interface LayerResult {
+  layerId: number;
+  success: boolean;
+  error?: string;
+  executionTime: number;
+  changeCount: number;
+  transformedCode?: string;
+}
+
+export interface ErrorRecoveryStrategy {
+  name: string;
+  canHandle: (error: ErrorInfo) => boolean;
+  recover: (error: ErrorInfo, context: any) => Promise<RecoverySuggestion[]>;
+}
+
+// Additional missing types
+export interface ValidationResult {
+  isValid: boolean;
+  shouldRevert: boolean;
+  errors: string[];
+  warnings: string[];
+}
+
+export interface LayerRecommendation {
+  layerId: number;
+  confidence: number;
+  reasoning: string;
+}
+
+export interface ImpactEstimate {
+  level: 'low' | 'medium' | 'high';
+  timeEstimate: string;
+  riskLevel: number;
+}
+
+export interface ExecutionOptions {
+  verbose: boolean;
+  dryRun: boolean;
+  timeout?: number;
+}
+
+export interface PipelineState {
+  currentLayer: number;
+  completed: boolean;
+  errors: ErrorInfo[];
+}
+
+export interface PipelineResult {
+  success: boolean;
+  results: LayerResult[];
+  totalTime: number;
+}
+
+export interface LayerMetadata {
+  id: number;
+  name: string;
+  version: string;
+  dependencies: number[];
 }
 
 export interface LogEntry {

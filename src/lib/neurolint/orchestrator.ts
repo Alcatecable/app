@@ -1,4 +1,5 @@
-import { LayerConfig, LayerExecutionResult } from "./types";
+
+import { LayerConfig, LayerExecutionResult, TransformationResult } from "./types";
 import { CodeAnalysisService } from "./code-analysis";
 import { ConfigurationLayer } from "./layers/configuration";
 import { PatternRecognitionLayer } from "./layers/pattern-recognition";
@@ -70,15 +71,20 @@ export class NeuroLintOrchestrator {
     return reasoning;
   }
 
+  static async executeLayer(layerId: number, code: string, options: any): Promise<string> {
+    // Mock implementation for testing
+    return code;
+  }
+
   static async transform(
     code: string,
     enabledLayers: number[],
     options: { verbose: boolean; dryRun: boolean }
-  ): Promise<LayerExecutionResult> {
+  ): Promise<TransformationResult> {
     const startTime = performance.now();
     let currentCode = code;
     let successfulLayers = 0;
-    const results = [];
+    const results: LayerExecutionResult[] = [];
 
     logger.startSession({ codeLength: code.length, enabledLayers });
     metrics.incrementTotalExecutions();
@@ -150,13 +156,11 @@ export class NeuroLintOrchestrator {
    */
   static async processCode(
     code: string,
-    targetFile?: string,
-    preview?: boolean,
-    enabledLayers?: number[]
-  ): Promise<any> {
-    return this.transform(code, enabledLayers || [1, 2, 3, 4], {
+    options?: { selectedLayers?: number[]; enablePatternLearning?: boolean }
+  ): Promise<TransformationResult> {
+    return this.transform(code, options?.selectedLayers || [1, 2, 3, 4], {
       verbose: true,
-      dryRun: preview || false
+      dryRun: false
     });
   }
 }

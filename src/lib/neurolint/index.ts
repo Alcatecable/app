@@ -24,19 +24,18 @@ export type {
   PipelineState,
   PipelineResult,
   LayerMetadata,
-  RecoverySuggestion
+  RecoverySuggestion,
+  ErrorRecoveryStrategy
 } from './types';
 
 export type {
   LogContext,
   LogEntry
-} from './logger';
+} from './types';
 
 export type {
-  MetricData,
-  PerformanceMetrics,
-  LayerMetrics
-} from './metrics';
+  PerformanceMetrics
+} from './types';
 
 // Export constants
 export {

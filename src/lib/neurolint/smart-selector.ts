@@ -1,15 +1,6 @@
-import { NeuroLintOrchestrator } from "./orchestrator";
 
-export interface AnalysisResult {
-  confidence: number;
-  estimatedImpact: {
-    level: string;
-    estimatedFixTime: string;
-  };
-  detectedIssues: any[];
-  recommendedLayers: number[];
-  reasoning: string[];
-}
+import { NeuroLintOrchestrator } from "./orchestrator";
+import { AnalysisResult } from "./types";
 
 export class SmartLayerSelector {
   static analyzeAndRecommend(code: string): AnalysisResult {
@@ -43,5 +34,11 @@ export class SmartLayerSelector {
   static recommendLayers(code: string): number[] {
     const analysis = this.analyzeAndRecommend(code);
     return analysis.recommendedLayers;
+  }
+
+  // Instance method for compatibility
+  async recommendLayers(code: string): Promise<{ recommendedLayers: number[] }> {
+    const analysis = SmartLayerSelector.analyzeAndRecommend(code);
+    return { recommendedLayers: analysis.recommendedLayers };
   }
 }

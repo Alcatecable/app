@@ -40,15 +40,24 @@ export class UnitTestRunner {
         const passed = await test.test.call(this);
         const duration = Date.now() - startTime;
 
-        const result: TestResult = { passed, duration };
+        const result: TestResult = { 
+          name: test.name,
+          passed, 
+          success: passed,
+          duration,
+          executionTime: duration
+        };
         results.push(result);
 
         if (passed) passedCount++;
       } catch (error) {
         const duration = Date.now() - startTime;
         results.push({
+          name: test.name,
           passed: false,
+          success: false,
           duration,
+          executionTime: duration,
           error: error instanceof Error ? error.message : "Unknown error",
         });
       }
@@ -104,7 +113,7 @@ export class UnitTestRunner {
 
   private async testOrchestratorFlow(): Promise<boolean> {
     const testCode = 'const test = "orchestrator test";';
-    const result = await NeuroLintOrchestrator.transform(testCode, [1, 2]);
+    const result = await NeuroLintOrchestrator.transform(testCode, [1, 2], { verbose: true, dryRun: false });
     return result.finalCode !== undefined && result.results.length > 0;
   }
 
@@ -126,7 +135,7 @@ export class UnitTestRunner {
 
   private async testErrorRecovery(): Promise<boolean> {
     try {
-      await NeuroLintOrchestrator.transform("invalid syntax {{{", [1]);
+      await NeuroLintOrchestrator.transform("invalid syntax {{{", [1], { verbose: true, dryRun: false });
       return true;
     } catch {
       return false;
