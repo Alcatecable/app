@@ -17,6 +17,13 @@ export class SmartLayerSelector {
     const issues = this.detectIssues(code, filePath);
     const recommendations = this.generateRecommendations(issues);
 
+    // Check for Layer 7 (Adaptive Pattern Learning) recommendations
+    const layer7Recommendation = this.checkLayer7Recommendation(code);
+    if (layer7Recommendation.shouldRecommend) {
+      recommendations.layers.push(7);
+      recommendations.reasons.push(layer7Recommendation.reason);
+    }
+
     return {
       recommendedLayers: recommendations.layers,
       detectedIssues: issues,
