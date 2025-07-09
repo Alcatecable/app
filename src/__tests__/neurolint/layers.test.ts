@@ -1,18 +1,18 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { NeuroLintOrchestrator } from "@/lib/neurolint/orchestrator";
-import { ValidationService } from "@/lib/neurolint/validation";
+import { TransformationValidator } from "@/lib/neurolint/validation";
 import { PatternLearner } from "@/lib/neurolint/pattern-learner";
 import { SmartLayerSelector } from "@/lib/neurolint/smart-selector";
 
 describe("NeuroLint Layer Tests", () => {
   let orchestrator: NeuroLintOrchestrator;
-  let validation: ValidationService;
+  let validation: typeof TransformationValidator;
   let patternLearner: PatternLearner;
   let smartSelector: SmartLayerSelector;
 
   beforeEach(() => {
     orchestrator = new NeuroLintOrchestrator();
-    validation = new ValidationService();
+    validation = TransformationValidator;
     patternLearner = new PatternLearner();
     smartSelector = new SmartLayerSelector();
   });
@@ -224,11 +224,11 @@ describe("NeuroLint Layer Tests", () => {
       const testCode = `
         const MyApp = () => {
           const [items, setItems] = useState([]);
-          
+
           useEffect(() => {
             console.log(new Date().toISOString());
           }, []);
-          
+
           return (
             <div>
               {items.map(item => (
@@ -273,10 +273,10 @@ describe("NeuroLint Layer Tests", () => {
       const before = "const test = true;";
       const after = "const test = true;";
 
-      const result = await validation.validateTransformation(before, after, 1);
+      const result = validation.validateTransformation(before, after, 1);
 
       expect(result).toBeDefined();
-      expect(result.isValid).toBeDefined();
+      expect(result.shouldRevert).toBeDefined();
     });
   });
 
