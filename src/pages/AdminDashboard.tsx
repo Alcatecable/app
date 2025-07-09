@@ -441,8 +441,8 @@ export default function AdminDashboard() {
 
   const loadUsers = async () => {
     try {
-      // This would typically join with subscription and usage data
-      const { data: profiles } = await supabase
+      // Try to get profiles data
+      const { data: profiles, error: profilesError } = await supabase
         .from("profiles")
         .select("*")
         .order("created_at", { ascending: false });
@@ -450,6 +450,13 @@ export default function AdminDashboard() {
       const { data: subscriptions } = await supabase
         .from("subscriptions")
         .select("*");
+
+      if (profilesError) {
+        console.warn("Profiles table error:", profilesError.message);
+        // If profiles table doesn't exist, we'll still show empty users
+        setUsers([]);
+        return;
+      }
 
       const usersData: UserData[] =
         profiles?.map((profile) => {
@@ -471,7 +478,11 @@ export default function AdminDashboard() {
 
       setUsers(usersData);
     } catch (error) {
-      console.error("Failed to load users:", error);
+      console.error(
+        "Failed to load users:",
+        error instanceof Error ? error.message : error,
+      );
+      setUsers([]); // Set empty array as fallback
     }
   };
 
