@@ -68,6 +68,14 @@ export default function Dashboard() {
     { id: 7, name: "Adaptive Learning", description: "Apply learned patterns from previous transformations", color: "text-blue-accent" },
   ];
 
+  /**
+   * Handle "Transform Code" action.
+   *
+   * 1. Validates user input.
+   * 2. Shows a progress toast so the user knows work has started.
+   * 3. Executes the real NeuroLint orchestrator with the selected layers.
+   * 4. Surfaces granular success or failure feedback.
+   */
   // Transform code using the real orchestrator
   const handleTransform = useCallback(async () => {
     if (!code.trim()) {
@@ -81,6 +89,12 @@ export default function Dashboard() {
 
     setIsProcessing(true);
     setResults(null);
+
+    // Notify user that processing has begun
+    toast({
+      title: "Transformation Started",
+      description: `Executing ${selectedLayers.length} selected layer${selectedLayers.length !== 1 ? 's' : ''}...`,
+    });
 
     try {
       const result = await NeuroLintOrchestrator.transform(code, selectedLayers, {
@@ -106,6 +120,10 @@ export default function Dashboard() {
     }
   }, [code, selectedLayers, toast]);
 
+  /**
+   * Validate and load a local code file.
+   * Ensures the file type & size are allowed, then reads the content into state.
+   */
   // Handle file upload
   const handleFileUpload = useCallback((file: File) => {
     const validTypes = ['.js', '.jsx', '.ts', '.tsx', '.json', '.md', '.vue', '.svelte'];
@@ -140,6 +158,14 @@ export default function Dashboard() {
         description: `Loaded ${file.name} (${(file.size / 1024).toFixed(1)} KB)`,
       });
     };
+    // Handle read errors explicitly
+    reader.onerror = () => {
+      toast({
+        title: "Read Error",
+        description: "Failed to read the uploaded file.",
+        variant: "destructive",
+      });
+    };
     reader.readAsText(file);
   }, [toast]);
 
@@ -164,6 +190,10 @@ export default function Dashboard() {
     }
   }, [handleFileUpload]);
 
+  /**
+   * Import code files list from a public GitHub repository URL.
+   * Provides granular feedback for invalid URL, private repos, or API rate limiting.
+   */
   // GitHub repository integration
   const handleGithubImport = useCallback(async () => {
     if (!githubUrl.trim()) {
@@ -190,6 +220,12 @@ export default function Dashboard() {
     const [, owner, repo] = match;
     setIsLoadingGithub(true);
 
+    // Inform the user that we're contacting the GitHub API
+    toast({
+      title: "Fetching Repository",
+      description: `Contacting GitHub API for ${owner}/${repo}...`,
+    });
+
     try {
       const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents`, {
         headers: {
@@ -199,7 +235,15 @@ export default function Dashboard() {
       });
 
       if (!response.ok) {
-        throw new Error(`Repository not found or inaccessible: ${response.status}`);
+        let errorMessage = "";
+        if (response.status === 404) {
+          errorMessage = "Repository not found or is private.";
+        } else if (response.status === 403) {
+          errorMessage = "API rate limit exceeded. Please try again later.";
+        } else {
+          errorMessage = `GitHub returned ${response.status}: ${response.statusText}`;
+        }
+        throw new Error(errorMessage);
       }
 
       const contents = await response.json();
@@ -227,6 +271,9 @@ export default function Dashboard() {
     }
   }, [githubUrl, toast]);
 
+  /**
+   * Download the selected GitHub file content and load it into the editor.
+   */
   // Load file from GitHub
   const handleGithubFileSelect = useCallback(async (file: any) => {
     try {
@@ -242,7 +289,7 @@ export default function Dashboard() {
     } catch (error) {
       toast({
         title: "Download Failed",
-        description: "Failed to load file from GitHub.",
+        description: error instanceof Error ? error.message : "Failed to load file from GitHub.",
         variant: "destructive",
       });
     }
@@ -283,25 +330,7 @@ export default function Dashboard() {
   return (
     <ProtectedRoute>
       <div className="min-h-screen bg-black text-white">
-        {/* Clean header with bee logo */}
-        <div className="border-b border-zinc-800/50 bg-black/95 backdrop-blur-xl">
-          <div className="mx-auto max-w-7xl px-4 py-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
-                <img
-                  src="/Bee logo.png"
-                  alt="NeuroLint"
-                  className="h-8 w-8 rounded-lg"
-                />
-                <div>
-                  <h1 className="text-xl font-bold text-white">NeuroLint</h1>
-                  <p className="text-sm text-zinc-400">Code Transformation Platform</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
+        {/* Removed header with logo and branding for a clean enterprise look */}
         <div className="mx-auto max-w-7xl px-4 py-8">
           <Tabs defaultValue="transform" className="space-y-6">
             <TabsList className="grid w-full grid-cols-3 bg-zinc-900/50 border border-zinc-800">
