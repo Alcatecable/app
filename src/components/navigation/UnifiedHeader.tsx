@@ -80,9 +80,11 @@ export const UnifiedHeader = () => {
               className="flex items-center group"
               aria-label="NeuroLint home"
             >
-              <div className="flex h-8 w-8 items-center justify-center rounded bg-gradient-to-br from-blue-500 to-blue-600 mr-3">
-                <Terminal className="h-5 w-5 text-white" />
-              </div>
+              <img
+                src="/Bee logo.png"
+                alt="NeuroLint"
+                className="h-8 w-8 rounded-lg mr-3"
+              />
               <span className="text-xl font-bold text-white group-hover:text-gray-300 transition-colors">
                 NeuroLint
               </span>

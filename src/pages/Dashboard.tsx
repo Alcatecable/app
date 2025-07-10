@@ -288,9 +288,11 @@ export default function Dashboard() {
           <div className="mx-auto max-w-7xl px-4 py-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
-                <div className="flex h-8 w-8 items-center justify-center rounded bg-gradient-to-br from-blue-500 to-blue-600">
-                  <Terminal className="h-5 w-5 text-white" />
-                </div>
+                <img
+                  src="/Bee logo.png"
+                  alt="NeuroLint"
+                  className="h-8 w-8 rounded-lg"
+                />
                 <div>
                   <h1 className="text-xl font-bold text-white">NeuroLint</h1>
                   <p className="text-sm text-zinc-400">Advanced Code Transformation Platform</p>

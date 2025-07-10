@@ -64,8 +64,8 @@ const config: Config = {
       title: 'NeuroLint',
       logo: {
         alt: 'NeuroLint Logo',
-        src: 'img/logo.svg',
-        srcDark: 'img/logo-dark.svg',
+        src: 'img/logo.png',
+        srcDark: 'img/logo.png',
       },
       items: [
         {
