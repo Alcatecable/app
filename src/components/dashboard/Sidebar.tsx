@@ -104,9 +104,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ className }) => {
         {!collapsed && (
           <Link to="/dashboard" className="flex items-center space-x-3">
             <img
-              src="https://cdn.builder.io/api/v1/image/assets%2Ffc00f0ef48194eeea300acac37a72a54%2Fab6e8c3e2528411cad331860fb54ebd4?format=webp&width=800"
+              src="/Bee logo.png"
               alt="NeuroLint"
-              className="w-8 h-8 rounded-full"
+              className="w-8 h-8 rounded-lg"
             />
             <div>
               <h1 className="text-lg font-bold text-gray-900">NeuroLint</h1>
@@ -117,9 +117,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ className }) => {
         {collapsed && (
           <Link to="/dashboard" className="flex items-center justify-center w-full">
             <img
-              src="https://cdn.builder.io/api/v1/image/assets%2Ffc00f0ef48194eeea300acac37a72a54%2Fab6e8c3e2528411cad331860fb54ebd4?format=webp&width=800"
+              src="/Bee logo.png"
               alt="NeuroLint"
-              className="w-8 h-8 rounded-full"
+              className="w-8 h-8 rounded-lg"
             />
           </Link>
         )}
