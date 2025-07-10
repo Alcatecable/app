@@ -1,3 +1,22 @@
+/*
+ * NeuroLint Unified Design System
+ * 
+ * This CSS file implements the unified NeuroLint design system across all subdomains:
+ * - app.neurolint.dev (Main Application)
+ * - docs.neurolint.dev (Documentation)
+ * - forum.neurolint.dev (Community Forum)
+ * - cli.neurolint.dev (CLI Tool Site)
+ * - vs.neurolint.dev (VS Code Extension)
+ * 
+ * Design Philosophy:
+ * - Primary buttons: White background with black text
+ * - Minimal blue usage: Electric blue (#0066FF) only for accents
+ * - Pure black backgrounds with clean white text
+ * - Terminal-inspired aesthetics with modern typography
+ * 
+ * Last updated: January 2025
+ */
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
