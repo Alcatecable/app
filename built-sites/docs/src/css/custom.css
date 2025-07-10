@@ -1,0 +1,408 @@
+/**
+ * NeuroLint Documentation Custom Styles
+ * Dark terminal-inspired theme matching the NeuroLint brand
+ */
+
+/* Import fonts */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@300;400;500;600;700&display=swap');
+
+/* Root variables - Light theme (fallback) */
+:root {
+  /* NeuroLint Blue Brand Colors */
+  --ifm-color-primary: #3b82f6;
+  --ifm-color-primary-dark: #2563eb;
+  --ifm-color-primary-darker: #1d4ed8;
+  --ifm-color-primary-darkest: #1e40af;
+  --ifm-color-primary-light: #60a5fa;
+  --ifm-color-primary-lighter: #93c5fd;
+  --ifm-color-primary-lightest: #dbeafe;
+  
+  /* Terminal-inspired background colors */
+  --ifm-background-color: #09090b;
+  --ifm-background-surface-color: #0a0a0a;
+  
+  /* Text colors */
+  --ifm-font-color-base: #fafafa;
+  --ifm-font-color-secondary: #a1a1aa;
+  
+  /* Typography */
+  --ifm-font-family-base: 'Inter', system-ui, -apple-system, sans-serif;
+  --ifm-font-family-monospace: 'JetBrains Mono', 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+  
+  /* Code styling */
+  --ifm-code-font-size: 14px;
+  --ifm-code-background: #18181b;
+  --ifm-code-border-radius: 8px;
+  --ifm-code-padding-horizontal: 0.5rem;
+  --ifm-code-padding-vertical: 0.25rem;
+  
+  /* Spacing and borders */
+  --ifm-border-radius: 12px;
+  --ifm-border-color: #27272a;
+  --ifm-card-border-radius: 16px;
+  
+  /* Navigation */
+  --ifm-navbar-background-color: #000000;
+  --ifm-navbar-shadow: 0 4px 28px rgba(0, 0, 0, 0.3);
+  --ifm-navbar-height: 4rem;
+  
+  /* Sidebar */
+  --ifm-sidebar-background-color: #0a0a0a;
+  --ifm-sidebar-border-color: #18181b;
+  
+  /* Footer */
+  --ifm-footer-background-color: #0a0a0a;
+  --ifm-footer-color: #a1a1aa;
+  --ifm-footer-link-color: #d4d4d8;
+  --ifm-footer-title-color: #fafafa;
+  
+  /* Highlighted code lines */
+  --docusaurus-highlighted-code-line-bg: rgba(59, 130, 246, 0.15);
+}
+
+/* Dark theme (default for NeuroLint) */
+[data-theme='dark'] {
+  /* Enhanced dark theme colors */
+  --ifm-color-primary: #60a5fa;
+  --ifm-color-primary-dark: #3b82f6;
+  --ifm-color-primary-darker: #2563eb;
+  --ifm-color-primary-darkest: #1d4ed8;
+  --ifm-color-primary-light: #93c5fd;
+  --ifm-color-primary-lighter: #bfdbfe;
+  --ifm-color-primary-lightest: #dbeafe;
+  
+  /* Terminal black backgrounds */
+  --ifm-background-color: #000000;
+  --ifm-background-surface-color: #09090b;
+  --ifm-card-background-color: #0a0a0a;
+  
+  /* Enhanced text contrast */
+  --ifm-font-color-base: #fafafa;
+  --ifm-font-color-secondary: #a1a1aa;
+  --ifm-font-color-base-inverse: #09090b;
+  
+  /* Navigation dark styling */
+  --ifm-navbar-background-color: rgba(0, 0, 0, 0.95);
+  --ifm-navbar-sidebar-width: 280px;
+  
+  /* Code block styling */
+  --ifm-code-background: #18181b;
+  --docusaurus-highlighted-code-line-bg: rgba(59, 130, 246, 0.2);
+  
+  /* Links */
+  --ifm-link-color: #60a5fa;
+  --ifm-link-hover-color: #93c5fd;
+  
+  /* Borders and dividers */
+  --ifm-border-color: #27272a;
+  --ifm-table-border-color: #27272a;
+  --ifm-hr-border-color: #27272a;
+  
+  /* Menu and dropdown */
+  --ifm-menu-color-background-active: rgba(59, 130, 246, 0.1);
+  --ifm-menu-color-background-hover: rgba(59, 130, 246, 0.05);
+}
+
+/* Global styles */
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--ifm-font-family-base);
+  background: var(--ifm-background-color);
+  color: var(--ifm-font-color-base);
+}
+
+/* Navigation bar enhancements */
+.navbar {
+  background: var(--ifm-navbar-background-color);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--ifm-border-color);
+  box-shadow: var(--ifm-navbar-shadow);
+}
+
+.navbar__brand {
+  font-weight: 800;
+  font-size: 1.25rem;
+}
+
+.navbar__item {
+  font-weight: 500;
+}
+
+.navbar__link--active {
+  color: var(--ifm-color-primary);
+  font-weight: 600;
+}
+
+/* Sidebar styling */
+.theme-doc-sidebar-container {
+  background: var(--ifm-sidebar-background-color);
+  border-right: 1px solid var(--ifm-sidebar-border-color);
+}
+
+.theme-doc-sidebar-item-link {
+  border-radius: 8px;
+  margin: 2px 0;
+}
+
+.theme-doc-sidebar-item-link:hover {
+  background: rgba(59, 130, 246, 0.1);
+}
+
+.theme-doc-sidebar-item-link--active {
+  background: rgba(59, 130, 246, 0.15);
+  color: var(--ifm-color-primary);
+  font-weight: 600;
+}
+
+/* Content area */
+.main-wrapper {
+  background: var(--ifm-background-color);
+}
+
+/* Typography enhancements */
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 700;
+  color: var(--ifm-font-color-base);
+}
+
+h1 {
+  font-size: 2.5rem;
+  font-weight: 800;
+  background: linear-gradient(135deg, #60a5fa 0%, #93c5fd 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Code blocks and inline code */
+code {
+  background: var(--ifm-code-background);
+  color: #e4e4e7;
+  border: 1px solid #27272a;
+  border-radius: var(--ifm-code-border-radius);
+  font-family: var(--ifm-font-family-monospace);
+  font-size: var(--ifm-code-font-size);
+  padding: var(--ifm-code-padding-vertical) var(--ifm-code-padding-horizontal);
+}
+
+pre code {
+  background: transparent;
+  border: none;
+  padding: 0;
+}
+
+.prism-code {
+  background: #0a0a0a !important;
+  border: 1px solid #27272a;
+  border-radius: 12px;
+}
+
+/* Cards and containers */
+.card {
+  background: var(--ifm-card-background-color);
+  border: 1px solid var(--ifm-border-color);
+  border-radius: var(--ifm-card-border-radius);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.card:hover {
+  border-color: rgba(59, 130, 246, 0.3);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  transform: translateY(-1px);
+  transition: all 0.2s ease-in-out;
+}
+
+/* Admonitions (info, warning, etc.) */
+.alert {
+  border-radius: 12px;
+  border-left: 4px solid var(--ifm-color-primary);
+}
+
+.alert--info {
+  background: rgba(59, 130, 246, 0.1);
+  border-left-color: #60a5fa;
+}
+
+.alert--warning {
+  background: rgba(251, 191, 36, 0.1);
+  border-left-color: #fbbf24;
+}
+
+.alert--danger {
+  background: rgba(239, 68, 68, 0.1);
+  border-left-color: #ef4444;
+}
+
+.alert--success {
+  background: rgba(34, 197, 94, 0.1);
+  border-left-color: #22c55e;
+}
+
+/* Tables */
+table {
+  border-collapse: collapse;
+  border-spacing: 0;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--ifm-table-border-color);
+}
+
+th {
+  background: rgba(59, 130, 246, 0.1);
+  font-weight: 600;
+  color: var(--ifm-color-primary);
+}
+
+/* Buttons */
+.button {
+  border-radius: 8px;
+  font-weight: 600;
+  transition: all 0.2s ease-in-out;
+}
+
+.button--primary {
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  border: none;
+  color: white;
+}
+
+.button--primary:hover {
+  background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.3);
+}
+
+.button--secondary {
+  background: transparent;
+  border: 1px solid var(--ifm-border-color);
+  color: var(--ifm-font-color-base);
+}
+
+.button--secondary:hover {
+  background: rgba(59, 130, 246, 0.1);
+  border-color: var(--ifm-color-primary);
+}
+
+/* Footer styling */
+.footer {
+  background: var(--ifm-footer-background-color);
+  border-top: 1px solid var(--ifm-border-color);
+}
+
+.footer__title {
+  font-weight: 700;
+  color: var(--ifm-footer-title-color);
+}
+
+.footer__link-item {
+  color: var(--ifm-footer-color);
+  transition: color 0.2s ease-in-out;
+}
+
+.footer__link-item:hover {
+  color: var(--ifm-color-primary);
+}
+
+/* Search styling */
+.DocSearch-Button {
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 8px;
+  color: var(--ifm-font-color-base);
+}
+
+.DocSearch-Button:hover {
+  background: rgba(59, 130, 246, 0.2);
+  border-color: var(--ifm-color-primary);
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #27272a;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #3f3f46;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.6s ease-out;
+}
+
+/* Terminal-like styling for specific elements */
+.terminal {
+  background: #0a0a0a;
+  border: 1px solid #27272a;
+  border-radius: 12px;
+  font-family: var(--ifm-font-family-monospace);
+  color: #22c55e;
+  padding: 1rem;
+  position: relative;
+}
+
+.terminal::before {
+  content: '●●●';
+  position: absolute;
+  top: 12px;
+  left: 16px;
+  color: #ef4444;
+  font-size: 12px;
+  letter-spacing: 4px;
+}
+
+.terminal-content {
+  margin-top: 1.5rem;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  h1 {
+    font-size: 2rem;
+  }
+  
+  .navbar__brand {
+    font-size: 1.1rem;
+  }
+  
+  .card {
+    margin: 0.5rem 0;
+  }
+}
+
+/* Print styles */
+@media print {
+  .navbar,
+  .footer,
+  .theme-doc-sidebar-container {
+    display: none !important;
+  }
+  
+  .main-wrapper {
+    margin-left: 0 !important;
+  }
+}

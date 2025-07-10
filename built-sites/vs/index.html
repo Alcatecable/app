@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NeuroLint VS Code Extension</title>
+    <meta name="description" content="Real-time code analysis and automated fixes directly in VS Code with the NeuroLint extension.">
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            /* Core Brand Colors - Exact match to neurolint.dev */
+            --primary: #0066FF; /* Electric Blue */
+            --primary-dark: #0052CC;
+            --primary-light: #3385FF;
+            
+            /* Background Colors */
+            --background: #000000; /* Pure Black */
+            --background-dark: #080808;
+            --background-elevated: #0F0F0F;
+            
+            /* Surface Colors */
+            --surface: #1A1A1A;
+            --surface-hover: #1F1F1F;
+            --surface-border: #2D2D2D;
+            
+            /* Text Colors */
+            --foreground: #FAFAFA; /* White */
+            --foreground-secondary: #D9D9D9;
+            --foreground-muted: #A6A6A6;
+            
+            /* Terminal Colors */
+            --terminal-bg: #141414;
+            --terminal-text: #40FF40;
+            --terminal-comment: #808080;
+            
+            /* Status Colors */
+            --success: #00CC00;
+            --warning: #FF9900;
+            --error: #FF0000;
+            
+            /* Border */
+            --border: #333333;
+            
+            /* Fonts */
+            --font-sans: 'Inter', system-ui, sans-serif;
+            --font-mono: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background: var(--background);
+            color: var(--foreground);
+            line-height: 1.6;
+            font-weight: 400;
+            letter-spacing: -0.01em;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 1rem;
+        }
+
+        .section {
+            padding: 4rem 0;
+        }
+
+        /* Header */
+        .header {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: var(--background);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .nav {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem 0;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-weight: 800;
+            font-size: 1.25rem;
+            color: var(--foreground);
+            text-decoration: none;
+        }
+
+        .logo-icon {
+            width: 32px;
+            height: 32px;
+            background: var(--primary);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+            list-style: none;
+        }
+
+        .nav-links a {
+            color: var(--foreground-muted);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+
+        .nav-links a:hover {
+            color: var(--foreground);
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.2s;
+            border: none;
+            cursor: pointer;
+            font-family: inherit;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: var(--foreground);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            background: var(--surface);
+            border-color: var(--primary);
+        }
+
+        /* Hero Section */
+        .hero {
+            padding: 6rem 0;
+            text-align: center;
+        }
+
+        .hero h1 {
+            font-size: clamp(2.5rem, 5vw, 4rem);
+            font-weight: 900;
+            margin-bottom: 1.5rem;
+            color: var(--foreground);
+            line-height: 1.1;
+            font-weight: bold;
+            letter-spacing: -0.025em;
+        }
+
+        .hero p {
+            font-size: 1.25rem;
+            color: var(--foreground-muted);
+            max-width: 600px;
+            margin: 0 auto 2rem;
+        }
+
+        .hero-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 3rem;
+        }
+
+        /* Extension Preview */
+        .extension-preview {
+            max-width: 800px;
+            margin: 0 auto;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .vscode-header {
+            background: var(--background-elevated);
+            padding: 0.75rem 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .vscode-dots {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .dot.red { background: var(--error); }
+        .dot.yellow { background: var(--warning); }
+        .dot.green { background: var(--success); }
+
+        .vscode-tab {
+            background: var(--surface);
+            padding: 0.5rem 1rem;
+            border-radius: 4px 4px 0 0;
+            font-size: 0.875rem;
+            color: var(--foreground-secondary);
+        }
+
+        .code-editor {
+            background: var(--terminal-bg);
+            padding: 1.5rem;
+            font-family: var(--font-mono);
+            font-size: 0.875rem;
+            line-height: 1.6;
+            overflow-x: auto;
+        }
+
+        .code-line {
+            display: flex;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .line-number {
+            color: var(--terminal-comment);
+            width: 2rem;
+            text-align: right;
+            margin-right: 1rem;
+            user-select: none;
+        }
+
+        .code-content {
+            flex: 1;
+            color: var(--foreground);
+        }
+
+        .syntax-error {
+            background: rgba(255, 0, 0, 0.1);
+            border-bottom: 2px wavy var(--error);
+            border-radius: 2px;
+        }
+
+        .syntax-warning {
+            background: rgba(255, 153, 0, 0.1);
+            border-bottom: 2px wavy var(--warning);
+            border-radius: 2px;
+        }
+
+        /* Features Grid */
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+
+        .feature-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 2rem;
+            transition: all 0.2s;
+        }
+
+        .feature-card:hover {
+            border-color: var(--primary);
+        }
+
+        .feature-icon {
+            width: 48px;
+            height: 48px;
+            background: var(--primary);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1rem;
+            font-size: 1.5rem;
+            color: white;
+        }
+
+        .feature-card h3 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin-bottom: 0.75rem;
+            color: var(--foreground);
+        }
+
+        .feature-card p {
+            color: var(--foreground-muted);
+            line-height: 1.6;
+        }
+
+        /* Installation Steps */
+        .install-steps {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .install-step {
+            text-align: center;
+            padding: 1.5rem;
+        }
+
+        .step-number {
+            width: 48px;
+            height: 48px;
+            background: var(--primary);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1rem;
+            font-weight: bold;
+            font-size: 1.25rem;
+            color: white;
+        }
+
+        .install-step h3 {
+            font-size: 1.125rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: var(--foreground);
+        }
+
+        .install-step p {
+            color: var(--foreground-muted);
+            font-size: 0.875rem;
+        }
+
+        /* Stats */
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 2rem;
+            text-align: center;
+        }
+
+        .stat-item h3 {
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-item p {
+            color: var(--foreground-muted);
+        }
+
+        /* Footer */
+        .footer {
+            background: var(--surface);
+            border-top: 1px solid var(--border);
+            padding: 3rem 0 2rem;
+        }
+
+        .footer-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+        }
+
+        .footer-section h3 {
+            font-size: 1.125rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            color: var(--foreground);
+        }
+
+        .footer-links {
+            list-style: none;
+        }
+
+        .footer-links li {
+            margin-bottom: 0.5rem;
+        }
+
+        .footer-links a {
+            color: var(--foreground-muted);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .footer-links a:hover {
+            color: var(--foreground);
+        }
+
+        .footer-bottom {
+            border-top: 1px solid var(--border);
+            margin-top: 2rem;
+            padding-top: 2rem;
+            text-align: center;
+            color: var(--foreground-muted);
+            font-size: 0.875rem;
+        }
+
+        /* Typography */
+        h1, h2, h3, h4, h5, h6 {
+            font-weight: bold;
+            letter-spacing: -0.025em;
+        }
+
+        h1 {
+            font-size: clamp(2rem, 4vw, 3rem);
+            line-height: 1.1;
+        }
+
+        h2 {
+            font-size: clamp(1.5rem, 3vw, 2rem);
+            line-height: 1.2;
+        }
+
+        h3 {
+            font-size: clamp(1.25rem, 2vw, 1.5rem);
+            line-height: 1.3;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .nav-links {
+                display: none;
+            }
+            
+            .hero {
+                padding: 4rem 0;
+            }
+            
+            .hero-actions {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .section {
+                padding: 3rem 0;
+            }
+        }
+
+        /* Code syntax highlighting - minimal terminal colors */
+        .keyword { color: var(--primary-light); }
+        .string { color: var(--terminal-text); }
+        .comment { color: var(--terminal-comment); }
+        .function { color: var(--primary); }
+        .operator { color: var(--foreground); }
+        .number { color: var(--warning); }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <nav class="container">
+            <div class="nav">
+                <a href="https://neurolint.dev" class="logo">
+                    <div class="logo-icon">N</div>
+                    NeuroLint
+                </a>
+                <ul class="nav-links">
+                    <li><a href="https://neurolint.dev">Home</a></li>
+                    <li><a href="https://app.neurolint.dev">Web App</a></li>
+                    <li><a href="https://docs.neurolint.dev">Docs</a></li>
+                    <li><a href="https://forum.neurolint.dev">Forum</a></li>
+                </ul>
+                <a href="#install" class="btn btn-primary">Install Extension</a>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="container">
+            <h1>NeuroLint VS Code Extension</h1>
+            <p>Real-time code analysis and automated fixes directly in your editor. Transform your development workflow with intelligent AST-powered suggestions.</p>
+            
+            <div class="hero-actions">
+                <a href="https://marketplace.visualstudio.com/items?itemName=neurolint.neurolint" class="btn btn-primary">
+                    Install from Marketplace
+                </a>
+                <a href="#features" class="btn btn-secondary">
+                    Learn More
+                </a>
+            </div>
+
+            <!-- Extension Preview -->
+            <div class="extension-preview">
+                <div class="vscode-header">
+                    <div class="vscode-dots">
+                        <div class="dot red"></div>
+                        <div class="dot yellow"></div>
+                        <div class="dot green"></div>
+                    </div>
+                    <div class="vscode-tab">component.tsx</div>
+                </div>
+                <div class="code-editor">
+                    <div class="code-line">
+                        <span class="line-number">1</span>
+                        <span class="code-content"><span class="keyword">import</span> <span class="function">React</span> <span class="keyword">from</span> <span class="string">'react'</span>;</span>
+                    </div>
+                    <div class="code-line">
+                        <span class="line-number">2</span>
+                        <span class="code-content"></span>
+                    </div>
+                    <div class="code-line">
+                        <span class="line-number">3</span>
+                        <span class="code-content"><span class="keyword">export</span> <span class="keyword">function</span> <span class="function">Component</span>() {</span>
+                    </div>
+                    <div class="code-line">
+                        <span class="line-number">4</span>
+                        <span class="code-content">  <span class="keyword">const</span> [<span class="syntax-warning">count</span>, setCount] = <span class="function">useState</span>(<span class="number">0</span>);</span>
+                    </div>
+                    <div class="code-line">
+                        <span class="line-number">5</span>
+                        <span class="code-content">  <span class="comment">// NeuroLint: Unused variable detected</span></span>
+                    </div>
+                    <div class="code-line">
+                        <span class="line-number">6</span>
+                        <span class="code-content">  <span class="keyword">return</span> <<span class="function">div</span>>Hello World</<span class="function">div</span>>;</span>
+                    </div>
+                    <div class="code-line">
+                        <span class="line-number">7</span>
+                        <span class="code-content">}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="section">
+        <div class="container">
+            <h2 style="text-align: center; margin-bottom: 3rem;">Key Features</h2>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">⚡</div>
+                    <h3>Real-time Analysis</h3>
+                    <p>Get instant feedback as you type with AST-powered code analysis that catches issues before they become problems.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🔧</div>
+                    <h3>Automated Fixes</h3>
+                    <p>One-click fixes for common issues including unused variables, missing imports, and code style violations.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">📊</div>
+                    <h3>Smart Suggestions</h3>
+                    <p>Intelligent recommendations for code improvements, performance optimizations, and best practices.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🎯</div>
+                    <h3>Framework Support</h3>
+                    <p>Built-in support for React, TypeScript, Next.js, and modern JavaScript frameworks.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">⚙️</div>
+                    <h3>Configurable Rules</h3>
+                    <p>Customize analysis rules and severity levels to match your team's coding standards.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">�</div>
+                    <h3>Performance Focused</h3>
+                    <p>Lightweight and fast analysis that won't slow down your development workflow.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Installation Section -->
+    <section id="install" class="section" style="background: var(--surface);">
+        <div class="container">
+            <h2 style="text-align: center; margin-bottom: 3rem;">Get Started in Minutes</h2>
+            <div class="install-steps">
+                <div class="install-step">
+                    <div class="step-number">1</div>
+                    <h3>Install Extension</h3>
+                    <p>Search for "NeuroLint" in VS Code Extensions or install directly from the marketplace.</p>
+                </div>
+                <div class="install-step">
+                    <div class="step-number">2</div>
+                    <h3>Open Your Project</h3>
+                    <p>Open any JavaScript, TypeScript, or React project in VS Code to start analysis.</p>
+                </div>
+                <div class="install-step">
+                    <div class="step-number">3</div>
+                    <h3>Start Coding</h3>
+                    <p>NeuroLint automatically analyzes your code and provides real-time suggestions.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Stats Section -->
+    <section class="section">
+        <div class="container">
+            <div class="stats">
+                <div class="stat-item">
+                    <h3>50K+</h3>
+                    <p>Active Developers</p>
+                </div>
+                <div class="stat-item">
+                    <h3>1M+</h3>
+                    <p>Issues Fixed</p>
+                </div>
+                <div class="stat-item">
+                    <h3>99%</h3>
+                    <p>Accuracy Rate</p>
+                </div>
+                <div class="stat-item">
+                    <h3>4.9★</h3>
+                    <p>User Rating</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>NeuroLint</h3>
+                    <ul class="footer-links">
+                        <li><a href="https://neurolint.dev">Home</a></li>
+                        <li><a href="https://app.neurolint.dev">Web App</a></li>
+                        <li><a href="https://docs.neurolint.dev">Documentation</a></li>
+                        <li><a href="https://forum.neurolint.dev">Community</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h3>Tools</h3>
+                    <ul class="footer-links">
+                        <li><a href="#">VS Code Extension</a></li>
+                        <li><a href="https://cli.neurolint.dev">CLI Tool</a></li>
+                        <li><a href="https://api.neurolint.dev">API</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h3>Support</h3>
+                    <ul class="footer-links">
+                        <li><a href="https://docs.neurolint.dev/help">Help Center</a></li>
+                        <li><a href="https://github.com/neurolint/issues">Report Issues</a></li>
+                        <li><a href="mailto:support@neurolint.dev">Contact</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 NeuroLint. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>

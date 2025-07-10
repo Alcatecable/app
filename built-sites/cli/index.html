@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NeuroLint CLI</title>
+    <meta name="description" content="Command-line interface for NeuroLint code analysis. Perfect for CI/CD, automation, and batch processing.">
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            /* Core Brand Colors - Exact match to neurolint.dev */
+            --primary: #0066FF; /* Electric Blue */
+            --primary-dark: #0052CC;
+            --primary-light: #3385FF;
+            
+            /* Background Colors */
+            --background: #000000; /* Pure Black */
+            --background-dark: #080808;
+            --background-elevated: #0F0F0F;
+            
+            /* Surface Colors */
+            --surface: #1A1A1A;
+            --surface-hover: #1F1F1F;
+            --surface-border: #2D2D2D;
+            
+            /* Text Colors */
+            --foreground: #FAFAFA; /* White */
+            --foreground-secondary: #D9D9D9;
+            --foreground-muted: #A6A6A6;
+            
+            /* Terminal Colors */
+            --terminal-bg: #141414;
+            --terminal-text: #40FF40;
+            --terminal-comment: #808080;
+            --terminal-prompt: #00d4aa;
+            
+            /* Status Colors */
+            --success: #00CC00;
+            --warning: #FF9900;
+            --error: #FF0000;
+            
+            /* Border */
+            --border: #333333;
+            
+            /* Fonts */
+            --font-sans: 'Inter', system-ui, sans-serif;
+            --font-mono: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background: var(--background);
+            color: var(--foreground);
+            line-height: 1.6;
+            font-weight: 400;
+            letter-spacing: -0.01em;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 1rem;
+        }
+
+        .section {
+            padding: 4rem 0;
+        }
+
+        /* Header */
+        .header {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: var(--background);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .nav {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem 0;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-weight: 800;
+            font-size: 1.25rem;
+            color: var(--foreground);
+            text-decoration: none;
+        }
+
+        .logo-icon {
+            width: 32px;
+            height: 32px;
+            background: var(--primary);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-family: var(--font-mono);
+        }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+            list-style: none;
+        }
+
+        .nav-links a {
+            color: var(--foreground-muted);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+
+        .nav-links a:hover {
+            color: var(--foreground);
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.2s;
+            border: none;
+            cursor: pointer;
+            font-family: inherit;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: var(--foreground);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            background: var(--surface);
+            border-color: var(--primary);
+        }
+
+        /* Hero Section */
+        .hero {
+            padding: 6rem 0;
+        }
+
+        .hero-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4rem;
+            align-items: center;
+        }
+
+        .hero-text h1 {
+            font-size: clamp(2.5rem, 5vw, 3.5rem);
+            font-weight: 900;
+            margin-bottom: 1.5rem;
+            color: var(--foreground);
+            line-height: 1.1;
+            letter-spacing: -0.025em;
+        }
+
+        .hero-text p {
+            font-size: 1.125rem;
+            color: var(--foreground-muted);
+            margin-bottom: 2rem;
+            line-height: 1.7;
+        }
+
+        .hero-actions {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        /* Terminal Demo */
+        .terminal {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+            font-family: var(--font-mono);
+            font-size: 0.875rem;
+        }
+
+        .terminal-header {
+            background: var(--background-elevated);
+            padding: 0.75rem 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .terminal-dots {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .dot.red { background: var(--error); }
+        .dot.yellow { background: var(--warning); }
+        .dot.green { background: var(--success); }
+
+        .terminal-title {
+            color: var(--foreground-secondary);
+            font-size: 0.75rem;
+            margin-left: 1rem;
+        }
+
+        .terminal-body {
+            padding: 1.5rem;
+            background: var(--terminal-bg);
+            min-height: 300px;
+            overflow-x: auto;
+        }
+
+        .terminal-line {
+            display: flex;
+            margin-bottom: 0.5rem;
+        }
+
+        .terminal-prompt {
+            color: var(--terminal-prompt);
+            margin-right: 0.5rem;
+        }
+
+        .terminal-command {
+            color: var(--terminal-text);
+        }
+
+        .terminal-output {
+            color: var(--foreground-secondary);
+            margin-left: 0;
+        }
+
+        .terminal-success {
+            color: var(--success);
+        }
+
+        .terminal-error {
+            color: var(--error);
+        }
+
+        .terminal-warning {
+            color: var(--warning);
+        }
+
+        /* Installation Section */
+        .install-tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 2rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .install-tab {
+            padding: 0.75rem 1.5rem;
+            background: transparent;
+            border: none;
+            color: var(--foreground-muted);
+            cursor: pointer;
+            font-family: var(--font-mono);
+            font-weight: 500;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .install-tab.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+
+        .install-content {
+            display: none;
+        }
+
+        .install-content.active {
+            display: block;
+        }
+
+        .install-command {
+            background: var(--background-elevated);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1rem;
+            font-family: var(--font-mono);
+            color: var(--terminal-text);
+            margin-bottom: 1rem;
+            position: relative;
+        }
+
+        .copy-btn {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 0.25rem 0.5rem;
+            color: var(--foreground-muted);
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .copy-btn:hover {
+            background: var(--primary);
+            color: white;
+        }
+
+        /* Features Grid */
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+
+        .feature-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 2rem;
+            transition: all 0.2s;
+        }
+
+        .feature-card:hover {
+            border-color: var(--primary);
+        }
+
+        .feature-icon {
+            width: 48px;
+            height: 48px;
+            background: var(--primary);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1rem;
+            font-size: 1.5rem;
+            color: white;
+        }
+
+        .feature-card h3 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin-bottom: 0.75rem;
+            color: var(--foreground);
+        }
+
+        .feature-card p {
+            color: var(--foreground-muted);
+            line-height: 1.6;
+        }
+
+        /* Commands Section */
+        .commands-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 2rem;
+        }
+
+        .command-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .command-header {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .command-header h3 {
+            font-size: 1.125rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: var(--foreground);
+        }
+
+        .command-header p {
+            color: var(--foreground-muted);
+            font-size: 0.875rem;
+        }
+
+        .command-body {
+            padding: 1rem;
+            background: var(--terminal-bg);
+            font-family: var(--font-mono);
+            font-size: 0.875rem;
+        }
+
+        .command-example {
+            color: var(--terminal-text);
+            margin-bottom: 0.5rem;
+        }
+
+        .command-comment {
+            color: var(--terminal-comment);
+            font-style: italic;
+        }
+
+        /* Use Cases */
+        .use-cases {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .use-case {
+            text-align: center;
+            padding: 2rem 1rem;
+        }
+
+        .use-case-icon {
+            width: 64px;
+            height: 64px;
+            background: var(--primary);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1rem;
+            font-size: 2rem;
+            color: white;
+        }
+
+        .use-case h3 {
+            font-size: 1.125rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: var(--foreground);
+        }
+
+        .use-case p {
+            color: var(--foreground-muted);
+            font-size: 0.875rem;
+        }
+
+        /* Footer */
+        .footer {
+            background: var(--surface);
+            border-top: 1px solid var(--border);
+            padding: 3rem 0 2rem;
+        }
+
+        .footer-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+        }
+
+        .footer-section h3 {
+            font-size: 1.125rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            color: var(--foreground);
+        }
+
+        .footer-links {
+            list-style: none;
+        }
+
+        .footer-links li {
+            margin-bottom: 0.5rem;
+        }
+
+        .footer-links a {
+            color: var(--foreground-muted);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .footer-links a:hover {
+            color: var(--foreground);
+        }
+
+        .footer-bottom {
+            border-top: 1px solid var(--border);
+            margin-top: 2rem;
+            padding-top: 2rem;
+            text-align: center;
+            color: var(--foreground-muted);
+            font-size: 0.875rem;
+        }
+
+        /* Typography */
+        h1, h2, h3, h4, h5, h6 {
+            font-weight: bold;
+            letter-spacing: -0.025em;
+        }
+
+        h1 {
+            font-size: clamp(2rem, 4vw, 3rem);
+            line-height: 1.1;
+        }
+
+        h2 {
+            font-size: clamp(1.5rem, 3vw, 2rem);
+            line-height: 1.2;
+        }
+
+        h3 {
+            font-size: clamp(1.25rem, 2vw, 1.5rem);
+            line-height: 1.3;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .nav-links {
+                display: none;
+            }
+            
+            .hero-content {
+                grid-template-columns: 1fr;
+                gap: 2rem;
+            }
+            
+            .hero {
+                padding: 4rem 0;
+            }
+            
+            .section {
+                padding: 3rem 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <nav class="container">
+            <div class="nav">
+                <a href="https://neurolint.dev" class="logo">
+                    <div class="logo-icon">$</div>
+                    NeuroLint
+                </a>
+                <ul class="nav-links">
+                    <li><a href="https://neurolint.dev">Home</a></li>
+                    <li><a href="https://app.neurolint.dev">Web App</a></li>
+                    <li><a href="https://docs.neurolint.dev">Docs</a></li>
+                    <li><a href="https://forum.neurolint.dev">Forum</a></li>
+                </ul>
+                <a href="#install" class="btn btn-primary">Install CLI</a>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="container">
+            <div class="hero-content">
+                <div class="hero-text">
+                    <h1>NeuroLint CLI</h1>
+                    <p>Powerful command-line interface for code analysis. Perfect for CI/CD pipelines, automation, and batch processing of your codebase.</p>
+                    
+                    <div class="hero-actions">
+                        <a href="#install" class="btn btn-primary">Install Now</a>
+                        <a href="#commands" class="btn btn-secondary">View Commands</a>
+                    </div>
+                </div>
+
+                <!-- Terminal Demo -->
+                <div class="terminal">
+                    <div class="terminal-header">
+                        <div class="terminal-dots">
+                            <div class="dot red"></div>
+                            <div class="dot yellow"></div>
+                            <div class="dot green"></div>
+                        </div>
+                        <div class="terminal-title">Terminal</div>
+                    </div>
+                    <div class="terminal-body">
+                        <div class="terminal-line">
+                            <span class="terminal-prompt">$</span>
+                            <span class="terminal-command">neurolint analyze src/</span>
+                        </div>
+                        <div class="terminal-line">
+                            <span class="terminal-output">Analyzing 47 files...</span>
+                        </div>
+                        <div class="terminal-line">
+                            <span class="terminal-success">✓ Found 12 issues</span>
+                        </div>
+                        <div class="terminal-line">
+                            <span class="terminal-warning">⚠ 8 warnings</span>
+                        </div>
+                        <div class="terminal-line">
+                            <span class="terminal-error">✗ 4 errors</span>
+                        </div>
+                        <div class="terminal-line">
+                            <span class="terminal-prompt">$</span>
+                            <span class="terminal-command">neurolint fix --auto</span>
+                        </div>
+                        <div class="terminal-line">
+                            <span class="terminal-success">✓ Fixed 8 issues automatically</span>
+                        </div>
+                        <div class="terminal-line">
+                            <span class="terminal-output">Manual review required for 4 issues</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Installation Section -->
+    <section id="install" class="section" style="background: var(--surface);">
+        <div class="container">
+            <h2 style="text-align: center; margin-bottom: 3rem;">Installation</h2>
+            
+            <div class="install-tabs">
+                <button class="install-tab active" onclick="showInstallMethod('npm')">npm</button>
+                <button class="install-tab" onclick="showInstallMethod('yarn')">yarn</button>
+                <button class="install-tab" onclick="showInstallMethod('pnpm')">pnpm</button>
+                <button class="install-tab" onclick="showInstallMethod('brew')">homebrew</button>
+            </div>
+
+            <div id="npm" class="install-content active">
+                <div class="install-command">
+                    npm install -g neurolint
+                    <button class="copy-btn" onclick="copyToClipboard('npm install -g neurolint')">Copy</button>
+                </div>
+                <p style="color: var(--foreground-muted);">Install globally via npm package manager</p>
+            </div>
+
+            <div id="yarn" class="install-content">
+                <div class="install-command">
+                    yarn global add neurolint
+                    <button class="copy-btn" onclick="copyToClipboard('yarn global add neurolint')">Copy</button>
+                </div>
+                <p style="color: var(--foreground-muted);">Install globally via Yarn package manager</p>
+            </div>
+
+            <div id="pnpm" class="install-content">
+                <div class="install-command">
+                    pnpm add -g neurolint
+                    <button class="copy-btn" onclick="copyToClipboard('pnpm add -g neurolint')">Copy</button>
+                </div>
+                <p style="color: var(--foreground-muted);">Install globally via pnpm package manager</p>
+            </div>
+
+            <div id="brew" class="install-content">
+                <div class="install-command">
+                    brew install neurolint
+                    <button class="copy-btn" onclick="copyToClipboard('brew install neurolint')">Copy</button>
+                </div>
+                <p style="color: var(--foreground-muted);">Install via Homebrew (macOS/Linux)</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="section">
+        <div class="container">
+            <h2 style="text-align: center; margin-bottom: 3rem;">Key Features</h2>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">⚡</div>
+                    <h3>Fast Analysis</h3>
+                    <p>Lightning-fast code analysis powered by optimized AST parsing and parallel processing.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🔧</div>
+                    <h3>Auto-Fix</h3>
+                    <p>Automatically fix common issues with the --auto flag for seamless integration.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">📊</div>
+                    <h3>Detailed Reports</h3>
+                    <p>Comprehensive reports in JSON, HTML, or terminal format with actionable insights.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🎯</div>
+                    <h3>CI/CD Ready</h3>
+                    <p>Perfect for continuous integration with exit codes and configurable severity levels.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">⚙️</div>
+                    <h3>Configurable</h3>
+                    <p>Flexible configuration via .neurolintrc files or command-line arguments.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🚀</div>
+                    <h3>Cross-Platform</h3>
+                    <p>Works seamlessly on Windows, macOS, and Linux with consistent behavior.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Commands Section -->
+    <section id="commands" class="section" style="background: var(--surface);">
+        <div class="container">
+            <h2 style="text-align: center; margin-bottom: 3rem;">Common Commands</h2>
+            <div class="commands-grid">
+                <div class="command-card">
+                    <div class="command-header">
+                        <h3>Analyze Code</h3>
+                        <p>Run analysis on files or directories</p>
+                    </div>
+                    <div class="command-body">
+                        <div class="command-example">neurolint analyze src/</div>
+                        <div class="command-example">neurolint analyze file.js</div>
+                        <div class="command-comment"># Analyze specific files or directories</div>
+                    </div>
+                </div>
+
+                <div class="command-card">
+                    <div class="command-header">
+                        <h3>Auto-Fix Issues</h3>
+                        <p>Automatically fix detected problems</p>
+                    </div>
+                    <div class="command-body">
+                        <div class="command-example">neurolint fix --auto</div>
+                        <div class="command-example">neurolint fix src/ --auto</div>
+                        <div class="command-comment"># Fix issues automatically where possible</div>
+                    </div>
+                </div>
+
+                <div class="command-card">
+                    <div class="command-header">
+                        <h3>Generate Reports</h3>
+                        <p>Create detailed analysis reports</p>
+                    </div>
+                    <div class="command-body">
+                        <div class="command-example">neurolint report --format json</div>
+                        <div class="command-example">neurolint report --format html</div>
+                        <div class="command-comment"># Generate reports in various formats</div>
+                    </div>
+                </div>
+
+                <div class="command-card">
+                    <div class="command-header">
+                        <h3>Configuration</h3>
+                        <p>Initialize and manage configuration</p>
+                    </div>
+                    <div class="command-body">
+                        <div class="command-example">neurolint init</div>
+                        <div class="command-example">neurolint config --list</div>
+                        <div class="command-comment"># Set up configuration files</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Use Cases Section -->
+    <section class="section">
+        <div class="container">
+            <h2 style="text-align: center; margin-bottom: 3rem;">Use Cases</h2>
+            <div class="use-cases">
+                <div class="use-case">
+                    <div class="use-case-icon">🔄</div>
+                    <h3>CI/CD Integration</h3>
+                    <p>Integrate with GitHub Actions, Jenkins, or any CI system for automated code quality checks.</p>
+                </div>
+                <div class="use-case">
+                    <div class="use-case-icon">📦</div>
+                    <h3>Batch Processing</h3>
+                    <p>Analyze large codebases efficiently with parallel processing and detailed progress reporting.</p>
+                </div>
+                <div class="use-case">
+                    <div class="use-case-icon">🔍</div>
+                    <h3>Code Audits</h3>
+                    <p>Perform comprehensive code audits with detailed reports for compliance and quality assurance.</p>
+                </div>
+                <div class="use-case">
+                    <div class="use-case-icon">⚡</div>
+                    <h3>Pre-commit Hooks</h3>
+                    <p>Run quick checks before commits to maintain code quality throughout development.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>NeuroLint</h3>
+                    <ul class="footer-links">
+                        <li><a href="https://neurolint.dev">Home</a></li>
+                        <li><a href="https://app.neurolint.dev">Web App</a></li>
+                        <li><a href="https://docs.neurolint.dev">Documentation</a></li>
+                        <li><a href="https://forum.neurolint.dev">Community</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h3>Tools</h3>
+                    <ul class="footer-links">
+                        <li><a href="https://vs.neurolint.dev">VS Code Extension</a></li>
+                        <li><a href="#">CLI Tool</a></li>
+                        <li><a href="https://api.neurolint.dev">API</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h3>Support</h3>
+                    <ul class="footer-links">
+                        <li><a href="https://docs.neurolint.dev/help">Help Center</a></li>
+                        <li><a href="https://github.com/neurolint/issues">Report Issues</a></li>
+                        <li><a href="mailto:support@neurolint.dev">Contact</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 NeuroLint. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        function showInstallMethod(method) {
+            // Hide all content
+            document.querySelectorAll('.install-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            // Remove active class from all tabs
+            document.querySelectorAll('.install-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Show selected content and activate tab
+            document.getElementById(method).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                // Show feedback
+                event.target.textContent = 'Copied!';
+                setTimeout(() => {
+                    event.target.textContent = 'Copy';
+                }, 2000);
+            });
+        }
+    </script>
+</body>
+</html>
