@@ -31,7 +31,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ className }) => {
   const navigationItems = [
     {
       title: "Dashboard",
-      href: "/",
+      href: "/dashboard",
       icon: Home,
       badge: null,
     },
@@ -85,8 +85,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ className }) => {
   ];
 
   const isActive = (href: string) => {
-    if (href === "/") {
-      return location.pathname === "/";
+    if (href === "/dashboard") {
+      return location.pathname === "/dashboard";
     }
     return location.pathname.startsWith(href);
   };
@@ -102,7 +102,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ className }) => {
       {/* Logo Section */}
       <div className="flex items-center justify-between p-4 border-b border-gray-100">
         {!collapsed && (
-          <Link to="/" className="flex items-center space-x-3">
+          <Link to="/dashboard" className="flex items-center space-x-3">
             <img
               src="https://cdn.builder.io/api/v1/image/assets%2Ffc00f0ef48194eeea300acac37a72a54%2Fab6e8c3e2528411cad331860fb54ebd4?format=webp&width=800"
               alt="NeuroLint"
@@ -115,7 +115,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ className }) => {
           </Link>
         )}
         {collapsed && (
-          <Link to="/" className="flex items-center justify-center w-full">
+          <Link to="/dashboard" className="flex items-center justify-center w-full">
             <img
               src="https://cdn.builder.io/api/v1/image/assets%2Ffc00f0ef48194eeea300acac37a72a54%2Fab6e8c3e2528411cad331860fb54ebd4?format=webp&width=800"
               alt="NeuroLint"
