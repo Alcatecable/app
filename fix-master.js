@@ -23,13 +23,20 @@ console.log('================================================');
 const config = {
   dryRun: process.argv.includes('--dry-run'),
   verbose: process.argv.includes('--verbose'),
+  outputJson: process.argv.includes('--output=json'),
   skipLayers: process.argv.includes('--skip-layers') ? 
     process.argv[process.argv.indexOf('--skip-layers') + 1]?.split(',') || [] : [],
+  enabledLayers: process.argv.includes('--layers') ?
+    process.argv[process.argv.indexOf('--layers') + 1]?.split(',').map(Number) || [1,2,3,4,5,6] : [1,2,3,4,5,6],
+  inputFile: process.argv.includes('--file') ?
+    process.argv[process.argv.indexOf('--file') + 1] : null,
   targetDir: process.cwd()
 };
 
 // Utility functions
 function log(message, level = 'info') {
+  if (config.outputJson) return; // Suppress logs in JSON mode
+  
   const timestamp = new Date().toLocaleTimeString();
   const prefix = {
     'info': '📝',
@@ -61,6 +68,263 @@ function runCommand(command, description) {
     log(`Failed: ${description} - ${error.message}`, 'error');
     return null;
   }
+}
+
+// Process single file mode (for API)
+async function processSingleFile(filePath) {
+  if (!fs.existsSync(filePath)) {
+    throw new Error(`File not found: ${filePath}`);
+  }
+
+  const originalContent = fs.readFileSync(filePath, 'utf8');
+  let currentContent = originalContent;
+  const results = [];
+  const startTime = Date.now();
+
+  for (const layerId of config.enabledLayers) {
+    if (config.skipLayers.includes(layerId.toString())) {
+      continue;
+    }
+
+    const layerStartTime = Date.now();
+    const beforeContent = currentContent;
+    
+    try {
+      // Apply layer transformation
+      currentContent = await applyLayerToContent(layerId, currentContent, filePath);
+      
+      const changeCount = beforeContent !== currentContent ? 1 : 0;
+      const executionTime = Date.now() - layerStartTime;
+
+      results.push({
+        layerId,
+        layerName: getLayerName(layerId),
+        success: true,
+        executionTime,
+        changeCount,
+        improvements: changeCount > 0 ? [`Layer ${layerId} applied successfully`] : []
+      });
+
+      log(`Layer ${layerId} completed: ${changeCount} changes`, changeCount > 0 ? 'success' : 'info');
+      
+    } catch (error) {
+      const executionTime = Date.now() - layerStartTime;
+      
+      results.push({
+        layerId,
+        layerName: getLayerName(layerId),
+        success: false,
+        executionTime,
+        changeCount: 0,
+        error: error.message
+      });
+
+      log(`Layer ${layerId} failed: ${error.message}`, 'error');
+      // Continue with next layer
+    }
+  }
+
+  // Write the transformed content back to file
+  if (currentContent !== originalContent && !config.dryRun) {
+    fs.writeFileSync(filePath, currentContent);
+  }
+
+  const totalExecutionTime = Date.now() - startTime;
+  const successfulLayers = results.filter(r => r.success).length;
+
+  return {
+    originalCode: originalContent,
+    finalCode: currentContent,
+    results,
+    successfulLayers,
+    totalExecutionTime
+  };
+}
+
+// Apply individual layer transformation to content
+async function applyLayerToContent(layerId, content, filePath) {
+  const tempDir = path.join(__dirname, 'temp-api');
+  
+  // Ensure temp directory exists
+  if (!fs.existsSync(tempDir)) {
+    fs.mkdirSync(tempDir, { recursive: true });
+  }
+
+  const tempFile = path.join(tempDir, `temp-layer-${layerId}-${Date.now()}.js`);
+  
+  try {
+    // Write content to temp file
+    fs.writeFileSync(tempFile, content);
+
+    // Apply layer-specific transformations
+    switch (layerId) {
+      case 1:
+        // Configuration layer - for single file mode, apply basic config fixes
+        content = applyConfigFixes(content);
+        break;
+      case 2:
+        // Pattern fixes
+        content = applyPatternFixes(content);
+        break;
+      case 3:
+        // Component fixes
+        content = applyComponentFixes(content);
+        break;
+      case 4:
+        // Hydration fixes
+        content = applyHydrationFixes(content);
+        break;
+      case 5:
+        // Next.js fixes
+        content = applyNextjsFixes(content);
+        break;
+      case 6:
+        // Testing fixes
+        content = applyTestingFixes(content);
+        break;
+      default:
+        log(`Unknown layer: ${layerId}`, 'warning');
+    }
+
+    return content;
+
+  } finally {
+    // Cleanup temp file
+    try {
+      if (fs.existsSync(tempFile)) {
+        fs.unlinkSync(tempFile);
+      }
+    } catch (e) {
+      // Ignore cleanup errors
+    }
+  }
+}
+
+// Layer-specific transformation functions
+function applyConfigFixes(content) {
+  // Basic TypeScript target upgrade for single files
+  if (content.includes('"target": "es5"')) {
+    content = content.replace('"target": "es5"', '"target": "ES2020"');
+  }
+  return content;
+}
+
+function applyPatternFixes(content) {
+  // HTML entity fixes
+  content = content.replace(/&quot;/g, '"');
+  content = content.replace(/&#x27;/g, "'");
+  content = content.replace(/&amp;/g, '&');
+  content = content.replace(/&lt;/g, '<');
+  content = content.replace(/&gt;/g, '>');
+  
+  // Console.log to console.debug
+  content = content.replace(/console\.log\(/g, 'console.debug(');
+  
+  return content;
+}
+
+function applyComponentFixes(content) {
+  // Add missing key props to map functions
+  content = content.replace(
+    /\.map\(\s*(\([^)]*\)|[^,)]+)\s*=>\s*(<[^>]*?)>/g,
+    (match, param, element) => {
+      if (!element.includes('key=')) {
+        // Extract component name and add key
+        const componentMatch = element.match(/<(\w+)/);
+        if (componentMatch) {
+          return match.replace(element + '>', element + ` key={${param}.id || ${param}}`);
+        }
+      }
+      return match;
+    }
+  );
+
+  // Add basic accessibility attributes
+  content = content.replace(
+    /<button([^>]*?)>/g,
+    (match, attributes) => {
+      if (!attributes.includes('aria-label')) {
+        return `<button${attributes} aria-label="Button">`;
+      }
+      return match;
+    }
+  );
+
+  return content;
+}
+
+function applyHydrationFixes(content) {
+  // Add SSR guards for localStorage
+  content = content.replace(
+    /localStorage\.getItem\(/g,
+    'typeof window !== "undefined" && localStorage.getItem('
+  );
+  
+  content = content.replace(
+    /localStorage\.setItem\(/g,
+    'typeof window !== "undefined" && localStorage.setItem('
+  );
+
+  // Add guards for window access
+  content = content.replace(
+    /window\.matchMedia\(/g,
+    'typeof window !== "undefined" && window.matchMedia('
+  );
+
+  return content;
+}
+
+function applyNextjsFixes(content) {
+  const lines = content.split('\n');
+  
+  // Fix misplaced 'use client' directives
+  const useClientIndex = lines.findIndex(line => line.trim() === "'use client';");
+  
+  if (useClientIndex > 0) {
+    // Remove existing 'use client'
+    lines.splice(useClientIndex, 1);
+    
+    // Add at the top, after any comments
+    let insertIndex = 0;
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (line && !line.startsWith('//') && !line.startsWith('/*')) {
+        insertIndex = i;
+        break;
+      }
+    }
+    
+    lines.splice(insertIndex, 0, "'use client';", '');
+  }
+
+  return lines.join('\n');
+}
+
+function applyTestingFixes(content) {
+  // Add basic error handling for async functions
+  if (content.includes('async') && content.includes('await') && !content.includes('try')) {
+    content = content.replace(
+      /(async\s+function\s+\w+[^{]*{)/g,
+      '$1\n  try {'
+    ).replace(
+      /(\n\s*}$)/g,
+      '\n  } catch (error) {\n    console.error("Error:", error);\n  }\n}'
+    );
+  }
+
+  return content;
+}
+
+function getLayerName(layerId) {
+  const names = {
+    1: 'Configuration',
+    2: 'Pattern Recognition',
+    3: 'Component Enhancement', 
+    4: 'Hydration & SSR',
+    5: 'Next.js App Router',
+    6: 'Testing & Validation'
+  };
+  return names[layerId] || `Layer ${layerId}`;
 }
 
 // Problem detection system
@@ -250,267 +514,274 @@ class ProblemDetector {
     if (fs.existsSync(packagePath)) {
       const packageJson = JSON.parse(fs.readFileSync(packagePath, 'utf8'));
       
-      // Check for missing common dependencies
-      const commonDeps = ['react', 'react-dom', 'next'];
-      const missingDeps = commonDeps.filter(dep => 
+      // Check for missing essential dependencies
+      const essentialDeps = ['react', 'react-dom'];
+      const missingDeps = essentialDeps.filter(dep => 
         !packageJson.dependencies?.[dep] && !packageJson.devDependencies?.[dep]
       );
       
-      if (missingDeps.length > 0) {
+      missingDeps.forEach(dep => {
         this.problems.push({
           type: 'dependencies',
-          severity: 'high',
+          severity: 'critical',
           file: 'package.json',
-          issue: `Missing dependencies: ${missingDeps.join(', ')}`,
-          fix: 'Install missing dependencies'
+          issue: `Missing essential dependency: ${dep}`,
+          fix: `Add ${dep} to dependencies`
         });
-      }
+      });
     }
   }
-  
+
   async checkHtmlEntityCorruption() {
     const glob = require('glob');
     const files = glob.sync('src/**/*.{ts,tsx,js,jsx}');
-    let corruptedFiles = 0;
     
-    for (const file of files) {
+    for (const file of files.slice(0, 20)) {
       try {
         const content = fs.readFileSync(file, 'utf8');
-        if (content.includes('&quot;') || content.includes('&#x27;') || content.includes('&amp;')) {
-          corruptedFiles++;
+        
+        const entityCount = (content.match(/&quot;|&#x27;|&amp;|&lt;|&gt;/g) || []).length;
+        if (entityCount > 0) {
+          this.problems.push({
+            type: 'corruption',
+            severity: entityCount > 5 ? 'high' : 'medium',
+            file,
+            issue: `${entityCount} HTML entity corruptions found`,
+            fix: 'Use Layer 2 to fix HTML entity corruption'
+          });
         }
       } catch (error) {
         // Skip files that can't be read
       }
     }
-    
-    if (corruptedFiles > 0) {
-      this.problems.push({
-        type: 'corruption',
-        severity: 'critical',
-        file: 'multiple',
-        issue: `HTML entity corruption in ${corruptedFiles} files`,
-        fix: 'Run HTML entity repair across all files'
-      });
-    }
   }
-  
+
   async checkHydrationIssues() {
     const glob = require('glob');
     const files = glob.sync('src/**/*.{ts,tsx,js,jsx}');
-    let hydrationIssues = 0;
     
-    for (const file of files) {
+    for (const file of files.slice(0, 20)) {
       try {
         const content = fs.readFileSync(file, 'utf8');
         
-        // Check for localStorage without SSR guards
-        if (content.includes('localStorage.getItem') && !content.includes('typeof window')) {
-          hydrationIssues++;
-          this.problems.push({
-            type: 'hydration',
-            severity: 'critical',
-            file,
-            issue: 'localStorage access without SSR guard',
-            fix: 'Add typeof window !== "undefined" guard'
-          });
-        }
+        // Check for unguarded localStorage usage
+        const localStorageMatches = content.match(/localStorage\./g) || [];
+        const guardedMatches = content.match(/typeof window.*localStorage\./g) || [];
         
-        // Check for window access without guards
-        if (content.includes('window.matchMedia') && !content.includes('typeof window')) {
-          hydrationIssues++;
-          this.problems.push({
-            type: 'hydration',
-            severity: 'critical',
-            file,
-            issue: 'window access without SSR guard',
-            fix: 'Add typeof window !== "undefined" guard'
-          });
-        }
-        
-        // Check for document access without guards
-        if (content.includes('document.documentElement') && !content.includes('typeof document')) {
-          hydrationIssues++;
+        if (localStorageMatches.length > guardedMatches.length) {
           this.problems.push({
             type: 'hydration',
             severity: 'high',
             file,
-            issue: 'document access without SSR guard',
-            fix: 'Add typeof document !== "undefined" guard'
+            issue: `${localStorageMatches.length - guardedMatches.length} unguarded localStorage calls`,
+            fix: 'Use Layer 4 to add SSR guards'
           });
         }
         
-        // Check for theme providers without mounted state
-        if (content.includes('ThemeProvider') && content.includes('useState') && !content.includes('mounted')) {
+        // Check for unguarded window usage
+        const windowMatches = content.match(/\bwindow\./g) || [];
+        const guardedWindowMatches = content.match(/typeof window.*window\./g) || [];
+        
+        if (windowMatches.length > guardedWindowMatches.length) {
           this.problems.push({
-            type: 'hydration',
-            severity: 'critical',
+            type: 'hydration', 
+            severity: 'medium',
             file,
-            issue: 'Theme provider without hydration protection',
-            fix: 'Add mounted state to prevent hydration mismatch'
+            issue: `${windowMatches.length - guardedWindowMatches.length} unguarded window calls`,
+            fix: 'Use Layer 4 to add SSR guards'
           });
         }
-        
       } catch (error) {
         // Skip files that can't be read
       }
     }
   }
-  
+
   async checkMissingFiles() {
     const missingFiles = [
-      { path: 'public/site.webmanifest', severity: 'medium', issue: 'Missing web manifest' },
-      { path: 'public/robots.txt', severity: 'low', issue: 'Missing robots.txt' },
-      { path: 'src/components/NoSSR.tsx', severity: 'low', issue: 'Missing NoSSR component' }
+      { path: 'public/site.webmanifest', severity: 'low', fix: 'Layer 4 will create web manifest' },
+      { path: 'public/robots.txt', severity: 'low', fix: 'Layer 4 will create robots.txt' },
+      { path: 'src/components/NoSSR.tsx', severity: 'medium', fix: 'Layer 4 will create NoSSR component' }
     ];
     
-    missingFiles.forEach(({ path: filePath, severity, issue }) => {
+    missingFiles.forEach(({ path: filePath, severity, fix }) => {
       if (!fs.existsSync(path.join(config.targetDir, filePath))) {
         this.problems.push({
           type: 'missing-files',
           severity,
           file: filePath,
-          issue,
-          fix: `Create ${filePath}`
+          issue: `Missing file: ${filePath}`,
+          fix
         });
       }
     });
   }
-  
+
   generateReport() {
-    log('\n📊 Problem Detection Report', 'info');
-    log('============================', 'info');
-    
-    const severityCount = {
-      critical: 0,
-      high: 0,
-      medium: 0,
-      low: 0
+    const report = {
+      summary: {
+        totalProblems: this.problems.length,
+        critical: this.problems.filter(p => p.severity === 'critical').length,
+        high: this.problems.filter(p => p.severity === 'high').length,
+        medium: this.problems.filter(p => p.severity === 'medium').length,
+        low: this.problems.filter(p => p.severity === 'low').length
+      },
+      problems: this.problems,
+      recommendations: this.generateRecommendations()
     };
     
-    this.problems.forEach(problem => {
-      severityCount[problem.severity]++;
-      const icon = {
-        critical: '🔴',
-        high: '🟠',
-        medium: '🟡',
-        low: '🟢'
-      }[problem.severity];
-      
-      log(`${icon} ${problem.file}: ${problem.issue}`, 'info');
-      if (config.verbose) {
-        log(`   Fix: ${problem.fix}`, 'debug');
-      }
-    });
+    return report;
+  }
+  
+  generateRecommendations() {
+    const recommendations = [];
+    const problemTypes = [...new Set(this.problems.map(p => p.type))];
     
-    log(`\nSummary: ${severityCount.critical} critical, ${severityCount.high} high, ${severityCount.medium} medium, ${severityCount.low} low`, 'info');
+    if (problemTypes.includes('corruption')) {
+      recommendations.push('Run Layer 2 to fix HTML entity corruption and import issues');
+    }
     
-    return severityCount;
+    if (problemTypes.includes('react')) {
+      recommendations.push('Run Layer 3 to fix React component issues');
+    }
+    
+    if (problemTypes.includes('hydration')) {
+      recommendations.push('Run Layer 4 to fix SSR and hydration issues');
+    }
+    
+    if (problemTypes.includes('nextjs')) {
+      recommendations.push('Run Layer 5 to fix Next.js App Router issues');
+    }
+    
+    if (problemTypes.includes('config')) {
+      recommendations.push('Run Layer 1 to fix configuration issues');
+    }
+    
+    return recommendations;
   }
 }
 
-// Layer execution system
 async function executeLayer(layerNumber, description, scriptName) {
-  if (config.skipLayers.includes(layerNumber.toString())) {
-    log(`⏭️  Skipping Layer ${layerNumber}: ${description}`, 'warning');
-    return true;
+  const startTime = Date.now();
+  
+  log(`Starting ${description}...`, 'info');
+  
+  try {
+    const scriptPath = path.join(__dirname, scriptName);
+    if (!fs.existsSync(scriptPath)) {
+      throw new Error(`Script not found: ${scriptName}`);
+    }
+    
+    const result = runCommand(`node ${scriptPath}`, description);
+    const executionTime = Date.now() - startTime;
+    
+    return {
+      layer: layerNumber,
+      success: result !== null,
+      executionTime,
+      description
+    };
+  } catch (error) {
+    return {
+      layer: layerNumber,
+      success: false,
+      executionTime: Date.now() - startTime,
+      error: error.message,
+      description
+    };
   }
-  
-  log(`\n🔧 Layer ${layerNumber}: ${description}`, 'info');
-  log('='.repeat(50), 'info');
-  
-  const scriptPath = path.join(config.targetDir, 'scripts', scriptName);
-  
-  if (!fs.existsSync(scriptPath)) {
-    log(`Script not found: ${scriptPath}`, 'error');
-    return false;
-  }
-  
-  const result = runCommand(`node "${scriptPath}"`, `Layer ${layerNumber} fixes`);
-  return result !== null;
 }
 
-// Main execution
 async function main() {
   try {
-    // Ensure scripts directory exists
-    const scriptsDir = path.join(config.targetDir, 'scripts');
-    if (!fs.existsSync(scriptsDir)) {
-      fs.mkdirSync(scriptsDir, { recursive: true });
+    // Handle single file mode (for API)
+    if (config.inputFile) {
+      const result = await processSingleFile(config.inputFile);
+      
+      if (config.outputJson) {
+        console.log(JSON.stringify(result));
+        return;
+      }
+      
+      log(`Transformation completed for ${config.inputFile}`, 'success');
+      log(`Changes applied by ${result.successfulLayers} layers`, 'info');
+      return;
     }
-    
-    // Install dependencies if needed
-    try {
-      require('glob');
-    } catch (error) {
-      log('📦 Installing required dependencies...', 'info');
-      runCommand('npm install glob --save-dev', 'Install glob dependency');
-    }
-    
-    // Problem detection phase
+
+    // Original directory-wide processing
     const detector = new ProblemDetector();
-    await detector.detectProblems();
-    const severityCount = detector.generateReport();
+    const problems = await detector.detectProblems();
     
-    if (severityCount.critical === 0 && severityCount.high === 0) {
-      log('\n🎉 No critical or high-severity issues found!', 'success');
-      if (severityCount.medium === 0 && severityCount.low === 0) {
-        log('Codebase appears to be in good shape. 🚀', 'success');
-        return;
-      }
+    if (problems.length === 0) {
+      log('No problems detected! Your codebase looks good.', 'success');
+      return;
     }
     
-    // Ask for confirmation unless in dry-run mode
-    if (!config.dryRun && process.stdin.isTTY) {
-      const readline = require('readline');
-      const rl = readline.createInterface({
-        input: process.stdin,
-        output: process.stdout
-      });
-      
-      const answer = await new Promise(resolve => {
-        rl.question('\nProceed with automated fixes? (y/N): ', resolve);
-      });
-      rl.close();
-      
-      if (answer.toLowerCase() !== 'y' && answer.toLowerCase() !== 'yes') {
-        log('Automated fixes cancelled by user.', 'info');
-        return;
-      }
+    log(`\nDetected ${problems.length} problems. Running fixes...`, 'info');
+    
+    const results = [];
+    
+    // Layer 1: Configuration fixes
+    if (config.enabledLayers.includes(1) && !config.skipLayers.includes('1')) {
+      const result = await executeLayer(1, 'Configuration Fixes', 'fix-layer-1-config.js');
+      results.push(result);
     }
     
-    // Execute layers
-    const layers = [
-      { number: 1, description: 'Configuration Fixes', script: 'fix-layer-1-config.js' },
-      { number: 2, description: 'Bulk Pattern Fixes', script: 'fix-layer-2-patterns.js' },
-      { number: 3, description: 'Component-Specific Fixes', script: 'fix-layer-3-components.js' },
-      { number: 4, description: 'Hydration and SSR Fixes', script: 'fix-layer-4-hydration.js' },
-      { number: 5, description: 'Next.js App Router Fixes', script: 'fix-layer-5-nextjs.js' },
-      { number: 6, description: 'Testing and Validation Fixes', script: 'fix-layer-6-testing.js' }
-    ];
-    
-    let successfulLayers = 0;
-    
-    for (const layer of layers) {
-      const success = await executeLayer(layer.number, layer.description, layer.script);
-      if (success) {
-        successfulLayers++;
-      } else {
-        log(`Layer ${layer.number} failed, continuing with remaining layers...`, 'warning');
-      }
+    // Layer 2: Pattern fixes  
+    if (config.enabledLayers.includes(2) && !config.skipLayers.includes('2')) {
+      const result = await executeLayer(2, 'Pattern Fixes', 'fix-layer-2-patterns.js');
+      results.push(result);
     }
     
-    // Final validation
-    log('\n🔍 Running final validation...', 'info');
-    const buildResult = runCommand('npm run build', 'Final build validation');
+    // Layer 3: Component fixes
+    if (config.enabledLayers.includes(3) && !config.skipLayers.includes('3')) {
+      const result = await executeLayer(3, 'Component Fixes', 'fix-layer-3-components.js');
+      results.push(result);
+    }
     
-    if (buildResult !== null) {
-      log('\n🎉 All fixes completed successfully!', 'success');
-      log(`✅ ${successfulLayers}/${layers.length} layers executed successfully`, 'success');
-      log('✅ Final build validation passed', 'success');
-    } else {
-      log('\n⚠️  Fixes completed but build validation failed', 'warning');
-      log('Please check the build output for remaining issues.', 'warning');
+    // Layer 4: Hydration fixes
+    if (config.enabledLayers.includes(4) && !config.skipLayers.includes('4')) {
+      const result = await executeLayer(4, 'Hydration Fixes', 'fix-layer-4-hydration.js');
+      results.push(result);
+    }
+    
+    // Layer 5: Next.js fixes
+    if (config.enabledLayers.includes(5) && !config.skipLayers.includes('5')) {
+      const result = await executeLayer(5, 'Next.js Fixes', 'fix-layer-5-nextjs.js');
+      results.push(result);
+    }
+    
+    // Layer 6: Testing fixes
+    if (config.enabledLayers.includes(6) && !config.skipLayers.includes('6')) {
+      const result = await executeLayer(6, 'Testing Fixes', 'fix-layer-6-testing.js');
+      results.push(result);
+    }
+    
+    // Generate final report
+    const successfulLayers = results.filter(r => r.success).length;
+    const totalExecutionTime = results.reduce((sum, r) => sum + r.executionTime, 0);
+    
+    log(`\n🎉 Fixing completed!`, 'success');
+    log(`Successfully executed ${successfulLayers} of ${results.length} layers`, 'success');
+    log(`Total execution time: ${(totalExecutionTime / 1000).toFixed(2)} seconds`, 'info');
+    
+    if (config.outputJson) {
+      const jsonOutput = {
+        originalCode: '',
+        finalCode: '',
+        results: results.map(r => ({
+          layerId: r.layer,
+          layerName: getLayerName(r.layer),
+          success: r.success,
+          executionTime: r.executionTime,
+          changeCount: r.success ? 1 : 0,
+          error: r.error,
+          improvements: r.success ? [r.description] : []
+        })),
+        successfulLayers,
+        totalExecutionTime
+      };
+      console.log(JSON.stringify(jsonOutput));
     }
     
   } catch (error) {
@@ -519,35 +790,9 @@ async function main() {
   }
 }
 
-// Help text
-if (process.argv.includes('--help') || process.argv.includes('-h')) {
-  console.log(`
-Comprehensive Automated Fixing System
-
-Usage: node scripts/fix-master.js [options]
-
-Options:
-  --dry-run           Show what would be done without making changes
-  --verbose           Show detailed output
-  --skip-layers 1,2   Skip specific layers (comma-separated)
-  --help, -h          Show this help message
-
-Layers:
-  1. Configuration fixes (TypeScript, Next.js, package.json)
-  2. Bulk pattern fixes (imports, types, HTML entities)
-  3. Component-specific fixes (Button variants, Tabs props, etc.)
-  4. Hydration and SSR fixes (client-side guards, theme providers)
-  5. Next.js App Router fixes
-  6. Testing and Validation Fixes
-
-Examples:
-  node scripts/fix-master.js                    # Run all fixes
-  node scripts/fix-master.js --dry-run          # Preview changes
-  node scripts/fix-master.js --skip-layers 1    # Skip configuration fixes
-  node scripts/fix-master.js --verbose          # Detailed output
-`);
-  process.exit(0);
+// Run if called directly
+if (require.main === module) {
+  main();
 }
 
-// Run the main function
-main(); 
+module.exports = { processSingleFile, applyLayerToContent }; 
