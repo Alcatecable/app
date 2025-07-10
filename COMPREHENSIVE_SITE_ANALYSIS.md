@@ -2,7 +2,7 @@
 
 ## What This Site Actually Does
 
-**NeuroLint** is an **AI-powered code analysis and transformation platform** that automatically improves code quality through sophisticated pattern recognition and automated fixes. Think of it as an advanced, multi-layered code linter that doesn't just identify issues—it fixes them automatically.
+**NeuroLint** is an **advanced rule-based code analysis and transformation platform** that automatically improves code quality through sophisticated pattern recognition and automated fixes. Think of it as an advanced, multi-layered code linter that doesn't just identify issues—it fixes them automatically using deterministic rules and AST parsing.
 
 ### Core Functionality
 
@@ -44,8 +44,8 @@ The platform uses a sophisticated orchestration system with 6 distinct layers:
    - Performance optimizations
 
 #### 🧠 **Advanced Features**
-- **Pattern Learning**: Layer 7 learns from previous transformations
-- **Smart Recommendations**: AI suggests which layers to apply
+- **Pattern Recognition**: Layer 7 recognizes patterns from previous transformations
+- **Smart Recommendations**: Algorithm suggests which layers to apply based on code analysis
 - **Safe Transformations**: All changes are validated before acceptance
 - **Rollback Capability**: Can revert unsafe transformations
 - **GitHub Integration**: Import code directly from repositories
@@ -214,7 +214,7 @@ The platform already has a **complete subscription system** ready for monetizati
 1. **Enterprise Sales**: Direct outreach to larger companies
 2. **Channel Partnerships**: Work with consulting firms
 3. **International Expansion**: Support for multiple languages
-4. **Advanced Features**: AI-powered custom rules
+4. **Advanced Features**: Enhanced rule-based custom patterns
 
 ---
 
@@ -223,7 +223,7 @@ The platform already has a **complete subscription system** ready for monetizati
 ### 🏆 **Unique Value Propositions**
 
 1. **Multi-Layer Approach**: Unlike single-purpose linters, NeuroLint provides comprehensive transformation
-2. **AI-Powered Learning**: Pattern recognition improves over time
+2. **Advanced Pattern Recognition**: Sophisticated rule-based pattern matching improves over time
 3. **Safety-First**: All transformations are validated and reversible
 4. **Framework-Specific**: Deep understanding of React, Next.js, TypeScript
 5. **Visual Interface**: User-friendly web interface vs. command-line tools
@@ -233,7 +233,7 @@ The platform already has a **complete subscription system** ready for monetizati
 - **Prettier**: Formatting only, no logic improvements
 - **SonarQube**: Analysis and reporting, minimal automatic fixes
 - **CodeClimate**: Metrics and analysis, no transformation
-- **NeuroLint**: Complete transformation with AI learning ✨
+- **NeuroLint**: Complete transformation with sophisticated pattern recognition ✨
 
 ---
 
