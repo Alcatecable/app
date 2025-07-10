@@ -1,12 +1,14 @@
 
-import { createRoot } from 'react-dom/client'
-import App from './App.tsx'
-import './index.css'
+import { StrictMode } from "react";
+import { createRoot } from "react-dom/client";
+import "./index.css";
+import App from "./App.tsx";
 
-const root = document.getElementById("root");
+// Ensure dark theme is always applied for NeuroLint brand consistency
+document.documentElement.classList.add('dark');
 
-if (!root) {
-  throw new Error("Root element not found");
-}
-
-createRoot(root).render(<App />);
+createRoot(document.getElementById("root")!).render(
+  <StrictMode>
+    <App />
+  </StrictMode>,
+);
