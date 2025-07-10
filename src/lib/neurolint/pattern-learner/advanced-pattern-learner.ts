@@ -4,7 +4,7 @@ import { logger } from "../logger";
 import { patternStorage } from "../pattern-storage";
 
 /**
- * Advanced pattern learning system with ML-inspired techniques
+ * Advanced pattern recognition system with statistical confidence tracking
  */
 export class AdvancedPatternLearner {
   private patterns: Map<string, LearnedPattern> = new Map();
@@ -40,14 +40,14 @@ export class AdvancedPatternLearner {
         this.patterns.set(patternKey, internalPattern);
       }
 
-      logger.info('Pattern learner initialized', {
+      logger.info('Pattern recognizer initialized', {
         layerId: 7,
         metadata: { loadedPatterns: storedPatterns.length }
       });
       
       this.initialized = true;
     } catch (error) {
-      logger.error('Failed to initialize pattern learner', error instanceof Error ? error : new Error(String(error)));
+      logger.error('Failed to initialize pattern recognizer', error instanceof Error ? error : new Error(String(error)));
       this.initialized = true; // Continue without stored patterns
     }
   }
@@ -79,7 +79,7 @@ export class AdvancedPatternLearner {
   }
 
   /**
-   * Learn from successful transformations using pattern recognition
+   * Extract patterns from successful transformations for future recognition
    */
   async learnFromTransformation(
     before: string,
@@ -110,7 +110,7 @@ export class AdvancedPatternLearner {
     // Persist changes
     await this.persistPatterns();
     
-    logger.debug("Pattern learning updated", {
+    logger.debug("Pattern extraction completed", {
       exampleId: example.id,
       layerId,
       patternsExtracted: example.patterns.length,
@@ -398,9 +398,9 @@ export class AdvancedPatternLearner {
   }
 
   /**
-   * Get all learned patterns for inspection
+   * Get all recognized patterns for inspection
    */
-  getLearnedRules(): LearnedPattern[] {
+  getStoredRules(): LearnedPattern[] {
     return Array.from(this.patterns.values())
       .sort((a, b) => (b.confidence * b.frequency) - (a.confidence * a.frequency));
   }
