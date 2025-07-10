@@ -1,4 +1,4 @@
-THIS SHOULD BE A LINTER ERRORimport React, { useState, useCallback, useEffect, useRef } from "react";
+import React, { useState, useCallback, useEffect, useRef } from "react";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import {
   Card,
@@ -295,7 +295,7 @@ export default function Dashboard() {
                 />
                 <div>
                   <h1 className="text-xl font-bold text-white">NeuroLint</h1>
-                  <p className="text-sm text-zinc-400">Advanced Code Transformation Platform</p>
+                  <p className="text-sm text-zinc-400">Code Transformation Platform</p>
                 </div>
               </div>
             </div>
