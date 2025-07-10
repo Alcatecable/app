@@ -283,25 +283,7 @@ export default function Dashboard() {
   return (
     <ProtectedRoute>
       <div className="min-h-screen bg-black text-white">
-        {/* Clean header with bee logo */}
-        <div className="border-b border-zinc-800/50 bg-black/95 backdrop-blur-xl">
-          <div className="mx-auto max-w-7xl px-4 py-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
-                <img
-                  src="/Bee logo.png"
-                  alt="NeuroLint"
-                  className="h-8 w-8 rounded-lg"
-                />
-                <div>
-                  <h1 className="text-xl font-bold text-white">NeuroLint</h1>
-                  <p className="text-sm text-zinc-400">Code Transformation Platform</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
+        {/* Removed header with logo and branding for a clean enterprise look */}
         <div className="mx-auto max-w-7xl px-4 py-8">
           <Tabs defaultValue="transform" className="space-y-6">
             <TabsList className="grid w-full grid-cols-3 bg-zinc-900/50 border border-zinc-800">
