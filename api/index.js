@@ -1005,6 +1005,55 @@ app.post('/api/v1/validate', [
   }
 });
 
+// Dashboard metrics endpoint
+app.get('/api/v1/dashboard/metrics', (req, res) => {
+  // In a real implementation, this would query a database
+  const now = new Date();
+  const mockData = {
+    totalTransformations: 0,
+    successRate: 0,
+    averageExecutionTime: 0,
+    layerUsage: {
+      1: 0,
+      2: 0,
+      3: 0,
+      4: 0,
+      5: 0,
+      6: 0
+    },
+    recentTransformations: [],
+    quota: {
+      used: 0,
+      total: 1000,
+      renewsAt: new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000) // 30 days from now
+    }
+  };
+
+  res.json(mockData);
+});
+
+// Projects endpoint
+app.get('/api/v1/projects', (req, res) => {
+  // In a real implementation, this would query a database
+  const mockProjects = [];
+  
+  res.json({ 
+    projects: mockProjects,
+    total: mockProjects.length
+  });
+});
+
+// Health check endpoint with system status
+app.get('/health', (req, res) => {
+  res.json({ 
+    status: 'healthy', 
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    activeOperations: currentOperations,
+    tempFiles: activeTempFiles.size
+  });
+});
+
 // Helper function to get layer names
 function getLayerName(layerId) {
   const names = {
