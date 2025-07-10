@@ -4,7 +4,7 @@
  */
 
 import { TransformationResult, AnalysisResult, LayerExecutionResult } from './types';
-import { AdaptiveLearningLayer } from './layers/adaptive-learning';
+import { PatternRecognitionLayer } from './layers/adaptive-learning';
 
 const API_BASE_URL = 'https://api.neurolint.dev';
 
@@ -468,7 +468,7 @@ export class NeuroLintAPIClient {
     // Handle Layer 7 locally using the AdaptiveLearningLayer
     if (layerId === 7) {
       try {
-        const result = await AdaptiveLearningLayer.execute(code, options);
+        const result = await PatternRecognitionLayer.execute(code, options);
         
         return {
           layerId,
