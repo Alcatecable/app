@@ -1,15 +1,15 @@
 /**
- * Layer 7: Adaptive Pattern Learning
- * Advanced layer that learns from successful transformations and applies learned patterns
+ * Layer 7: Pattern Recognition Engine
+ * Advanced layer that recognizes patterns from successful transformations and applies stored patterns
  */
 
 import { NeuroLintAPIClient } from '../api-client';
 import { logger } from '../logger';
 import { metrics } from '../metrics';
 
-export const AdaptiveLearningLayer = {
+export const PatternRecognitionLayer = {
   id: 7,
-  name: 'Adaptive Learning',
+  name: 'Pattern Recognition',
   
   async execute(code: string, options: Record<string, unknown>) {
     const startTime = performance.now();

@@ -6,8 +6,8 @@
 
 ### Core Functionality
 
-#### 🔧 **6-Layer Code Transformation Engine**
-The platform uses a sophisticated orchestration system with 6 distinct layers:
+#### 🔧 **7-Layer Code Transformation Engine**
+The platform uses a sophisticated orchestration system with 7 distinct layers:
 
 1. **Layer 1 - Configuration Optimization**
    - Modernizes TypeScript configurations (ES5 → ES2020+)
@@ -43,8 +43,14 @@ The platform uses a sophisticated orchestration system with 6 distinct layers:
    - Validates TypeScript strict mode compliance
    - Performance optimizations
 
+7. **Layer 7 - Pattern Recognition Engine**
+   - Extracts transformation patterns from successful Layer 1-6 executions
+   - Stores patterns with statistical confidence metrics and frequency tracking
+   - Applies high-confidence patterns to new code using deterministic rule-based logic
+   - Uses both regex and AST-based pattern matching for sophisticated code analysis
+
 #### 🧠 **Advanced Features**
-- **Pattern Recognition**: Layer 7 recognizes patterns from previous transformations
+- **Rule-Based Pattern Recognition**: Layer 7 extracts and applies patterns from successful transformations using statistical analysis
 - **Smart Recommendations**: Algorithm suggests which layers to apply based on code analysis
 - **Safe Transformations**: All changes are validated before acceptance
 - **Rollback Capability**: Can revert unsafe transformations
