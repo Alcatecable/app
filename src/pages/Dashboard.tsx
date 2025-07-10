@@ -57,15 +57,15 @@ export default function Dashboard() {
   const [isLoadingGithub, setIsLoadingGithub] = useState(false);
   const [githubFiles, setGithubFiles] = useState<any[]>([]);
 
-  // Layer definitions with terminal-inspired descriptions
+  // Layer definitions with minimal color usage
   const layerDefinitions = [
-    { id: 1, name: "Configuration", description: "TypeScript and Next.js configuration optimization", color: "text-blue-400" },
-    { id: 2, name: "Pattern Recognition", description: "HTML entities, imports, and code patterns", color: "text-green-400" },
-    { id: 3, name: "Component Enhancement", description: "React components and Button variants", color: "text-purple-400" },
-    { id: 4, name: "Hydration & SSR", description: "Client-side guards and theme providers", color: "text-orange-400" },
-    { id: 5, name: "Next.js App Router", description: "Use client placement and import cleanup", color: "text-pink-400" },
-    { id: 6, name: "Testing & Validation", description: "Error boundaries and accessibility", color: "text-cyan-400" },
-    { id: 7, name: "Adaptive Learning", description: "Apply learned patterns from previous transformations", color: "text-yellow-400" },
+    { id: 1, name: "Configuration", description: "TypeScript and Next.js configuration optimization", color: "text-white" },
+    { id: 2, name: "Pattern Recognition", description: "HTML entities, imports, and code patterns", color: "text-zinc-300" },
+    { id: 3, name: "Component Enhancement", description: "React components and Button variants", color: "text-white" },
+    { id: 4, name: "Hydration & SSR", description: "Client-side guards and theme providers", color: "text-zinc-300" },
+    { id: 5, name: "Next.js App Router", description: "Use client placement and import cleanup", color: "text-white" },
+    { id: 6, name: "Testing & Validation", description: "Error boundaries and accessibility", color: "text-zinc-300" },
+    { id: 7, name: "Adaptive Learning", description: "Apply learned patterns from previous transformations", color: "text-blue-accent" },
   ];
 
   // Transform code using the real orchestrator
@@ -283,7 +283,7 @@ export default function Dashboard() {
   return (
     <ProtectedRoute>
       <div className="min-h-screen bg-black text-white">
-        {/* Terminal-styled header */}
+        {/* Clean header with bee logo */}
         <div className="border-b border-zinc-800/50 bg-black/95 backdrop-blur-xl">
           <div className="mx-auto max-w-7xl px-4 py-6">
             <div className="flex items-center justify-between">
@@ -305,15 +305,15 @@ export default function Dashboard() {
         <div className="mx-auto max-w-7xl px-4 py-8">
           <Tabs defaultValue="transform" className="space-y-6">
             <TabsList className="grid w-full grid-cols-3 bg-zinc-900/50 border border-zinc-800">
-              <TabsTrigger value="transform" className="data-[state=active]:bg-zinc-800 data-[state=active]:text-white">
+              <TabsTrigger value="transform" className="data-[state=active]:bg-white data-[state=active]:text-black">
                 <Code2 className="mr-2 h-4 w-4" />
                 Transform Code
               </TabsTrigger>
-              <TabsTrigger value="github" className="data-[state=active]:bg-zinc-800 data-[state=active]:text-white">
+              <TabsTrigger value="github" className="data-[state=active]:bg-white data-[state=active]:text-black">
                 <Github className="mr-2 h-4 w-4" />
                 GitHub Integration
               </TabsTrigger>
-              <TabsTrigger value="settings" className="data-[state=active]:bg-zinc-800 data-[state=active]:text-white">
+              <TabsTrigger value="settings" className="data-[state=active]:bg-white data-[state=active]:text-black">
                 <Settings className="mr-2 h-4 w-4" />
                 Layer Settings
               </TabsTrigger>
@@ -333,11 +333,11 @@ export default function Dashboard() {
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    {/* Terminal-styled File Upload Area */}
+                    {/* Clean File Upload Area */}
                     <div
                       className={`rounded-lg border-2 border-dashed p-6 text-center transition-all duration-300 ${
                         isDragOver
-                          ? 'border-blue-500 bg-blue-500/10 shadow-lg shadow-blue-500/20'
+                          ? 'border-blue-accent bg-blue-accent/10 shadow-lg shadow-blue-accent/20'
                           : 'border-zinc-700 hover:border-zinc-600 hover:bg-zinc-800/30'
                       }`}
                       onDragOver={handleDragOver}
@@ -349,7 +349,7 @@ export default function Dashboard() {
                         Drag and drop a file here, or{' '}
                         <button
                           type="button"
-                          className="text-blue-400 hover:text-blue-300 transition-colors"
+                          className="text-blue-accent hover:text-blue-accent/80 transition-colors"
                           onClick={() => fileInputRef.current?.click()}
                         >
                           browse
@@ -371,32 +371,32 @@ export default function Dashboard() {
                     </div>
 
                     {uploadedFile && (
-                      <div className="flex items-center space-x-2 rounded-md bg-green-500/10 border border-green-500/20 p-3">
-                        <FileText className="h-4 w-4 text-green-400" />
-                        <span className="text-sm text-green-300">{uploadedFile.name}</span>
+                      <div className="flex items-center space-x-2 rounded-md bg-white/10 border border-white/20 p-3">
+                        <FileText className="h-4 w-4 text-white" />
+                        <span className="text-sm text-white">{uploadedFile.name}</span>
                         <Badge variant="secondary" className="ml-auto bg-zinc-800 text-zinc-300">
                           {(uploadedFile.size / 1024).toFixed(1)} KB
                         </Badge>
                       </div>
                     )}
 
-                    {/* Terminal-styled Code Textarea */}
-                    <div>
-                      <Label htmlFor="code-input" className="text-zinc-300">Code</Label>
-                      <Textarea
-                        id="code-input"
-                        placeholder="// Paste your JavaScript, TypeScript, or React code here..."
-                        value={code}
-                        onChange={(e) => setCode(e.target.value)}
-                        className="min-h-[300px] font-mono text-sm bg-zinc-900/50 border-zinc-700 text-zinc-100 placeholder:text-zinc-500"
-                      />
-                    </div>
+                                          {/* Code Textarea */}
+                      <div>
+                        <Label htmlFor="code-input" className="text-zinc-300">Code</Label>
+                        <Textarea
+                          id="code-input"
+                          placeholder="// Paste your JavaScript, TypeScript, or React code here..."
+                          value={code}
+                          onChange={(e) => setCode(e.target.value)}
+                          className="min-h-[300px] font-mono text-sm bg-zinc-900/50 border-zinc-700 text-zinc-100 placeholder:text-zinc-500"
+                        />
+                      </div>
 
                     {/* Transform Button */}
                     <Button
                       onClick={handleTransform}
                       disabled={!code.trim() || isProcessing}
-                      className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium"
+                      className="w-full bg-white hover:bg-gray-100 text-black font-medium"
                       size="lg"
                     >
                       {isProcessing ? (
@@ -428,7 +428,7 @@ export default function Dashboard() {
                   <CardContent>
                     {isProcessing ? (
                       <div className="flex flex-col items-center space-y-4 py-8">
-                        <RefreshCw className="h-8 w-8 animate-spin text-blue-500" />
+                        <RefreshCw className="h-8 w-8 animate-spin text-blue-accent" />
                         <p className="text-sm text-zinc-400">Processing your code...</p>
                         <Progress value={33} className="w-full bg-zinc-800" />
                       </div>
@@ -447,9 +447,8 @@ export default function Dashboard() {
                             </div>
                             <Button 
                               onClick={downloadTransformedCode} 
-                              variant="outline" 
                               size="sm"
-                              className="border-zinc-600 text-zinc-300 hover:bg-zinc-700"
+                              className="bg-white hover:bg-gray-100 text-black"
                             >
                               <Download className="mr-2 h-4 w-4" />
                               Download
@@ -465,11 +464,11 @@ export default function Dashboard() {
                               className="flex items-center justify-between rounded-md border border-zinc-700 bg-zinc-800/30 p-3"
                             >
                               <div className="flex items-center space-x-3">
-                                {result.success ? (
-                                  <CheckCircle className="h-4 w-4 text-green-400" />
-                                ) : (
-                                  <AlertCircle className="h-4 w-4 text-red-400" />
-                                )}
+                                                            {result.success ? (
+                              <CheckCircle className="h-4 w-4 text-white" />
+                            ) : (
+                              <AlertCircle className="h-4 w-4 text-red-400" />
+                            )}
                                 <div>
                                   <p className="text-sm font-medium text-white">
                                     Layer {result.layerId}: {result.layerName || `Layer ${result.layerId}`}
@@ -484,7 +483,7 @@ export default function Dashboard() {
                               </div>
                               <Badge 
                                 variant={result.success ? "default" : "destructive"}
-                                className={result.success ? "bg-green-600 hover:bg-green-700" : ""}
+                                className={result.success ? "bg-white text-black hover:bg-gray-100" : ""}
                               >
                                 {result.success ? "Success" : "Failed"}
                               </Badge>
@@ -538,7 +537,7 @@ export default function Dashboard() {
                     <Button 
                       onClick={handleGithubImport} 
                       disabled={isLoadingGithub}
-                      className="bg-zinc-800 hover:bg-zinc-700 text-white"
+                      className="bg-white hover:bg-gray-100 text-black"
                     >
                       {isLoadingGithub ? (
                         <RefreshCw className="h-4 w-4 animate-spin" />
@@ -585,7 +584,7 @@ export default function Dashboard() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="flex space-x-2">
-                    <Button onClick={selectAllLayers} variant="outline" size="sm" className="border-zinc-600 text-zinc-300 hover:bg-zinc-700">
+                    <Button onClick={selectAllLayers} className="bg-white hover:bg-gray-100 text-black" size="sm">
                       Select All
                     </Button>
                     <Button onClick={clearAllLayers} variant="outline" size="sm" className="border-zinc-600 text-zinc-300 hover:bg-zinc-700">
@@ -599,7 +598,7 @@ export default function Dashboard() {
                         key={layer.id}
                         className={`rounded-lg border p-4 transition-all duration-300 cursor-pointer ${
                           selectedLayers.includes(layer.id)
-                            ? 'border-blue-500 bg-blue-500/10 shadow-lg shadow-blue-500/20'
+                            ? 'border-blue-accent bg-blue-accent/10 shadow-lg shadow-blue-accent/20'
                             : 'border-zinc-700 hover:border-zinc-600 hover:bg-zinc-800/30'
                         }`}
                         onClick={() => toggleLayer(layer.id)}
@@ -609,7 +608,7 @@ export default function Dashboard() {
                             type="checkbox"
                             checked={selectedLayers.includes(layer.id)}
                             onChange={() => toggleLayer(layer.id)}
-                            className="mt-1 rounded border-zinc-600 bg-zinc-900 text-blue-500 focus:ring-blue-500 focus:ring-offset-0"
+                            className="mt-1 rounded border-zinc-600 bg-zinc-900 text-blue-accent focus:ring-blue-accent focus:ring-offset-0"
                           />
                           <div className="flex-1">
                             <h3 className={`text-sm font-medium ${layer.color}`}>
@@ -624,9 +623,9 @@ export default function Dashboard() {
                     ))}
                   </div>
 
-                  <div className="rounded-lg bg-blue-500/10 border border-blue-500/20 p-4">
-                    <p className="text-sm text-blue-300">
-                      <strong className="text-blue-200">{selectedLayers.length}</strong> layers selected for transformation
+                  <div className="rounded-lg bg-blue-accent/10 border border-blue-accent/20 p-4">
+                    <p className="text-sm text-blue-accent">
+                      <strong className="text-white">{selectedLayers.length}</strong> layers selected for transformation
                     </p>
                   </div>
                 </CardContent>
