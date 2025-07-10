@@ -57,7 +57,7 @@ const ContactPage = () => {
         {/* Back Button */}
         <div className="mb-8">
           <Link 
-            to="/" 
+            to="/dashboard" 
             className="inline-flex items-center gap-2 text-zinc-300 hover:text-white transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />

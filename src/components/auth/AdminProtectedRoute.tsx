@@ -97,7 +97,7 @@ export function AdminProtectedRoute({ children }: AdminProtectedRouteProps) {
           </div>
           <div className="flex gap-3 justify-center">
             <button
-              onClick={() => navigate("/")}
+              onClick={() => navigate("/dashboard")}
               className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
             >
               Back to Dashboard
@@ -130,7 +130,7 @@ export function AdminProtectedRoute({ children }: AdminProtectedRouteProps) {
           <div className="flex items-center gap-4 text-sm">
             <span>Logged in as: {user.email}</span>
             <button
-              onClick={() => navigate("/")}
+              onClick={() => navigate("/dashboard")}
               className="px-3 py-1 bg-blue-700 rounded text-xs hover:bg-blue-800 transition-colors"
             >
               Exit Admin
