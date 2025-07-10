@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import Home from "./pages/Home";
 import Dashboard from "./pages/Dashboard";
+import CompleteDashboard from "./pages/CompleteDashboard";
 import ModernAdminDashboard from "./pages/ModernAdminDashboard";
 import ModernNeuroLintPage from "./pages/ModernNeuroLintPage";
 import ModernTestingPage from "./pages/ModernTestingPage";
@@ -29,7 +30,7 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Home />} />
-            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/dashboard" element={<CompleteDashboard />} />
             <Route path="/admin" element={<ModernAdminDashboard />} />
             <Route path="/neurolint" element={<ModernNeuroLintPage />} />
             <Route path="/testing" element={<ModernTestingPage />} />
