@@ -152,7 +152,7 @@ export default function CompleteDashboard() {
     { id: 'history', label: 'History', icon: History },
     { id: 'analytics', label: 'Analytics', icon: BarChart3 },
     { id: 'collaboration', label: 'Team', icon: Users },
-    { id: 'rules', label: 'AI Rules', icon: Sparkles },
+    { id: 'rules', label: 'Pattern Rules', icon: Sparkles },
     { id: 'integrations', label: 'Integrations', icon: GitBranch },
   ];
 
@@ -187,17 +187,17 @@ export default function CompleteDashboard() {
       {/* Welcome Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">
-            Welcome back, {user?.email?.split('@')[0] || 'Developer'}!
-          </h1>
-          <p className="text-zinc-400 mt-1">
-            Here's what's happening with your code transformations today.
-          </p>
+                     <h1 className="text-2xl font-bold text-white">
+             Welcome back, {user?.email?.split('@')[0] || 'Developer'}
+           </h1>
+           <p className="text-zinc-400 mt-1">
+             Your code transformation metrics and recent activity.
+           </p>
         </div>
-        <Button className="bg-white hover:bg-gray-100 text-black">
-          <Zap className="mr-2 h-4 w-4" />
-          New Transformation
-        </Button>
+                 <Button className="bg-white hover:bg-gray-100 text-black">
+           <Zap className="mr-2 h-4 w-4" />
+           Transform Code
+         </Button>
       </div>
 
       {/* Key Metrics */}
@@ -213,9 +213,9 @@ export default function CompleteDashboard() {
             <div className="text-2xl font-bold text-white">
               {dashboardData?.totalTransformations.toLocaleString()}
             </div>
-            <p className="text-xs text-green-400 mt-1">
-              +12% from last month
-            </p>
+                         <p className="text-xs text-zinc-400 mt-1">
+               +12% from last month
+             </p>
           </CardContent>
         </Card>
 
@@ -248,9 +248,9 @@ export default function CompleteDashboard() {
             <div className="text-2xl font-bold text-white">
               {dashboardData?.averageExecutionTime}s
             </div>
-            <p className="text-xs text-green-400 mt-1">
-              -0.3s improvement
-            </p>
+                         <p className="text-xs text-zinc-400 mt-1">
+               -0.3s improvement
+             </p>
           </CardContent>
         </Card>
 
@@ -278,10 +278,10 @@ export default function CompleteDashboard() {
         {/* Recent Transformations */}
         <Card className="bg-zinc-900/50 border-zinc-800">
           <CardHeader>
-            <CardTitle className="text-white">Recent Transformations</CardTitle>
-            <CardDescription className="text-zinc-400">
-              Your latest code transformation activities
-            </CardDescription>
+                       <CardTitle className="text-white">Recent Activity</CardTitle>
+           <CardDescription className="text-zinc-400">
+             Latest code transformations and results
+           </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -291,11 +291,11 @@ export default function CompleteDashboard() {
                   className="flex items-center justify-between p-3 rounded-lg bg-zinc-800/50 border border-zinc-700"
                 >
                   <div className="flex items-center space-x-3">
-                    {transformation.status === 'success' ? (
-                      <CheckCircle className="h-4 w-4 text-green-400" />
-                    ) : (
-                      <AlertTriangle className="h-4 w-4 text-red-400" />
-                    )}
+                                         {transformation.status === 'success' ? (
+                       <CheckCircle className="h-4 w-4 text-emerald-500" />
+                     ) : (
+                       <AlertTriangle className="h-4 w-4 text-orange-500" />
+                     )}
                     <div>
                       <p className="text-sm font-medium text-white">
                         {transformation.fileName}
@@ -347,54 +347,54 @@ export default function CompleteDashboard() {
       </div>
 
       {/* Quick Actions */}
-      <Card className="bg-zinc-900/50 border-zinc-800">
-        <CardHeader>
-          <CardTitle className="text-white">Quick Actions</CardTitle>
-          <CardDescription className="text-zinc-400">
-            Common tasks and shortcuts
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 md:grid-cols-3">
-            <Button 
-              variant="outline" 
-              className="border-zinc-700 text-zinc-300 hover:text-white"
-              onClick={() => setActiveTab('transform')}
-            >
-              <Zap className="mr-2 h-4 w-4" />
-              Transform Code
-            </Button>
-            <Button 
-              variant="outline" 
-              className="border-zinc-700 text-zinc-300 hover:text-white"
-              onClick={() => setActiveTab('projects')}
-            >
-              <FolderOpen className="mr-2 h-4 w-4" />
-              New Project
-            </Button>
-            <Button 
-              variant="outline" 
-              className="border-zinc-700 text-zinc-300 hover:text-white"
-              onClick={() => setActiveTab('integrations')}
-            >
-              <GitBranch className="mr-2 h-4 w-4" />
-              Connect GitHub
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+               <Card className="bg-zinc-900/50 border-zinc-800">
+           <CardHeader>
+             <CardTitle className="text-white">Quick Actions</CardTitle>
+             <CardDescription className="text-zinc-400">
+               Common tasks and workflows
+             </CardDescription>
+           </CardHeader>
+           <CardContent>
+             <div className="grid gap-4 md:grid-cols-3">
+               <Button 
+                 variant="outline" 
+                 className="border-zinc-700 text-zinc-300 hover:text-white hover:border-zinc-600"
+                 onClick={() => setActiveTab('transform')}
+               >
+                 <Zap className="mr-2 h-4 w-4" />
+                 Transform Code
+               </Button>
+               <Button 
+                 variant="outline" 
+                 className="border-zinc-700 text-zinc-300 hover:text-white hover:border-zinc-600"
+                 onClick={() => setActiveTab('projects')}
+               >
+                 <FolderOpen className="mr-2 h-4 w-4" />
+                 New Project
+               </Button>
+               <Button 
+                 variant="outline" 
+                 className="border-zinc-700 text-zinc-300 hover:text-white hover:border-zinc-600"
+                 onClick={() => setActiveTab('integrations')}
+               >
+                 <GitBranch className="mr-2 h-4 w-4" />
+                 Connect GitHub
+               </Button>
+             </div>
+           </CardContent>
+         </Card>
     </div>
   );
 
   const renderProjects = () => (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-white">Projects</h1>
-          <p className="text-zinc-400 mt-1">
-            Organize your code transformations by project
-          </p>
-        </div>
+                 <div>
+           <h1 className="text-2xl font-bold text-white">Projects</h1>
+           <p className="text-zinc-400 mt-1">
+             Organize and manage your code transformation projects
+           </p>
+         </div>
         <Button className="bg-white hover:bg-gray-100 text-black">
           <FolderOpen className="mr-2 h-4 w-4" />
           New Project
@@ -468,7 +468,7 @@ export default function CompleteDashboard() {
       case 'collaboration':
         return renderPlaceholder('Team Collaboration', 'Collaborate with your team members', Users);
       case 'rules':
-        return renderPlaceholder('AI Pattern Rules', 'Manage learned patterns from Layer 7', Sparkles);
+        return renderPlaceholder('Pattern Rules', 'Manage transformation patterns and rules', Sparkles);
       case 'integrations':
         return renderPlaceholder('Integrations', 'Connect with external tools and services', GitBranch);
       case 'profile':
@@ -496,7 +496,7 @@ export default function CompleteDashboard() {
                 <img src="/Bee logo.png" alt="NeuroLint" className="h-8 w-8 rounded-lg" />
                 <div>
                   <h2 className="font-bold text-white">NeuroLint</h2>
-                  <p className="text-xs text-zinc-400">Advanced Platform</p>
+                  <p className="text-xs text-zinc-400">Code Transformation</p>
                 </div>
               </div>
             )}

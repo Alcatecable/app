@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, useRef } from "react";
+THIS SHOULD BE A LINTER ERRORimport React, { useState, useCallback, useEffect, useRef } from "react";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import {
   Card,
