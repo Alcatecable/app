@@ -13,10 +13,11 @@
     
     <style>
         :root {
-            /* Core Brand Colors - Exact match to neurolint.dev */
-            --primary: #0066FF; /* Electric Blue */
-            --primary-dark: #0052CC;
-            --primary-light: #3385FF;
+            /* NeuroLint Brand Colors - Minimal design */
+            --primary: #FFFFFF; /* White buttons */
+            --primary-dark: #F5F5F5;
+            --primary-light: #FAFAFA;
+            --blue-accent: #0066FF; /* Electric Blue - minimal usage */
             
             /* Background Colors */
             --background: #000000; /* Pure Black */
@@ -147,12 +148,12 @@
         }
 
         .btn-primary {
-            background: var(--primary);
-            color: white;
+            background: #FFFFFF;
+            color: #000000;
         }
 
         .btn-primary:hover {
-            background: var(--primary-dark);
+            background: #F5F5F5;
         }
 
         .btn-secondary {
@@ -163,7 +164,7 @@
 
         .btn-secondary:hover {
             background: var(--surface);
-            border-color: var(--primary);
+            border-color: var(--blue-accent);
         }
 
         /* Hero Section */
@@ -295,13 +296,13 @@
         }
 
         .feature-card:hover {
-            border-color: var(--primary);
+            border-color: var(--blue-accent);
         }
 
         .feature-icon {
             width: 48px;
             height: 48px;
-            background: var(--primary);
+            background: var(--blue-accent);
             border-radius: 12px;
             display: flex;
             align-items: center;
@@ -338,7 +339,7 @@
         .step-number {
             width: 48px;
             height: 48px;
-            background: var(--primary);
+            background: var(--blue-accent);
             border-radius: 50%;
             display: flex;
             align-items: center;
@@ -372,7 +373,7 @@
         .stat-item h3 {
             font-size: 2rem;
             font-weight: 800;
-            color: var(--primary);
+            color: var(--blue-accent);
             margin-bottom: 0.5rem;
         }
 
@@ -469,10 +470,10 @@
         }
 
         /* Code syntax highlighting - minimal terminal colors */
-        .keyword { color: var(--primary-light); }
+        .keyword { color: var(--foreground-secondary); }
         .string { color: var(--terminal-text); }
         .comment { color: var(--terminal-comment); }
-        .function { color: var(--primary); }
+        .function { color: var(--blue-accent); }
         .operator { color: var(--foreground); }
         .number { color: var(--warning); }
     </style>

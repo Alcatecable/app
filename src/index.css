@@ -5,7 +5,7 @@
 /* Import NeuroLint Design System Fonts */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@300;400;500;600;700&display=swap');
 
-/* NeuroLint Design System - Exact match to neurolint.dev and built-sites */
+/* NeuroLint Design System - Clean minimal with white buttons */
 @layer base {
   :root {
     /* Core NeuroLint Brand Colors */
@@ -18,8 +18,9 @@
     --popover: 0 0% 5%;              /* Darker for popovers */
     --popover-foreground: 0 0% 98%;
 
-    --primary: 214 100% 51%;         /* Electric Blue #0066FF */
-    --primary-foreground: 0 0% 100%; /* White on blue */
+    /* Updated Primary - White buttons with black text */
+    --primary: 0 0% 100%;            /* White #FFFFFF */
+    --primary-foreground: 0 0% 0%;   /* Black text on white */
 
     --secondary: 0 0% 20%;           /* Dark gray surface */
     --secondary-foreground: 0 0% 98%;
@@ -27,32 +28,36 @@
     --muted: 0 0% 15%;               /* Muted backgrounds */
     --muted-foreground: 0 0% 65%;    /* Muted text */
 
-    --accent: 214 100% 51%;          /* Same as primary */
-    --accent-foreground: 0 0% 100%;
+    /* Accent - Minimal blue usage */
+    --accent: 0 0% 15%;              /* Gray accent instead of blue */
+    --accent-foreground: 0 0% 98%;
 
     --destructive: 0 84% 60%;        /* Red for errors */
     --destructive-foreground: 0 0% 98%;
 
     --border: 0 0% 20%;              /* Dark borders #333333 */
     --input: 0 0% 15%;               /* Input backgrounds */
-    --ring: 214 100% 51%;            /* Focus rings */
+    --ring: 0 0% 100%;               /* White focus rings */
 
     --radius: 0.75rem;               /* 12px border radius */
 
     /* Sidebar specific colors */
     --sidebar-background: 0 0% 5%;   /* Slightly darker than main */
     --sidebar-foreground: 0 0% 98%;
-    --sidebar-primary: 214 100% 51%;
-    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-primary: 0 0% 100%;    /* White for sidebar primary */
+    --sidebar-primary-foreground: 0 0% 0%;
     --sidebar-accent: 0 0% 10%;
     --sidebar-accent-foreground: 0 0% 98%;
     --sidebar-border: 0 0% 15%;
-    --sidebar-ring: 214 100% 51%;
+    --sidebar-ring: 0 0% 100%;
 
     /* Terminal specific colors */
     --terminal-bg: 0 0% 8%;          /* #141414 */
     --terminal-text: 120 100% 50%;   /* Green terminal text */
     --terminal-comment: 0 0% 50%;    /* Gray comments */
+
+    /* Blue accent for minimal usage */
+    --blue-accent: 214 100% 51%;     /* Electric Blue #0066FF - use sparingly */
   }
 
   /* No light mode - NeuroLint is pure dark theme */
@@ -63,27 +68,27 @@
     --card-foreground: 0 0% 98%;
     --popover: 0 0% 5%;
     --popover-foreground: 0 0% 98%;
-    --primary: 214 100% 51%;
-    --primary-foreground: 0 0% 100%;
+    --primary: 0 0% 100%;
+    --primary-foreground: 0 0% 0%;
     --secondary: 0 0% 20%;
     --secondary-foreground: 0 0% 98%;
     --muted: 0 0% 15%;
     --muted-foreground: 0 0% 65%;
-    --accent: 214 100% 51%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 0 0% 15%;
+    --accent-foreground: 0 0% 98%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 98%;
     --border: 0 0% 20%;
     --input: 0 0% 15%;
-    --ring: 214 100% 51%;
+    --ring: 0 0% 100%;
     --sidebar-background: 0 0% 5%;
     --sidebar-foreground: 0 0% 98%;
-    --sidebar-primary: 214 100% 51%;
-    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-primary: 0 0% 100%;
+    --sidebar-primary-foreground: 0 0% 0%;
     --sidebar-accent: 0 0% 10%;
     --sidebar-accent-foreground: 0 0% 98%;
     --sidebar-border: 0 0% 15%;
-    --sidebar-ring: 214 100% 51%;
+    --sidebar-ring: 0 0% 100%;
   }
 }
 
@@ -183,24 +188,37 @@
     margin-top: 1.5rem;
   }
 
-  /* Enhanced buttons */
+  /* Updated buttons - White with black text */
   .btn-neurolint {
-    @apply bg-primary text-primary-foreground hover:bg-primary/90 
+    @apply bg-white text-black hover:bg-gray-100 
            font-semibold px-6 py-3 rounded-lg transition-all duration-200 
-           hover:shadow-lg hover:shadow-primary/25 hover:-translate-y-0.5;
+           hover:shadow-lg hover:shadow-white/10 hover:-translate-y-0.5;
   }
 
   .btn-neurolint-outline {
-    @apply border border-border text-foreground hover:bg-accent/10 
-           hover:border-primary font-semibold px-6 py-3 rounded-lg 
+    @apply border border-border text-foreground hover:bg-white/5 
+           hover:border-white font-semibold px-6 py-3 rounded-lg 
            transition-all duration-200;
   }
 
-  /* Enhanced cards */
+  /* Enhanced cards with minimal color */
   .card-neurolint {
     @apply bg-card border border-border rounded-xl p-6 
-           hover:border-primary/50 transition-all duration-200 
-           hover:shadow-lg hover:shadow-primary/10;
+           hover:border-white/20 transition-all duration-200 
+           hover:shadow-lg hover:shadow-white/5;
+  }
+
+  /* Blue accent class for minimal usage */
+  .text-blue-accent {
+    color: hsl(var(--blue-accent));
+  }
+
+  .border-blue-accent {
+    border-color: hsl(var(--blue-accent));
+  }
+
+  .bg-blue-accent {
+    background-color: hsl(var(--blue-accent));
   }
 }
 
