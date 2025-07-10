@@ -1,16 +1,11 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
-import { componentTagger } from "lovable-tagger";
 import { nodePolyfills } from "vite-plugin-node-polyfills";
 
 // https://vitejs.dev/config/
-export default defineConfig(({ mode }) => ({
-  server: {
-    host: "::",
-    port: 8080,
-  },
-  plugins: [
+export default defineConfig(({ mode }) => {
+  const plugins = [
     react(),
     nodePolyfills({
       // To exclude specific polyfills, add them to this list.
@@ -26,19 +21,29 @@ export default defineConfig(({ mode }) => ({
       // Whether to polyfill Node.js built-in modules.
       protocolImports: true,
     }),
-    mode === "development" && componentTagger(),
-  ].filter(Boolean),
-  resolve: {
-    alias: {
-      "@": path.resolve(__dirname, "./src"),
+  ];
+
+  // Skip lovable-tagger completely for now to avoid ESM issues
+  // Can be re-enabled later when ESM compatibility is resolved
+
+  return {
+    server: {
+      host: "::",
+      port: 8080,
     },
-  },
-  define: {
-    global: "globalThis",
-  },
-  test: {
-    globals: true,
-    environment: "jsdom",
-    setupFiles: ["./src/test/setup.ts"],
-  },
-}));
+    plugins,
+    resolve: {
+      alias: {
+        "@": path.resolve(__dirname, "./src"),
+      },
+    },
+    define: {
+      global: "globalThis",
+    },
+    test: {
+      globals: true,
+      environment: "jsdom",
+      setupFiles: ["./src/test/setup.ts"],
+    },
+  };
+});
