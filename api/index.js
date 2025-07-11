@@ -1219,8 +1219,7 @@ app.get("/health", (req, res) => {
   });
 });
 
-// Patterns storage (in production, this would be a database)
-const patternsStore = new Map();
+// Supabase patterns storage (production-ready persistence)
 
 // Save patterns endpoint
 app.post(
