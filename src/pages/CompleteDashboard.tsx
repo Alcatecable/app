@@ -8,6 +8,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import {
   Home,
   Zap,
@@ -29,6 +33,34 @@ import {
   AlertTriangle,
   Database,
   Bell,
+  Search,
+  Filter,
+  Download,
+  Upload,
+  FileText,
+  Code,
+  Share,
+  Lock,
+  Globe,
+  Calendar,
+  TrendingUp,
+  Target,
+  Layers,
+  Terminal,
+  Book,
+  Mail,
+  ExternalLink,
+  Copy,
+  Trash,
+  Edit,
+  Plus,
+  Minus,
+  Save,
+  Shield,
+  Key,
+  Server,
+  Monitor,
+  Cpu
 } from "lucide-react";
 
 // Import existing transformation components
@@ -64,6 +96,39 @@ interface Project {
   totalTransformations: number;
 }
 
+interface TransformationHistoryItem {
+  id: string;
+  timestamp: Date;
+  fileName: string;
+  projectName: string;
+  layersUsed: number[];
+  status: 'success' | 'failed' | 'partial';
+  executionTime: number;
+  changesCount: number;
+  beforeSize: number;
+  afterSize: number;
+}
+
+interface TeamMember {
+  id: string;
+  name: string;
+  email: string;
+  role: 'admin' | 'developer' | 'viewer';
+  lastActive: Date;
+  transformationsCount: number;
+}
+
+interface PatternRule {
+  id: string;
+  name: string;
+  description: string;
+  layer: number;
+  pattern: string;
+  replacement: string;
+  enabled: boolean;
+  usageCount: number;
+}
+
 export default function CompleteDashboard() {
   const { user, logout } = useAuth();
   const { toast } = useToast();
@@ -80,6 +145,13 @@ export default function CompleteDashboard() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Additional state for new tabs
+  const [historyItems, setHistoryItems] = useState<TransformationHistoryItem[]>([]);
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
+  const [patternRules, setPatternRules] = useState<PatternRule[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterStatus, setFilterStatus] = useState<string>('all');
 
   // Check if user needs onboarding
   useEffect(() => {
