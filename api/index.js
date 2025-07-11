@@ -1541,6 +1541,368 @@ app.get("/api/v1/projects", (req, res) => {
   });
 });
 
+// Transformation history endpoint
+app.get("/api/v1/history", authenticateUser, async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const status = req.query.status || 'all';
+    const search = req.query.search || '';
+
+    let query = supabase
+      .from("transformation_history")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    // Filter by user if not admin
+    if (userId) {
+      query = query.eq("user_id", userId);
+    }
+
+    // Filter by status
+    if (status !== 'all') {
+      if (status === 'success') {
+        query = query.gt("successful_layers", 0);
+      } else if (status === 'failed') {
+        query = query.eq("successful_layers", 0);
+      }
+    }
+
+    // Search filter
+    if (search) {
+      query = query.ilike("original_code_hash", `%${search}%`);
+    }
+
+    // Pagination
+    const offset = (page - 1) * limit;
+    query = query.range(offset, offset + limit - 1);
+
+    const { data: history, error, count } = await query;
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    res.json({
+      history: history || [],
+      pagination: {
+        page,
+        limit,
+        total: count || 0,
+        totalPages: Math.ceil((count || 0) / limit)
+      }
+    });
+  } catch (error) {
+    console.error("History fetch error:", error);
+    res.status(500).json({
+      error: "Failed to fetch transformation history",
+      code: "HISTORY_ERROR",
+      details: error.message,
+      timestamp: new Date().toISOString(),
+    });
+  }
+});
+
+// Analytics endpoint
+app.get("/api/v1/analytics", authenticateUser, async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    const timeRange = req.query.timeRange || "7d";
+    const isAdmin = req.query.admin === "true";
+
+    const now = new Date();
+    const daysBack = timeRange === "30d" ? 30 : timeRange === "90d" ? 90 : 7;
+    const startDate = new Date(now.getTime() - daysBack * 24 * 60 * 60 * 1000);
+
+    try {
+      // Get API usage analytics
+      let usageQuery = supabase
+        .from("api_usage_logs")
+        .select("*")
+        .gte("created_at", startDate.toISOString());
+
+      if (!isAdmin && userId) {
+        usageQuery = usageQuery.eq("user_id", userId);
+      }
+
+      const { data: apiUsage, error: usageError } = await usageQuery;
+
+      // Get transformation analytics
+      let transformQuery = supabase
+        .from("transformation_history")
+        .select("*")
+        .gte("created_at", startDate.toISOString());
+
+      if (!isAdmin && userId) {
+        transformQuery = transformQuery.eq("user_id", userId);
+      }
+
+      const { data: transformations, error: transformError } = await transformQuery;
+
+      if (usageError || transformError) {
+        throw new Error(usageError?.message || transformError?.message);
+      }
+
+      // Process analytics data
+      const analytics = {
+        apiUsage: {
+          totalRequests: apiUsage?.length || 0,
+          avgResponseTime: apiUsage?.length > 0 
+            ? Math.round(apiUsage.reduce((sum, log) => sum + (log.execution_time_ms || 0), 0) / apiUsage.length)
+            : 0,
+          errorRate: apiUsage?.length > 0 
+            ? (apiUsage.filter(log => log.status_code >= 400).length / apiUsage.length) * 100
+            : 0,
+          endpointUsage: apiUsage?.reduce((acc, log) => {
+            acc[log.endpoint] = (acc[log.endpoint] || 0) + 1;
+            return acc;
+          }, {}) || {}
+        },
+        transformations: {
+          total: transformations?.length || 0,
+          successful: transformations?.filter(t => t.successful_layers > 0).length || 0,
+          averageExecutionTime: transformations?.length > 0
+            ? Math.round(transformations.reduce((sum, t) => sum + (t.total_execution_time_ms || 0), 0) / transformations.length)
+            : 0,
+          layerUsage: transformations?.reduce((acc, t) => {
+            if (t.enabled_layers && Array.isArray(t.enabled_layers)) {
+              t.enabled_layers.forEach(layer => {
+                acc[layer] = (acc[layer] || 0) + 1;
+              });
+            }
+            return acc;
+          }, {}) || {},
+          codeImprovements: {
+            totalChanges: transformations?.reduce((sum, t) => sum + (t.improvement_score || 0), 0) || 0,
+            averageImprovement: transformations?.length > 0
+              ? Math.round(transformations.reduce((sum, t) => sum + (t.improvement_score || 0), 0) / transformations.length)
+              : 0
+          }
+        },
+        timeRange,
+        startDate: startDate.toISOString(),
+        endDate: now.toISOString()
+      };
+
+      res.json(analytics);
+    } catch (supabaseError) {
+      console.warn("Supabase analytics query failed, using fallback:", supabaseError.message);
+      res.json({
+        apiUsage: {
+          totalRequests: 0,
+          avgResponseTime: 0,
+          errorRate: 0,
+          endpointUsage: {}
+        },
+        transformations: {
+          total: 0,
+          successful: 0,
+          averageExecutionTime: 0,
+          layerUsage: {},
+          codeImprovements: {
+            totalChanges: 0,
+            averageImprovement: 0
+          }
+        },
+        timeRange,
+        startDate: startDate.toISOString(),
+        endDate: now.toISOString()
+      });
+    }
+  } catch (error) {
+    console.error("Analytics error:", error);
+    res.status(500).json({
+      error: "Failed to fetch analytics data",
+      code: "ANALYTICS_ERROR",
+      details: error.message,
+      timestamp: new Date().toISOString(),
+    });
+  }
+});
+
+// Team management endpoints
+app.get("/api/v1/team", authenticateUser, async (req, res) => {
+  try {
+    // For now, return basic user info as team data
+    // In a full implementation, this would query a teams/users table
+    res.json({
+      members: [],
+      totalMembers: 0,
+      roles: ['admin', 'developer', 'viewer'],
+      message: "Team management requires enterprise setup"
+    });
+  } catch (error) {
+    console.error("Team fetch error:", error);
+    res.status(500).json({
+      error: "Failed to fetch team data",
+      code: "TEAM_ERROR",
+      details: error.message,
+      timestamp: new Date().toISOString(),
+    });
+  }
+});
+
+// Integrations endpoint
+app.get("/api/v1/integrations", authenticateUser, async (req, res) => {
+  try {
+    const integrations = {
+      github: {
+        name: "GitHub",
+        status: "disconnected",
+        description: "Connect your GitHub repositories for automated transformations"
+      },
+      gitlab: {
+        name: "GitLab",
+        status: "disconnected", 
+        description: "Integrate with GitLab for CI/CD pipeline automation"
+      },
+      vscode: {
+        name: "VS Code Extension",
+        status: "available",
+        description: "Install the NeuroLint VS Code extension for IDE integration"
+      },
+      api: {
+        name: "REST API",
+        status: "active",
+        description: "Use our REST API for custom integrations"
+      },
+      webhook: {
+        name: "Webhooks",
+        status: "configured",
+        description: "Receive notifications about transformation events"
+      }
+    };
+
+    res.json({
+      integrations,
+      availableIntegrations: Object.keys(integrations).length,
+      connectedIntegrations: Object.values(integrations).filter(i => i.status === 'active' || i.status === 'connected').length
+    });
+  } catch (error) {
+    console.error("Integrations fetch error:", error);
+    res.status(500).json({
+      error: "Failed to fetch integrations data",
+      code: "INTEGRATIONS_ERROR",
+      details: error.message,
+      timestamp: new Date().toISOString(),
+    });
+  }
+});
+
+// User profile endpoint
+app.get("/api/v1/profile", authenticateUser, async (req, res) => {
+  try {
+    const user = req.user;
+    if (!user) {
+      return res.status(401).json({ error: "User not authenticated" });
+    }
+
+    // Get user quota information
+    const { data: quota } = await supabase
+      .from("user_quotas")
+      .select("*")
+      .eq("user_id", user.id)
+      .single();
+
+    // Get user statistics
+    const { data: userStats } = await supabase
+      .from("transformation_history")
+      .select("*")
+      .eq("user_id", user.id);
+
+    const profile = {
+      id: user.id,
+      email: user.email,
+      createdAt: user.created_at,
+      quota: quota || {
+        used_transformations: 0,
+        monthly_transformations: 1000,
+        quota_reset_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+      },
+      statistics: {
+        totalTransformations: userStats?.length || 0,
+        successfulTransformations: userStats?.filter(s => s.successful_layers > 0).length || 0,
+        averageExecutionTime: userStats?.length > 0 
+          ? Math.round(userStats.reduce((sum, s) => sum + (s.total_execution_time_ms || 0), 0) / userStats.length)
+          : 0
+      },
+      preferences: {
+        emailNotifications: true,
+        defaultLayers: [1, 2, 3, 4],
+        theme: 'dark'
+      }
+    };
+
+    res.json(profile);
+  } catch (error) {
+    console.error("Profile fetch error:", error);
+    res.status(500).json({
+      error: "Failed to fetch profile data",
+      code: "PROFILE_ERROR",
+      details: error.message,
+      timestamp: new Date().toISOString(),
+    });
+  }
+});
+
+// Billing information endpoint
+app.get("/api/v1/billing", authenticateUser, async (req, res) => {
+  try {
+    const user = req.user;
+    
+    // Get user quota for billing info
+    const { data: quota } = await supabase
+      .from("user_quotas")
+      .select("*")
+      .eq("user_id", user?.id)
+      .single();
+
+    const billing = {
+      plan: "Professional Free",
+      status: "active",
+      quota: quota || {
+        used_transformations: 0,
+        monthly_transformations: 1000,
+        quota_reset_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+      },
+      usage: {
+        currentPeriod: quota?.used_transformations || 0,
+        limit: quota?.monthly_transformations || 1000,
+        resetDate: quota?.quota_reset_date || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+      },
+      features: [
+        "1,000 monthly transformations",
+        "All 6 transformation layers",
+        "Web interface access",
+        "Basic support"
+      ],
+      upgradeOptions: [
+        {
+          name: "Professional",
+          price: "$29/month",
+          features: ["10,000 monthly transformations", "Priority support", "Advanced analytics"]
+        },
+        {
+          name: "Enterprise", 
+          price: "Custom",
+          features: ["Unlimited transformations", "Team collaboration", "Custom integrations"]
+        }
+      ]
+    };
+
+    res.json(billing);
+  } catch (error) {
+    console.error("Billing fetch error:", error);
+    res.status(500).json({
+      error: "Failed to fetch billing data",
+      code: "BILLING_ERROR",
+      details: error.message,
+      timestamp: new Date().toISOString(),
+    });
+  }
+});
+
 // Health check endpoint with system status
 app.get("/health", (req, res) => {
   res.json({
