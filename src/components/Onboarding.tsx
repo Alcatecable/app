@@ -176,14 +176,7 @@ function TodoList() {
         <div className="text-center space-y-6">
           <div className="space-y-4">
             <div className="flex justify-center">
-              <div className="relative">
-                <div className="w-24 h-24 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-                  <Code2 className="h-12 w-12 text-white" />
-                </div>
-                <div className="absolute -top-2 -right-2 w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
-                  <Sparkles className="h-4 w-4 text-white" />
-                </div>
-              </div>
+              <img src="/Bee logo.png" alt="NeuroLint Logo" className="h-24 w-24 rounded-lg shadow-lg" />
             </div>
             
             <div className="space-y-2">
