@@ -1717,6 +1717,9 @@ app.post(
   handleValidationErrors,
   async (req, res) => {
     try {
+      // Auto-setup database if needed on first pattern save
+      await setupEnterpriseDatabase();
+
       const { layerId, patterns, metadata = {}, isPublic = false } = req.body;
 
       const patternData = {
