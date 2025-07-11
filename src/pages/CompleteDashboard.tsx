@@ -667,7 +667,16 @@ export default function CompleteDashboard() {
           className={`${sidebarCollapsed ? "w-16" : "w-64"} bg-zinc-900/50 border-r border-zinc-800 flex flex-col transition-all duration-300`}
         >
           {/* Logo & Toggle */}
-          <div className="flex items-center justify-end p-4 border-b border-zinc-800">
+          <div className="flex items-center justify-between p-4 border-b border-zinc-800">
+            {!sidebarCollapsed && (
+              <div className="flex items-center">
+                <img
+                  src="https://cdn.builder.io/api/v1/image/assets%2F67fb758850bf4dabaa407a94333b37bf%2Fd91e193ae84547a9bd6e83abc78ed6c2?format=webp&width=800"
+                  alt="NeuroLint Logo"
+                  className="h-8 w-8 rounded-lg"
+                />
+              </div>
+            )}
             <Button
               variant="ghost"
               size="sm"
