@@ -1559,26 +1559,40 @@ app.post(
   },
 );
 
-// Load patterns endpoint
+// Load patterns endpoint with Supabase persistence
 app.get(
   "/api/v1/patterns/load",
-  [
-    param("layerId")
-      .optional()
-      .isInt({ min: 1, max: 7 })
-      .withMessage("Layer ID must be between 1 and 7"),
-  ],
+  authenticateUser,
   handleValidationErrors,
   async (req, res) => {
     try {
       const layerId = req.query.layerId;
+      const includePublic = req.query.includePublic !== "false";
 
       if (layerId) {
         // Load patterns for specific layer
-        const patternKey = `layer_${layerId}`;
-        const patternData = patternsStore.get(patternKey);
+        let query = supabase
+          .from("neurolint_patterns")
+          .select("*")
+          .eq("layer_id", layerId);
 
-        if (!patternData) {
+        if (req.user) {
+          // Load user's patterns or public patterns
+          query = query.or(`user_id.eq.${req.user.id},is_public.eq.true`);
+        } else {
+          // Load only public patterns for anonymous users
+          query = query.eq("is_public", true);
+        }
+
+        const { data, error } = await query.order("updated_at", {
+          ascending: false,
+        });
+
+        if (error) {
+          throw new Error(`Database error: ${error.message}`);
+        }
+
+        if (!data || data.length === 0) {
           return res.status(404).json({
             success: false,
             error: "No patterns found for this layer",
@@ -1588,17 +1602,55 @@ app.get(
           });
         }
 
+        // Return the most recent pattern (user's own if available, otherwise public)
+        const userPattern = data.find((p) => p.user_id === req.user?.id);
+        const selectedPattern = userPattern || data[0];
+
         res.json({
           success: true,
-          ...patternData,
+          layerId: selectedPattern.layer_id,
+          patterns: selectedPattern.patterns,
+          metadata: selectedPattern.metadata,
+          isPublic: selectedPattern.is_public,
+          isOwn: selectedPattern.user_id === req.user?.id,
+          version: selectedPattern.version,
+          updatedAt: selectedPattern.updated_at,
           timestamp: new Date().toISOString(),
         });
       } else {
         // Load all patterns
+        let query = supabase
+          .from("neurolint_patterns")
+          .select("*")
+          .order("layer_id");
+
+        if (req.user) {
+          query = query.or(`user_id.eq.${req.user.id},is_public.eq.true`);
+        } else {
+          query = query.eq("is_public", true);
+        }
+
+        const { data, error } = await query;
+
+        if (error) {
+          throw new Error(`Database error: ${error.message}`);
+        }
+
+        // Group by layer_id, prioritizing user's own patterns
         const allPatterns = {};
-        for (const [key, data] of patternsStore.entries()) {
-          const layerId = key.replace("layer_", "");
-          allPatterns[layerId] = data;
+        for (const row of data) {
+          const layerId = row.layer_id;
+          if (!allPatterns[layerId] || row.user_id === req.user?.id) {
+            allPatterns[layerId] = {
+              layerId: row.layer_id,
+              patterns: row.patterns,
+              metadata: row.metadata,
+              isPublic: row.is_public,
+              isOwn: row.user_id === req.user?.id,
+              version: row.version,
+              updatedAt: row.updated_at,
+            };
+          }
         }
 
         res.json({
