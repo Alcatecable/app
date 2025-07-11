@@ -12,9 +12,18 @@ import crypto from "crypto";
 import cleanup from "node-cleanup";
 import { fileURLToPath } from "url";
 import fsSync from "fs";
+import { createClient } from "@supabase/supabase-js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+// Supabase client for persistent storage
+const supabase = createClient(
+  process.env.SUPABASE_URL || "https://jetwhffgmohdqkuegtjh.supabase.co",
+  process.env.SUPABASE_SERVICE_KEY ||
+    process.env.SUPABASE_ANON_KEY ||
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpldHdoZmZnbW9oZHFrdWVndGpoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkwNzI0MjcsImV4cCI6MjA2NDY0ODQyN30.qdzOYox4XJQIadJlkg52bWjM1BGJd848ru0kobNmxiA",
+);
 
 const app = express();
 
