@@ -1531,14 +1531,66 @@ app.get("/api/v1/dashboard/metrics", authenticateUser, async (req, res) => {
 });
 
 // Projects endpoint
-app.get("/api/v1/projects", (req, res) => {
-  // In a real implementation, this would query a database
-  const mockProjects = [];
+app.get("/api/v1/projects", authenticateUser, async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const search = req.query.search || '';
 
-  res.json({
-    projects: mockProjects,
-    total: mockProjects.length,
-  });
+    let query = supabase
+      .from("projects")
+      .select("*")
+      .eq("user_id", userId)
+      .eq("is_active", true)
+      .order("created_at", { ascending: false });
+
+    // Search filter
+    if (search) {
+      query = query.or(`name.ilike.%${search}%,description.ilike.%${search}%`);
+    }
+
+    // Pagination
+    const offset = (page - 1) * limit;
+    query = query.range(offset, offset + limit - 1);
+
+    const { data: projects, error, count } = await query;
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    // Transform data to match frontend interface
+    const transformedProjects = (projects || []).map(project => ({
+      id: project.id,
+      name: project.name,
+      description: project.description || '',
+      fileCount: project.file_count || 0,
+      lastUpdated: new Date(project.updated_at),
+      totalTransformations: project.total_transformations || 0,
+      repositoryUrl: project.repository_url,
+      settings: project.settings || {}
+    }));
+
+    res.json({
+      projects: transformedProjects,
+      total: count || 0,
+      pagination: {
+        page,
+        limit,
+        total: count || 0,
+        totalPages: Math.ceil((count || 0) / limit)
+      }
+    });
+  } catch (error) {
+    console.error("Projects fetch error:", error);
+    res.status(500).json({
+      error: "Failed to fetch projects",
+      code: "PROJECTS_ERROR",
+      details: error.message,
+      timestamp: new Date().toISOString(),
+    });
+  }
 });
 
 // Transformation history endpoint
@@ -1724,21 +1776,101 @@ app.get("/api/v1/analytics", authenticateUser, async (req, res) => {
 // Team management endpoints
 app.get("/api/v1/team", authenticateUser, async (req, res) => {
   try {
-    // For now, return basic user info as team data
-    // In a full implementation, this would query a teams/users table
+    const userId = req.user?.id;
+
+    // Get teams owned by user
+    const { data: ownedTeams, error: ownedError } = await supabase
+      .from("teams")
+      .select(`
+        *,
+        team_members!inner (
+          *,
+          user:auth.users (
+            id,
+            email,
+            raw_user_meta_data
+          )
+        )
+      `)
+      .eq("owner_id", userId)
+      .eq("is_active", true);
+
+    // Get teams user is a member of
+    const { data: memberTeams, error: memberError } = await supabase
+      .from("team_members")
+      .select(`
+        *,
+        team:teams (
+          *,
+          team_members (
+            *,
+            user:auth.users (
+              id,
+              email,
+              raw_user_meta_data
+            )
+          )
+        )
+      `)
+      .eq("user_id", userId)
+      .eq("is_active", true);
+
+    if (ownedError || memberError) {
+      throw new Error(ownedError?.message || memberError?.message);
+    }
+
+    // Combine and deduplicate teams
+    const allTeams = [...(ownedTeams || []), ...(memberTeams?.map(m => m.team) || [])];
+    const uniqueTeams = allTeams.filter((team, index, self) => 
+      index === self.findIndex(t => t.id === team.id)
+    );
+
+    // Get all team members
+    const allMembers = [];
+    uniqueTeams.forEach(team => {
+      if (team.team_members) {
+        team.team_members.forEach(member => {
+          if (member.user && member.is_active) {
+            allMembers.push({
+              id: member.user.id,
+              name: member.user.raw_user_meta_data?.full_name || member.user.email.split('@')[0],
+              email: member.user.email,
+              role: member.role,
+              teamId: team.id,
+              teamName: team.name,
+              joinedAt: new Date(member.joined_at),
+              lastActive: member.last_active_at ? new Date(member.last_active_at) : new Date(),
+              transformationsCount: 0 // Would need to query transformation_history
+            });
+          }
+        });
+      }
+    });
+
     res.json({
-      members: [],
-      totalMembers: 0,
+      members: allMembers,
+      totalMembers: allMembers.length,
+      teams: uniqueTeams.map(team => ({
+        id: team.id,
+        name: team.name,
+        description: team.description,
+        memberCount: team.team_members?.filter(m => m.is_active).length || 0,
+        isOwner: team.owner_id === userId
+      })),
       roles: ['admin', 'developer', 'viewer'],
-      message: "Team management requires enterprise setup"
+      isEnterprise: allMembers.length > 0
     });
   } catch (error) {
     console.error("Team fetch error:", error);
-    res.status(500).json({
-      error: "Failed to fetch team data",
-      code: "TEAM_ERROR",
-      details: error.message,
-      timestamp: new Date().toISOString(),
+    
+    // Fallback for users without teams
+    res.json({
+      members: [],
+      totalMembers: 0,
+      teams: [],
+      roles: ['admin', 'developer', 'viewer'],
+      isEnterprise: false,
+      message: "Team management requires enterprise setup"
     });
   }
 });
@@ -1746,7 +1878,98 @@ app.get("/api/v1/team", authenticateUser, async (req, res) => {
 // Integrations endpoint
 app.get("/api/v1/integrations", authenticateUser, async (req, res) => {
   try {
-    const integrations = {
+    const userId = req.user?.id;
+
+    // Get user's integrations from database
+    const { data: userIntegrations, error } = await supabase
+      .from("integrations")
+      .select("*")
+      .eq("user_id", userId)
+      .eq("is_active", true);
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    // Create integrations object with real data
+    const integrations = {};
+    const availableTypes = ['github', 'gitlab', 'vscode', 'api', 'webhook'];
+    
+    availableTypes.forEach(type => {
+      const userIntegration = userIntegrations?.find(i => i.integration_type === type);
+      
+      if (userIntegration) {
+        integrations[type] = {
+          id: userIntegration.id,
+          name: userIntegration.name,
+          status: userIntegration.status,
+          description: userIntegration.configuration?.description || `${userIntegration.name} integration`,
+          lastSync: userIntegration.last_sync_at ? new Date(userIntegration.last_sync_at) : null,
+          syncStatus: userIntegration.sync_status,
+          errorDetails: userIntegration.error_details,
+          configuration: userIntegration.configuration || {}
+        };
+      } else {
+        // Default configurations for integrations that don't exist yet
+        const defaultConfigs = {
+          github: {
+            name: "GitHub",
+            status: "disconnected",
+            description: "Connect your GitHub repositories for automated transformations"
+          },
+          gitlab: {
+            name: "GitLab",
+            status: "disconnected",
+            description: "Integrate with GitLab for CI/CD pipeline automation"
+          },
+          vscode: {
+            name: "VS Code Extension",
+            status: "available",
+            description: "Install the NeuroLint VS Code extension for IDE integration"
+          },
+          api: {
+            name: "REST API",
+            status: "active",
+            description: "Use our REST API for custom integrations"
+          },
+          webhook: {
+            name: "Webhooks",
+            status: "configured",
+            description: "Receive notifications about transformation events"
+          }
+        };
+        
+        integrations[type] = defaultConfigs[type];
+      }
+    });
+
+    // If user has no integrations, create default ones
+    if (!userIntegrations || userIntegrations.length === 0) {
+      try {
+        // Create default integrations for new user
+        await supabase.rpc('create_default_integrations_for_user', {
+          user_uuid: userId
+        });
+      } catch (createError) {
+        console.warn("Failed to create default integrations:", createError.message);
+      }
+    }
+
+    const connectedIntegrations = Object.values(integrations).filter(
+      i => i.status === 'active' || i.status === 'connected'
+    ).length;
+
+    res.json({
+      integrations,
+      availableIntegrations: Object.keys(integrations).length,
+      connectedIntegrations,
+      totalIntegrations: userIntegrations?.length || 0
+    });
+  } catch (error) {
+    console.error("Integrations fetch error:", error);
+    
+    // Fallback with default integrations
+    const defaultIntegrations = {
       github: {
         name: "GitHub",
         status: "disconnected",
@@ -1754,7 +1977,7 @@ app.get("/api/v1/integrations", authenticateUser, async (req, res) => {
       },
       gitlab: {
         name: "GitLab",
-        status: "disconnected", 
+        status: "disconnected",
         description: "Integrate with GitLab for CI/CD pipeline automation"
       },
       vscode: {
@@ -1775,15 +1998,114 @@ app.get("/api/v1/integrations", authenticateUser, async (req, res) => {
     };
 
     res.json({
-      integrations,
-      availableIntegrations: Object.keys(integrations).length,
-      connectedIntegrations: Object.values(integrations).filter(i => i.status === 'active' || i.status === 'connected').length
+      integrations: defaultIntegrations,
+      availableIntegrations: Object.keys(defaultIntegrations).length,
+      connectedIntegrations: Object.values(defaultIntegrations).filter(i => i.status === 'active' || i.status === 'connected').length,
+      totalIntegrations: 0
+    });
+  }
+});
+
+// Create project endpoint
+app.post("/api/v1/projects", authenticateUser, async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    const { name, description, repositoryUrl, settings } = req.body;
+
+    if (!name || name.trim().length === 0) {
+      return res.status(400).json({
+        error: "Project name is required",
+        code: "VALIDATION_ERROR"
+      });
+    }
+
+    const { data: project, error } = await supabase
+      .from("projects")
+      .insert({
+        user_id: userId,
+        name: name.trim(),
+        description: description?.trim() || null,
+        repository_url: repositoryUrl?.trim() || null,
+        settings: settings || {}
+      })
+      .select()
+      .single();
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    res.status(201).json({
+      project: {
+        id: project.id,
+        name: project.name,
+        description: project.description,
+        fileCount: project.file_count,
+        lastUpdated: new Date(project.updated_at),
+        totalTransformations: project.total_transformations,
+        repositoryUrl: project.repository_url,
+        settings: project.settings
+      }
     });
   } catch (error) {
-    console.error("Integrations fetch error:", error);
+    console.error("Project creation error:", error);
     res.status(500).json({
-      error: "Failed to fetch integrations data",
-      code: "INTEGRATIONS_ERROR",
+      error: "Failed to create project",
+      code: "PROJECT_CREATION_ERROR",
+      details: error.message,
+      timestamp: new Date().toISOString(),
+    });
+  }
+});
+
+// Update integration endpoint
+app.put("/api/v1/integrations/:type", authenticateUser, async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    const { type } = req.params;
+    const { status, configuration, credentials } = req.body;
+
+    const validTypes = ['github', 'gitlab', 'vscode', 'api', 'webhook'];
+    if (!validTypes.includes(type)) {
+      return res.status(400).json({
+        error: "Invalid integration type",
+        code: "VALIDATION_ERROR"
+      });
+    }
+
+    const { data: integration, error } = await supabase
+      .from("integrations")
+      .upsert({
+        user_id: userId,
+        integration_type: type,
+        name: type.charAt(0).toUpperCase() + type.slice(1),
+        status: status || 'configured',
+        configuration: configuration || {},
+        credentials_encrypted: credentials || null,
+        last_sync_at: new Date().toISOString()
+      })
+      .select()
+      .single();
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    res.json({
+      integration: {
+        id: integration.id,
+        type: integration.integration_type,
+        name: integration.name,
+        status: integration.status,
+        configuration: integration.configuration,
+        lastSync: new Date(integration.last_sync_at)
+      }
+    });
+  } catch (error) {
+    console.error("Integration update error:", error);
+    res.status(500).json({
+      error: "Failed to update integration",
+      code: "INTEGRATION_UPDATE_ERROR",
       details: error.message,
       timestamp: new Date().toISOString(),
     });
