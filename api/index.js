@@ -1257,31 +1257,111 @@ app.post(
   },
 );
 
-// Dashboard metrics endpoint
-app.get("/api/v1/dashboard/metrics", (req, res) => {
-  // In a real implementation, this would query a database
-  const now = new Date();
-  const mockData = {
-    totalTransformations: 0,
-    successRate: 0,
-    averageExecutionTime: 0,
-    layerUsage: {
-      1: 0,
-      2: 0,
-      3: 0,
-      4: 0,
-      5: 0,
-      6: 0,
-    },
-    recentTransformations: [],
-    quota: {
-      used: 0,
-      total: 1000,
-      renewsAt: new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
-    },
-  };
+// Enhanced dashboard metrics endpoint with Supabase analytics
+app.get("/api/v1/dashboard/metrics", authenticateUser, async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    const timeRange = req.query.timeRange || "7d";
+    const isAdmin = req.query.admin === "true";
 
-  res.json(mockData);
+    const now = new Date();
+    const daysBack = timeRange === "30d" ? 30 : timeRange === "90d" ? 90 : 7;
+    const startDate = new Date(now.getTime() - daysBack * 24 * 60 * 60 * 1000);
+
+    // Fetch transformation analytics
+    let transformQuery = supabase
+      .from("transformation_history")
+      .select("*")
+      .gte("created_at", startDate.toISOString());
+
+    if (!isAdmin && userId) {
+      transformQuery = transformQuery.eq("user_id", userId);
+    }
+
+    const { data: transformations, error: transformError } =
+      await transformQuery;
+    if (transformError) throw new Error(transformError.message);
+
+    // Calculate metrics
+    const totalTransformations = transformations.length;
+    const successfulTransformations = transformations.filter(
+      (t) => t.successful_layers > 0,
+    ).length;
+    const successRate =
+      totalTransformations > 0
+        ? (successfulTransformations / totalTransformations) * 100
+        : 0;
+
+    const layerUsage = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0 };
+    transformations.forEach((t) => {
+      t.enabled_layers.forEach((layerId) => {
+        if (layerUsage[layerId] !== undefined) {
+          layerUsage[layerId]++;
+        }
+      });
+    });
+
+    // Get user quota
+    let userQuota = null;
+    if (userId) {
+      const { data: quotaData } = await supabase
+        .from("user_quotas")
+        .select("*")
+        .eq("user_id", userId)
+        .single();
+      userQuota = quotaData;
+    }
+
+    const analytics = {
+      totalTransformations,
+      successRate: Math.round(successRate * 100) / 100,
+      averageExecutionTime:
+        transformations.length > 0
+          ? Math.round(
+              transformations.reduce(
+                (sum, t) => sum + t.total_execution_time_ms,
+                0,
+              ) / transformations.length,
+            )
+          : 0,
+      layerUsage,
+      recentTransformations: transformations
+        .sort(
+          (a, b) =>
+            new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+        )
+        .slice(0, 5)
+        .map((t) => ({
+          id: t.id,
+          layers: t.enabled_layers,
+          executionTime: t.total_execution_time_ms,
+          successfulLayers: t.successful_layers,
+          improvementScore: t.improvement_score,
+          createdAt: t.created_at,
+        })),
+      quota: userQuota
+        ? {
+            used: userQuota.used_transformations,
+            total: userQuota.monthly_transformations,
+            renewsAt: userQuota.quota_reset_date,
+          }
+        : {
+            used: 0,
+            total: 1000,
+            renewsAt: new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000),
+          },
+    };
+
+    res.json(analytics);
+  } catch (error) {
+    console.error("Dashboard metrics error:", error);
+    res.status(500).json({
+      error: "Failed to fetch dashboard metrics",
+      code: "METRICS_ERROR",
+      details: error.message,
+      timestamp: new Date().toISOString(),
+    });
+  }
 });
 
 // Projects endpoint
