@@ -1673,6 +1673,125 @@ app.get(
   },
 );
 
+// Real-time pattern subscription endpoints
+
+// Subscribe to pattern updates
+app.post(
+  "/api/v1/patterns/subscribe",
+  authenticateUser,
+  [
+    body("layerId")
+      .isInt({ min: 1, max: 7 })
+      .withMessage("Layer ID must be between 1 and 7"),
+  ],
+  handleValidationErrors,
+  async (req, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({
+          success: false,
+          error: "Authentication required",
+          code: "AUTH_REQUIRED",
+          timestamp: new Date().toISOString(),
+        });
+      }
+
+      const { layerId } = req.body;
+
+      const { data, error } = await supabase
+        .from("pattern_subscriptions")
+        .upsert(
+          {
+            user_id: req.user.id,
+            layer_id: layerId,
+            is_active: true,
+          },
+          {
+            onConflict: "user_id,layer_id",
+          },
+        )
+        .select()
+        .single();
+
+      if (error) {
+        throw new Error(`Database error: ${error.message}`);
+      }
+
+      res.json({
+        success: true,
+        subscription: {
+          layerId,
+          isActive: true,
+          subscribedAt: data.created_at,
+        },
+        message: `Subscribed to Layer ${layerId} pattern updates`,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      console.error("Pattern subscription error:", error);
+      res.status(500).json({
+        success: false,
+        error: "Failed to create subscription",
+        code: "SUBSCRIPTION_ERROR",
+        details: error.message,
+        timestamp: new Date().toISOString(),
+      });
+    }
+  },
+);
+
+// Get user's pattern subscriptions
+app.get(
+  "/api/v1/patterns/subscriptions",
+  authenticateUser,
+  async (req, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({
+          success: false,
+          error: "Authentication required",
+          code: "AUTH_REQUIRED",
+          timestamp: new Date().toISOString(),
+        });
+      }
+
+      const { data, error } = await supabase
+        .from("pattern_subscriptions")
+        .select("*")
+        .eq("user_id", req.user.id)
+        .eq("is_active", true)
+        .order("layer_id");
+
+      if (error) {
+        throw new Error(`Database error: ${error.message}`);
+      }
+
+      const subscriptions = data.map((sub) => ({
+        layerId: sub.layer_id,
+        layerName: getLayerName(sub.layer_id),
+        subscribedAt: sub.created_at,
+        lastNotified: sub.last_notified_at,
+      }));
+
+      res.json({
+        success: true,
+        subscriptions,
+        totalSubscriptions: subscriptions.length,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      console.error("Pattern subscriptions fetch error:", error);
+      res.status(500).json({
+        success: false,
+        error: "Failed to fetch subscriptions",
+        code: "SUBSCRIPTIONS_FETCH_ERROR",
+        details: error.message,
+        timestamp: new Date().toISOString(),
+      });
+    }
+  },
+);
+
 // Helper function to get layer names
 function getLayerName(layerId) {
   const names = {
