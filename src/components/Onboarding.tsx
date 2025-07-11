@@ -16,15 +16,14 @@ import {
   Play, 
   Github, 
   FileCode, 
-  Brain, 
-  BarChart3, 
-  CreditCard, 
-  Settings, 
-  Zap,
-  Sparkles,
-  Code2,
-  Database,
-  Shield,
+  Settings2, 
+  Layers, 
+  LayoutDashboard, 
+  Receipt, 
+  ListChecks, 
+  ClipboardList, 
+  FileText, 
+  Shield, 
   Users
 } from 'lucide-react';
 import { NeuroLintOrchestrator } from '@/lib/neurolint/orchestrator';
@@ -136,34 +135,29 @@ function TodoList() {
 
   const features = [
     {
-      icon: <Zap className="h-6 w-6" />,
+      icon: <Settings2 className="h-6 w-6 text-white" />,
       title: "Transform",
-      description: "Run code transformations with our powerful pipeline, including automatic fixes for Next.js and accessibility.",
-      color: "text-blue-400"
+      description: "Run code transformations with our powerful pipeline, including automatic fixes for Next.js and accessibility."
     },
     {
-      icon: <Brain className="h-6 w-6" />,
+      icon: <Layers className="h-6 w-6 text-white" />,
       title: "Adaptive Learning (Layer 7)",
-      description: "NeuroLint learns from your transformations, applying smarter fixes over time.",
-      color: "text-purple-400"
+      description: "NeuroLint learns from your transformations, applying smarter fixes over time."
     },
     {
-      icon: <BarChart3 className="h-6 w-6" />,
+      icon: <LayoutDashboard className="h-6 w-6 text-white" />,
       title: "Overview",
-      description: "Track your transformation history and project metrics at a glance.",
-      color: "text-green-400"
+      description: "Track your transformation history and project metrics at a glance."
     },
     {
-      icon: <CreditCard className="h-6 w-6" />,
+      icon: <Receipt className="h-6 w-6 text-white" />,
       title: "Billing & Usage",
-      description: "Monitor your usage and upgrade to SuperGrok for higher quotas.",
-      color: "text-yellow-400"
+      description: "Monitor your usage and upgrade to SuperGrok for higher quotas."
     },
     {
-      icon: <Settings className="h-6 w-6" />,
+      icon: <ListChecks className="h-6 w-6 text-white" />,
       title: "Rule Management",
-      description: "Review and customize learned transformation rules.",
-      color: "text-orange-400"
+      description: "Review and customize learned transformation rules."
     }
   ];
 
@@ -176,14 +170,7 @@ function TodoList() {
         <div className="text-center space-y-6">
           <div className="space-y-4">
             <div className="flex justify-center">
-              <div className="relative">
-                <div className="w-24 h-24 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-                  <Code2 className="h-12 w-12 text-white" />
-                </div>
-                <div className="absolute -top-2 -right-2 w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
-                  <Sparkles className="h-4 w-4 text-white" />
-                </div>
-              </div>
+              <img src="/Bee logo.png" alt="NeuroLint Logo" className="h-24 w-24 rounded-lg shadow-lg" />
             </div>
             
             <div className="space-y-2">
@@ -229,7 +216,7 @@ function TodoList() {
               <Card key={index} className="bg-zinc-900/50 border-zinc-800 hover:border-zinc-700 transition-colors">
                 <CardHeader className="pb-3">
                   <div className="flex items-center space-x-3">
-                    <div className={`${feature.color}`}>
+                    <div className="text-white">
                       {feature.icon}
                     </div>
                     <CardTitle className="text-white text-lg">{feature.title}</CardTitle>
@@ -440,7 +427,7 @@ function TodoList() {
             <Card className="bg-zinc-900/50 border-zinc-800">
               <CardHeader>
                 <CardTitle className="text-white flex items-center space-x-2">
-                  <CreditCard className="h-5 w-5" />
+                  <Receipt className="h-5 w-5" />
                   <span>Current Plan</span>
                 </CardTitle>
               </CardHeader>
