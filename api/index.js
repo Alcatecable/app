@@ -1531,14 +1531,698 @@ app.get("/api/v1/dashboard/metrics", authenticateUser, async (req, res) => {
 });
 
 // Projects endpoint
-app.get("/api/v1/projects", (req, res) => {
-  // In a real implementation, this would query a database
-  const mockProjects = [];
+app.get("/api/v1/projects", authenticateUser, async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const search = req.query.search || '';
 
-  res.json({
-    projects: mockProjects,
-    total: mockProjects.length,
-  });
+    let query = supabase
+      .from("projects")
+      .select("*")
+      .eq("user_id", userId)
+      .eq("is_active", true)
+      .order("created_at", { ascending: false });
+
+    // Search filter
+    if (search) {
+      query = query.or(`name.ilike.%${search}%,description.ilike.%${search}%`);
+    }
+
+    // Pagination
+    const offset = (page - 1) * limit;
+    query = query.range(offset, offset + limit - 1);
+
+    const { data: projects, error, count } = await query;
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    // Transform data to match frontend interface
+    const transformedProjects = (projects || []).map(project => ({
+      id: project.id,
+      name: project.name,
+      description: project.description || '',
+      fileCount: project.file_count || 0,
+      lastUpdated: new Date(project.updated_at),
+      totalTransformations: project.total_transformations || 0,
+      repositoryUrl: project.repository_url,
+      settings: project.settings || {}
+    }));
+
+    res.json({
+      projects: transformedProjects,
+      total: count || 0,
+      pagination: {
+        page,
+        limit,
+        total: count || 0,
+        totalPages: Math.ceil((count || 0) / limit)
+      }
+    });
+  } catch (error) {
+    console.error("Projects fetch error:", error);
+    res.status(500).json({
+      error: "Failed to fetch projects",
+      code: "PROJECTS_ERROR",
+      details: error.message,
+      timestamp: new Date().toISOString(),
+    });
+  }
+});
+
+// Transformation history endpoint
+app.get("/api/v1/history", authenticateUser, async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const status = req.query.status || 'all';
+    const search = req.query.search || '';
+
+    let query = supabase
+      .from("transformation_history")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    // Filter by user if not admin
+    if (userId) {
+      query = query.eq("user_id", userId);
+    }
+
+    // Filter by status
+    if (status !== 'all') {
+      if (status === 'success') {
+        query = query.gt("successful_layers", 0);
+      } else if (status === 'failed') {
+        query = query.eq("successful_layers", 0);
+      }
+    }
+
+    // Search filter
+    if (search) {
+      query = query.ilike("original_code_hash", `%${search}%`);
+    }
+
+    // Pagination
+    const offset = (page - 1) * limit;
+    query = query.range(offset, offset + limit - 1);
+
+    const { data: history, error, count } = await query;
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    res.json({
+      history: history || [],
+      pagination: {
+        page,
+        limit,
+        total: count || 0,
+        totalPages: Math.ceil((count || 0) / limit)
+      }
+    });
+  } catch (error) {
+    console.error("History fetch error:", error);
+    res.status(500).json({
+      error: "Failed to fetch transformation history",
+      code: "HISTORY_ERROR",
+      details: error.message,
+      timestamp: new Date().toISOString(),
+    });
+  }
+});
+
+// Analytics endpoint
+app.get("/api/v1/analytics", authenticateUser, async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    const timeRange = req.query.timeRange || "7d";
+    const isAdmin = req.query.admin === "true";
+
+    const now = new Date();
+    const daysBack = timeRange === "30d" ? 30 : timeRange === "90d" ? 90 : 7;
+    const startDate = new Date(now.getTime() - daysBack * 24 * 60 * 60 * 1000);
+
+    try {
+      // Get API usage analytics
+      let usageQuery = supabase
+        .from("api_usage_logs")
+        .select("*")
+        .gte("created_at", startDate.toISOString());
+
+      if (!isAdmin && userId) {
+        usageQuery = usageQuery.eq("user_id", userId);
+      }
+
+      const { data: apiUsage, error: usageError } = await usageQuery;
+
+      // Get transformation analytics
+      let transformQuery = supabase
+        .from("transformation_history")
+        .select("*")
+        .gte("created_at", startDate.toISOString());
+
+      if (!isAdmin && userId) {
+        transformQuery = transformQuery.eq("user_id", userId);
+      }
+
+      const { data: transformations, error: transformError } = await transformQuery;
+
+      if (usageError || transformError) {
+        throw new Error(usageError?.message || transformError?.message);
+      }
+
+      // Process analytics data
+      const analytics = {
+        apiUsage: {
+          totalRequests: apiUsage?.length || 0,
+          avgResponseTime: apiUsage?.length > 0 
+            ? Math.round(apiUsage.reduce((sum, log) => sum + (log.execution_time_ms || 0), 0) / apiUsage.length)
+            : 0,
+          errorRate: apiUsage?.length > 0 
+            ? (apiUsage.filter(log => log.status_code >= 400).length / apiUsage.length) * 100
+            : 0,
+          endpointUsage: apiUsage?.reduce((acc, log) => {
+            acc[log.endpoint] = (acc[log.endpoint] || 0) + 1;
+            return acc;
+          }, {}) || {}
+        },
+        transformations: {
+          total: transformations?.length || 0,
+          successful: transformations?.filter(t => t.successful_layers > 0).length || 0,
+          averageExecutionTime: transformations?.length > 0
+            ? Math.round(transformations.reduce((sum, t) => sum + (t.total_execution_time_ms || 0), 0) / transformations.length)
+            : 0,
+          layerUsage: transformations?.reduce((acc, t) => {
+            if (t.enabled_layers && Array.isArray(t.enabled_layers)) {
+              t.enabled_layers.forEach(layer => {
+                acc[layer] = (acc[layer] || 0) + 1;
+              });
+            }
+            return acc;
+          }, {}) || {},
+          codeImprovements: {
+            totalChanges: transformations?.reduce((sum, t) => sum + (t.improvement_score || 0), 0) || 0,
+            averageImprovement: transformations?.length > 0
+              ? Math.round(transformations.reduce((sum, t) => sum + (t.improvement_score || 0), 0) / transformations.length)
+              : 0
+          }
+        },
+        timeRange,
+        startDate: startDate.toISOString(),
+        endDate: now.toISOString()
+      };
+
+      res.json(analytics);
+    } catch (supabaseError) {
+      console.warn("Supabase analytics query failed, using fallback:", supabaseError.message);
+      res.json({
+        apiUsage: {
+          totalRequests: 0,
+          avgResponseTime: 0,
+          errorRate: 0,
+          endpointUsage: {}
+        },
+        transformations: {
+          total: 0,
+          successful: 0,
+          averageExecutionTime: 0,
+          layerUsage: {},
+          codeImprovements: {
+            totalChanges: 0,
+            averageImprovement: 0
+          }
+        },
+        timeRange,
+        startDate: startDate.toISOString(),
+        endDate: now.toISOString()
+      });
+    }
+  } catch (error) {
+    console.error("Analytics error:", error);
+    res.status(500).json({
+      error: "Failed to fetch analytics data",
+      code: "ANALYTICS_ERROR",
+      details: error.message,
+      timestamp: new Date().toISOString(),
+    });
+  }
+});
+
+// Team management endpoints
+app.get("/api/v1/team", authenticateUser, async (req, res) => {
+  try {
+    const userId = req.user?.id;
+
+    // Get teams owned by user
+    const { data: ownedTeams, error: ownedError } = await supabase
+      .from("teams")
+      .select(`
+        *,
+        team_members!inner (
+          *,
+          user:auth.users (
+            id,
+            email,
+            raw_user_meta_data
+          )
+        )
+      `)
+      .eq("owner_id", userId)
+      .eq("is_active", true);
+
+    // Get teams user is a member of
+    const { data: memberTeams, error: memberError } = await supabase
+      .from("team_members")
+      .select(`
+        *,
+        team:teams (
+          *,
+          team_members (
+            *,
+            user:auth.users (
+              id,
+              email,
+              raw_user_meta_data
+            )
+          )
+        )
+      `)
+      .eq("user_id", userId)
+      .eq("is_active", true);
+
+    if (ownedError || memberError) {
+      throw new Error(ownedError?.message || memberError?.message);
+    }
+
+    // Combine and deduplicate teams
+    const allTeams = [...(ownedTeams || []), ...(memberTeams?.map(m => m.team) || [])];
+    const uniqueTeams = allTeams.filter((team, index, self) => 
+      index === self.findIndex(t => t.id === team.id)
+    );
+
+    // Get all team members
+    const allMembers = [];
+    uniqueTeams.forEach(team => {
+      if (team.team_members) {
+        team.team_members.forEach(member => {
+          if (member.user && member.is_active) {
+            allMembers.push({
+              id: member.user.id,
+              name: member.user.raw_user_meta_data?.full_name || member.user.email.split('@')[0],
+              email: member.user.email,
+              role: member.role,
+              teamId: team.id,
+              teamName: team.name,
+              joinedAt: new Date(member.joined_at),
+              lastActive: member.last_active_at ? new Date(member.last_active_at) : new Date(),
+              transformationsCount: 0 // Would need to query transformation_history
+            });
+          }
+        });
+      }
+    });
+
+    res.json({
+      members: allMembers,
+      totalMembers: allMembers.length,
+      teams: uniqueTeams.map(team => ({
+        id: team.id,
+        name: team.name,
+        description: team.description,
+        memberCount: team.team_members?.filter(m => m.is_active).length || 0,
+        isOwner: team.owner_id === userId
+      })),
+      roles: ['admin', 'developer', 'viewer'],
+      isEnterprise: allMembers.length > 0
+    });
+  } catch (error) {
+    console.error("Team fetch error:", error);
+    
+    // Fallback for users without teams
+    res.json({
+      members: [],
+      totalMembers: 0,
+      teams: [],
+      roles: ['admin', 'developer', 'viewer'],
+      isEnterprise: false,
+      message: "Team management requires enterprise setup"
+    });
+  }
+});
+
+// Integrations endpoint
+app.get("/api/v1/integrations", authenticateUser, async (req, res) => {
+  try {
+    const userId = req.user?.id;
+
+    // Get user's integrations from database
+    const { data: userIntegrations, error } = await supabase
+      .from("integrations")
+      .select("*")
+      .eq("user_id", userId)
+      .eq("is_active", true);
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    // Create integrations object with real data
+    const integrations = {};
+    const availableTypes = ['github', 'gitlab', 'vscode', 'api', 'webhook'];
+    
+    availableTypes.forEach(type => {
+      const userIntegration = userIntegrations?.find(i => i.integration_type === type);
+      
+      if (userIntegration) {
+        integrations[type] = {
+          id: userIntegration.id,
+          name: userIntegration.name,
+          status: userIntegration.status,
+          description: userIntegration.configuration?.description || `${userIntegration.name} integration`,
+          lastSync: userIntegration.last_sync_at ? new Date(userIntegration.last_sync_at) : null,
+          syncStatus: userIntegration.sync_status,
+          errorDetails: userIntegration.error_details,
+          configuration: userIntegration.configuration || {}
+        };
+      } else {
+        // Default configurations for integrations that don't exist yet
+        const defaultConfigs = {
+          github: {
+            name: "GitHub",
+            status: "disconnected",
+            description: "Connect your GitHub repositories for automated transformations"
+          },
+          gitlab: {
+            name: "GitLab",
+            status: "disconnected",
+            description: "Integrate with GitLab for CI/CD pipeline automation"
+          },
+          vscode: {
+            name: "VS Code Extension",
+            status: "available",
+            description: "Install the NeuroLint VS Code extension for IDE integration"
+          },
+          api: {
+            name: "REST API",
+            status: "active",
+            description: "Use our REST API for custom integrations"
+          },
+          webhook: {
+            name: "Webhooks",
+            status: "configured",
+            description: "Receive notifications about transformation events"
+          }
+        };
+        
+        integrations[type] = defaultConfigs[type];
+      }
+    });
+
+    // If user has no integrations, create default ones
+    if (!userIntegrations || userIntegrations.length === 0) {
+      try {
+        // Create default integrations for new user
+        await supabase.rpc('create_default_integrations_for_user', {
+          user_uuid: userId
+        });
+      } catch (createError) {
+        console.warn("Failed to create default integrations:", createError.message);
+      }
+    }
+
+    const connectedIntegrations = Object.values(integrations).filter(
+      i => i.status === 'active' || i.status === 'connected'
+    ).length;
+
+    res.json({
+      integrations,
+      availableIntegrations: Object.keys(integrations).length,
+      connectedIntegrations,
+      totalIntegrations: userIntegrations?.length || 0
+    });
+  } catch (error) {
+    console.error("Integrations fetch error:", error);
+    
+    // Fallback with default integrations
+    const defaultIntegrations = {
+      github: {
+        name: "GitHub",
+        status: "disconnected",
+        description: "Connect your GitHub repositories for automated transformations"
+      },
+      gitlab: {
+        name: "GitLab",
+        status: "disconnected",
+        description: "Integrate with GitLab for CI/CD pipeline automation"
+      },
+      vscode: {
+        name: "VS Code Extension",
+        status: "available",
+        description: "Install the NeuroLint VS Code extension for IDE integration"
+      },
+      api: {
+        name: "REST API",
+        status: "active",
+        description: "Use our REST API for custom integrations"
+      },
+      webhook: {
+        name: "Webhooks",
+        status: "configured",
+        description: "Receive notifications about transformation events"
+      }
+    };
+
+    res.json({
+      integrations: defaultIntegrations,
+      availableIntegrations: Object.keys(defaultIntegrations).length,
+      connectedIntegrations: Object.values(defaultIntegrations).filter(i => i.status === 'active' || i.status === 'connected').length,
+      totalIntegrations: 0
+    });
+  }
+});
+
+// Create project endpoint
+app.post("/api/v1/projects", authenticateUser, async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    const { name, description, repositoryUrl, settings } = req.body;
+
+    if (!name || name.trim().length === 0) {
+      return res.status(400).json({
+        error: "Project name is required",
+        code: "VALIDATION_ERROR"
+      });
+    }
+
+    const { data: project, error } = await supabase
+      .from("projects")
+      .insert({
+        user_id: userId,
+        name: name.trim(),
+        description: description?.trim() || null,
+        repository_url: repositoryUrl?.trim() || null,
+        settings: settings || {}
+      })
+      .select()
+      .single();
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    res.status(201).json({
+      project: {
+        id: project.id,
+        name: project.name,
+        description: project.description,
+        fileCount: project.file_count,
+        lastUpdated: new Date(project.updated_at),
+        totalTransformations: project.total_transformations,
+        repositoryUrl: project.repository_url,
+        settings: project.settings
+      }
+    });
+  } catch (error) {
+    console.error("Project creation error:", error);
+    res.status(500).json({
+      error: "Failed to create project",
+      code: "PROJECT_CREATION_ERROR",
+      details: error.message,
+      timestamp: new Date().toISOString(),
+    });
+  }
+});
+
+// Update integration endpoint
+app.put("/api/v1/integrations/:type", authenticateUser, async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    const { type } = req.params;
+    const { status, configuration, credentials } = req.body;
+
+    const validTypes = ['github', 'gitlab', 'vscode', 'api', 'webhook'];
+    if (!validTypes.includes(type)) {
+      return res.status(400).json({
+        error: "Invalid integration type",
+        code: "VALIDATION_ERROR"
+      });
+    }
+
+    const { data: integration, error } = await supabase
+      .from("integrations")
+      .upsert({
+        user_id: userId,
+        integration_type: type,
+        name: type.charAt(0).toUpperCase() + type.slice(1),
+        status: status || 'configured',
+        configuration: configuration || {},
+        credentials_encrypted: credentials || null,
+        last_sync_at: new Date().toISOString()
+      })
+      .select()
+      .single();
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    res.json({
+      integration: {
+        id: integration.id,
+        type: integration.integration_type,
+        name: integration.name,
+        status: integration.status,
+        configuration: integration.configuration,
+        lastSync: new Date(integration.last_sync_at)
+      }
+    });
+  } catch (error) {
+    console.error("Integration update error:", error);
+    res.status(500).json({
+      error: "Failed to update integration",
+      code: "INTEGRATION_UPDATE_ERROR",
+      details: error.message,
+      timestamp: new Date().toISOString(),
+    });
+  }
+});
+
+// User profile endpoint
+app.get("/api/v1/profile", authenticateUser, async (req, res) => {
+  try {
+    const user = req.user;
+    if (!user) {
+      return res.status(401).json({ error: "User not authenticated" });
+    }
+
+    // Get user quota information
+    const { data: quota } = await supabase
+      .from("user_quotas")
+      .select("*")
+      .eq("user_id", user.id)
+      .single();
+
+    // Get user statistics
+    const { data: userStats } = await supabase
+      .from("transformation_history")
+      .select("*")
+      .eq("user_id", user.id);
+
+    const profile = {
+      id: user.id,
+      email: user.email,
+      createdAt: user.created_at,
+      quota: quota || {
+        used_transformations: 0,
+        monthly_transformations: 1000,
+        quota_reset_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+      },
+      statistics: {
+        totalTransformations: userStats?.length || 0,
+        successfulTransformations: userStats?.filter(s => s.successful_layers > 0).length || 0,
+        averageExecutionTime: userStats?.length > 0 
+          ? Math.round(userStats.reduce((sum, s) => sum + (s.total_execution_time_ms || 0), 0) / userStats.length)
+          : 0
+      },
+      preferences: {
+        emailNotifications: true,
+        defaultLayers: [1, 2, 3, 4],
+        theme: 'dark'
+      }
+    };
+
+    res.json(profile);
+  } catch (error) {
+    console.error("Profile fetch error:", error);
+    res.status(500).json({
+      error: "Failed to fetch profile data",
+      code: "PROFILE_ERROR",
+      details: error.message,
+      timestamp: new Date().toISOString(),
+    });
+  }
+});
+
+// Billing information endpoint
+app.get("/api/v1/billing", authenticateUser, async (req, res) => {
+  try {
+    const user = req.user;
+    
+    // Get user quota for billing info
+    const { data: quota } = await supabase
+      .from("user_quotas")
+      .select("*")
+      .eq("user_id", user?.id)
+      .single();
+
+    const billing = {
+      plan: "Professional Free",
+      status: "active",
+      quota: quota || {
+        used_transformations: 0,
+        monthly_transformations: 1000,
+        quota_reset_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+      },
+      usage: {
+        currentPeriod: quota?.used_transformations || 0,
+        limit: quota?.monthly_transformations || 1000,
+        resetDate: quota?.quota_reset_date || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+      },
+      features: [
+        "1,000 monthly transformations",
+        "All 6 transformation layers",
+        "Web interface access",
+        "Basic support"
+      ],
+      upgradeOptions: [
+        {
+          name: "Professional",
+          price: "$29/month",
+          features: ["10,000 monthly transformations", "Priority support", "Advanced analytics"]
+        },
+        {
+          name: "Enterprise", 
+          price: "Custom",
+          features: ["Unlimited transformations", "Team collaboration", "Custom integrations"]
+        }
+      ]
+    };
+
+    res.json(billing);
+  } catch (error) {
+    console.error("Billing fetch error:", error);
+    res.status(500).json({
+      error: "Failed to fetch billing data",
+      code: "BILLING_ERROR",
+      details: error.message,
+      timestamp: new Date().toISOString(),
+    });
+  }
 });
 
 // Health check endpoint with system status

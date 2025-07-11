@@ -130,6 +130,84 @@ CREATE TABLE IF NOT EXISTS user_quotas (
   updated_at timestamptz DEFAULT now()
 );
 
+-- 8. Projects Management
+CREATE TABLE IF NOT EXISTS projects (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE,
+  name text NOT NULL,
+  description text,
+  repository_url text,
+  file_count integer DEFAULT 0,
+  total_transformations integer DEFAULT 0,
+  last_transformation_at timestamptz,
+  settings jsonb DEFAULT '{}',
+  is_active boolean DEFAULT true,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+
+-- Index for projects queries
+CREATE INDEX IF NOT EXISTS idx_projects_user_id ON projects(user_id);
+CREATE INDEX IF NOT EXISTS idx_projects_active ON projects(is_active) WHERE is_active = true;
+CREATE INDEX IF NOT EXISTS idx_projects_created_at ON projects(created_at);
+
+-- 9. Team Management
+CREATE TABLE IF NOT EXISTS teams (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  name text NOT NULL,
+  description text,
+  owner_id uuid REFERENCES auth.users(id) ON DELETE CASCADE,
+  settings jsonb DEFAULT '{}',
+  is_active boolean DEFAULT true,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS team_members (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  team_id uuid REFERENCES teams(id) ON DELETE CASCADE,
+  user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE,
+  role text NOT NULL CHECK (role IN ('admin', 'developer', 'viewer')),
+  permissions jsonb DEFAULT '{}',
+  joined_at timestamptz DEFAULT now(),
+  last_active_at timestamptz,
+  is_active boolean DEFAULT true,
+  created_at timestamptz DEFAULT now()
+);
+
+-- Unique constraint for team membership
+CREATE UNIQUE INDEX IF NOT EXISTS idx_team_members_unique ON team_members(team_id, user_id);
+
+-- Indexes for team queries
+CREATE INDEX IF NOT EXISTS idx_teams_owner_id ON teams(owner_id);
+CREATE INDEX IF NOT EXISTS idx_team_members_team_id ON team_members(team_id);
+CREATE INDEX IF NOT EXISTS idx_team_members_user_id ON team_members(user_id);
+
+-- 10. Integrations Management
+CREATE TABLE IF NOT EXISTS integrations (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE,
+  integration_type text NOT NULL CHECK (integration_type IN ('github', 'gitlab', 'vscode', 'api', 'webhook')),
+  name text NOT NULL,
+  status text NOT NULL CHECK (status IN ('connected', 'disconnected', 'active', 'configured', 'available', 'error')),
+  configuration jsonb DEFAULT '{}',
+  credentials_encrypted text,
+  last_sync_at timestamptz,
+  sync_status text,
+  error_details jsonb,
+  is_active boolean DEFAULT true,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+
+-- Unique constraint for user integrations
+CREATE UNIQUE INDEX IF NOT EXISTS idx_integrations_user_type ON integrations(user_id, integration_type);
+
+-- Index for integrations queries
+CREATE INDEX IF NOT EXISTS idx_integrations_user_id ON integrations(user_id);
+CREATE INDEX IF NOT EXISTS idx_integrations_type ON integrations(integration_type);
+CREATE INDEX IF NOT EXISTS idx_integrations_status ON integrations(status);
+
 -- Auto-update timestamp triggers
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
@@ -152,11 +230,27 @@ CREATE TRIGGER update_user_quotas_updated_at
   BEFORE UPDATE ON user_quotas 
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+CREATE TRIGGER update_projects_updated_at 
+  BEFORE UPDATE ON projects 
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_teams_updated_at 
+  BEFORE UPDATE ON teams 
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_integrations_updated_at 
+  BEFORE UPDATE ON integrations 
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
 -- Row Level Security (RLS) Policies
 ALTER TABLE neurolint_patterns ENABLE ROW LEVEL SECURITY;
 ALTER TABLE pattern_subscriptions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE user_quotas ENABLE ROW LEVEL SECURITY;
 ALTER TABLE transformation_history ENABLE ROW LEVEL SECURITY;
+ALTER TABLE projects ENABLE ROW LEVEL SECURITY;
+ALTER TABLE teams ENABLE ROW LEVEL SECURITY;
+ALTER TABLE team_members ENABLE ROW LEVEL SECURITY;
+ALTER TABLE integrations ENABLE ROW LEVEL SECURITY;
 
 -- Patterns: Users can only access their own patterns or public ones
 CREATE POLICY "Users can view their own patterns" ON neurolint_patterns
@@ -186,6 +280,48 @@ CREATE POLICY "Users can view their own quotas" ON user_quotas
 CREATE POLICY "Users can view their own transformation history" ON transformation_history
   FOR SELECT USING (auth.uid() = user_id);
 
+-- Projects: Users can manage their own projects
+CREATE POLICY "Users can manage their own projects" ON projects
+  FOR ALL USING (auth.uid() = user_id);
+
+-- Teams: Users can view teams they own or are members of
+CREATE POLICY "Users can view their own teams" ON teams
+  FOR SELECT USING (auth.uid() = owner_id);
+
+CREATE POLICY "Users can view teams they are members of" ON teams
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM team_members 
+      WHERE team_members.team_id = teams.id 
+      AND team_members.user_id = auth.uid()
+      AND team_members.is_active = true
+    )
+  );
+
+CREATE POLICY "Users can manage teams they own" ON teams
+  FOR ALL USING (auth.uid() = owner_id);
+
+-- Team members: Users can view members of teams they belong to
+CREATE POLICY "Users can view team members" ON team_members
+  FOR SELECT USING (
+    auth.uid() = user_id OR
+    EXISTS (
+      SELECT 1 FROM teams 
+      WHERE teams.id = team_members.team_id 
+      AND teams.owner_id = auth.uid()
+    ) OR
+    EXISTS (
+      SELECT 1 FROM team_members tm 
+      WHERE tm.team_id = team_members.team_id 
+      AND tm.user_id = auth.uid()
+      AND tm.is_active = true
+    )
+  );
+
+-- Integrations: Users can manage their own integrations
+CREATE POLICY "Users can manage their own integrations" ON integrations
+  FOR ALL USING (auth.uid() = user_id);
+
 -- Functions for automatic quota management
 CREATE OR REPLACE FUNCTION increment_user_transformations(user_uuid uuid)
 RETURNS void AS $$
@@ -209,6 +345,19 @@ BEGIN
     quota_reset_date = date_trunc('month', now()) + interval '1 month',
     updated_at = now()
   WHERE quota_reset_date <= now();
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Function to update project statistics
+CREATE OR REPLACE FUNCTION update_project_stats(project_uuid uuid)
+RETURNS void AS $$
+BEGIN
+  UPDATE projects 
+  SET 
+    total_transformations = total_transformations + 1,
+    last_transformation_at = now(),
+    updated_at = now()
+  WHERE id = project_uuid;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
@@ -241,6 +390,20 @@ INSERT INTO neurolint_patterns (layer_id, patterns, metadata, is_public) VALUES
 (7, '[]', '{"name": "Adaptive Learning", "description": "AI-powered pattern learning and adaptation"}', true)
 ON CONFLICT (layer_id) DO NOTHING;
 
+-- Insert default integrations for each user (will be populated when users sign up)
+CREATE OR REPLACE FUNCTION create_default_integrations_for_user(user_uuid uuid)
+RETURNS void AS $$
+BEGIN
+  INSERT INTO integrations (user_id, integration_type, name, status, configuration) VALUES
+  (user_uuid, 'github', 'GitHub', 'disconnected', '{"description": "Connect your GitHub repositories for automated transformations"}'),
+  (user_uuid, 'gitlab', 'GitLab', 'disconnected', '{"description": "Integrate with GitLab for CI/CD pipeline automation"}'),
+  (user_uuid, 'vscode', 'VS Code Extension', 'available', '{"description": "Install the NeuroLint VS Code extension for IDE integration"}'),
+  (user_uuid, 'api', 'REST API', 'active', '{"description": "Use our REST API for custom integrations"}'),
+  (user_uuid, 'webhook', 'Webhooks', 'configured', '{"description": "Receive notifications about transformation events"}')
+  ON CONFLICT (user_id, integration_type) DO NOTHING;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
 COMMENT ON TABLE neurolint_patterns IS 'Stores learned patterns for each NeuroLint layer';
 COMMENT ON TABLE api_usage_logs IS 'Comprehensive API usage analytics and monitoring';
 COMMENT ON TABLE rate_limits IS 'Distributed rate limiting across multiple API instances';
@@ -248,3 +411,7 @@ COMMENT ON TABLE transformation_history IS 'Historical record of all code transf
 COMMENT ON TABLE pattern_subscriptions IS 'Real-time pattern update subscriptions';
 COMMENT ON TABLE system_health_metrics IS 'System performance and health monitoring';
 COMMENT ON TABLE user_quotas IS 'User transformation quotas and usage tracking';
+COMMENT ON TABLE projects IS 'User projects and repositories for code transformations';
+COMMENT ON TABLE teams IS 'Team collaboration and management';
+COMMENT ON TABLE team_members IS 'Team membership and roles';
+COMMENT ON TABLE integrations IS 'External service integrations and configurations';
