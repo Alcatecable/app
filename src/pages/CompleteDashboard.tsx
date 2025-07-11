@@ -4,7 +4,13 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
@@ -44,7 +50,7 @@ interface DashboardData {
     id: string;
     fileName: string;
     timestamp: Date;
-    status: 'success' | 'failed';
+    status: "success" | "failed";
     layersUsed: number[];
     executionTime: number;
   }>;
@@ -67,23 +73,27 @@ interface Project {
 export default function CompleteDashboard() {
   const { user, logout } = useAuth();
   const { toast } = useToast();
-  
+
   // Navigation state
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState("overview");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  
+
   // Onboarding state
   const [showOnboarding, setShowOnboarding] = useState(false);
-  
+
   // Data state
-  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
+  const [dashboardData, setDashboardData] = useState<DashboardData | null>(
+    null,
+  );
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   // Check if user needs onboarding
   useEffect(() => {
-    const hasCompletedOnboarding = localStorage.getItem('neurolint_onboarding_completed');
+    const hasCompletedOnboarding = localStorage.getItem(
+      "neurolint_onboarding_completed",
+    );
     if (!hasCompletedOnboarding && user) {
       setShowOnboarding(true);
     }
@@ -98,10 +108,10 @@ export default function CompleteDashboard() {
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/v1/dashboard/metrics', {
+      const response = await fetch("/api/v1/dashboard/metrics", {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
-          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
+          "Content-Type": "application/json",
         },
       });
 
@@ -112,8 +122,12 @@ export default function CompleteDashboard() {
       const data = await response.json();
       setDashboardData(data);
     } catch (error) {
-      console.error('Failed to fetch dashboard data:', error);
-      setError(error instanceof Error ? error.message : 'Failed to load dashboard data');
+      console.error("Failed to fetch dashboard data:", error);
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Failed to load dashboard data",
+      );
     } finally {
       setLoading(false);
     }
@@ -121,10 +135,10 @@ export default function CompleteDashboard() {
 
   const fetchProjects = async () => {
     try {
-      const response = await fetch('/api/v1/projects', {
+      const response = await fetch("/api/v1/projects", {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
-          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
+          "Content-Type": "application/json",
         },
       });
 
@@ -135,30 +149,30 @@ export default function CompleteDashboard() {
       const data = await response.json();
       setProjects(data.projects || []);
     } catch (error) {
-      console.error('Failed to fetch projects:', error);
+      console.error("Failed to fetch projects:", error);
     }
   };
 
   const sidebarItems = [
-    { id: 'overview', label: 'Overview', icon: Home },
-    { id: 'transform', label: 'Transform', icon: Zap },
-    { id: 'projects', label: 'Projects', icon: FolderOpen },
-    { id: 'history', label: 'History', icon: History },
-    { id: 'analytics', label: 'Analytics', icon: BarChart3 },
-    { id: 'collaboration', label: 'Team', icon: Users },
-    { id: 'rules', label: 'Pattern Rules', icon: Settings },
-    { id: 'integrations', label: 'Integrations', icon: GitBranch },
+    { id: "overview", label: "Overview", icon: Home },
+    { id: "transform", label: "Transform", icon: Zap },
+    { id: "projects", label: "Projects", icon: FolderOpen },
+    { id: "history", label: "History", icon: History },
+    { id: "analytics", label: "Analytics", icon: BarChart3 },
+    { id: "collaboration", label: "Team", icon: Users },
+    { id: "rules", label: "Pattern Rules", icon: Settings },
+    { id: "integrations", label: "Integrations", icon: GitBranch },
   ];
 
   const bottomSidebarItems = [
-    { id: 'profile', label: 'Profile', icon: User },
-    { id: 'billing', label: 'Billing', icon: CreditCard },
-    { id: 'settings', label: 'Settings', icon: Settings },
-    { id: 'help', label: 'Help', icon: HelpCircle },
+    { id: "profile", label: "Profile", icon: User },
+    { id: "billing", label: "Billing", icon: CreditCard },
+    { id: "settings", label: "Settings", icon: Settings },
+    { id: "help", label: "Help", icon: HelpCircle },
   ];
 
   const handleOnboardingComplete = () => {
-    localStorage.setItem('neurolint_onboarding_completed', 'true');
+    localStorage.setItem("neurolint_onboarding_completed", "true");
     setShowOnboarding(false);
     toast({
       title: "Welcome to NeuroLint!",
@@ -167,11 +181,12 @@ export default function CompleteDashboard() {
   };
 
   const handleOnboardingSkip = () => {
-    localStorage.setItem('neurolint_onboarding_completed', 'true');
+    localStorage.setItem("neurolint_onboarding_completed", "true");
     setShowOnboarding(false);
     toast({
       title: "Skipped Onboarding",
-      description: "You can always access help and tutorials from the Help menu.",
+      description:
+        "You can always access help and tutorials from the Help menu.",
     });
   };
 
@@ -226,9 +241,9 @@ export default function CompleteDashboard() {
               <h1 className="text-2xl font-bold text-white">Dashboard</h1>
               <p className="text-zinc-400 mt-1">Error loading data</p>
             </div>
-            <Button 
+            <Button
               onClick={fetchDashboardData}
-              variant="outline" 
+              variant="outline"
               className="border-zinc-700 text-zinc-300 hover:text-white"
             >
               Retry
@@ -251,15 +266,15 @@ export default function CompleteDashboard() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-white">
-              Welcome back, {user?.email?.split('@')[0] || 'Developer'}
+              Welcome back, {user?.email?.split("@")[0] || "Developer"}
             </h1>
             <p className="text-zinc-400 mt-1">
               Your code transformation metrics and recent activity.
             </p>
           </div>
-          <Button 
+          <Button
             className="bg-white hover:bg-gray-100 text-black"
-            onClick={() => setActiveTab('transform')}
+            onClick={() => setActiveTab("transform")}
           >
             <Zap className="mr-2 h-4 w-4" />
             Transform Code
@@ -277,11 +292,9 @@ export default function CompleteDashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-white">
-                {dashboardData?.totalTransformations.toLocaleString() || '0'}
+                {dashboardData?.totalTransformations.toLocaleString() || "0"}
               </div>
-              <p className="text-xs text-zinc-400 mt-1">
-                Lifetime total
-              </p>
+              <p className="text-xs text-zinc-400 mt-1">Lifetime total</p>
             </CardContent>
           </Card>
 
@@ -296,8 +309,8 @@ export default function CompleteDashboard() {
               <div className="text-2xl font-bold text-white">
                 {dashboardData?.successRate || 0}%
               </div>
-              <Progress 
-                value={dashboardData?.successRate || 0} 
+              <Progress
+                value={dashboardData?.successRate || 0}
                 className="mt-2"
               />
             </CardContent>
@@ -314,9 +327,7 @@ export default function CompleteDashboard() {
               <div className="text-2xl font-bold text-white">
                 {dashboardData?.averageExecutionTime || 0}s
               </div>
-              <p className="text-xs text-zinc-400 mt-1">
-                Per transformation
-              </p>
+              <p className="text-xs text-zinc-400 mt-1">Per transformation</p>
             </CardContent>
           </Card>
 
@@ -329,10 +340,15 @@ export default function CompleteDashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-white">
-                {dashboardData?.quota.used || 0}/{dashboardData?.quota.total || 1000}
+                {dashboardData?.quota.used || 0}/
+                {dashboardData?.quota.total || 1000}
               </div>
-              <Progress 
-                value={((dashboardData?.quota.used || 0) / (dashboardData?.quota.total || 1)) * 100} 
+              <Progress
+                value={
+                  ((dashboardData?.quota.used || 0) /
+                    (dashboardData?.quota.total || 1)) *
+                  100
+                }
                 className="mt-2"
               />
             </CardContent>
@@ -352,12 +368,12 @@ export default function CompleteDashboard() {
               {dashboardData?.recentTransformations?.length ? (
                 <div className="space-y-4">
                   {dashboardData.recentTransformations.map((transformation) => (
-                    <div 
+                    <div
                       key={transformation.id}
                       className="flex items-center justify-between p-3 rounded-lg bg-zinc-800/50 border border-zinc-700"
                     >
                       <div className="flex items-center space-x-3">
-                        {transformation.status === 'success' ? (
+                        {transformation.status === "success" ? (
                           <CheckCircle className="h-4 w-4 text-emerald-500" />
                         ) : (
                           <AlertTriangle className="h-4 w-4 text-orange-500" />
@@ -367,15 +383,16 @@ export default function CompleteDashboard() {
                             {transformation.fileName}
                           </p>
                           <p className="text-xs text-zinc-400">
-                            {formatTimeAgo(transformation.timestamp)} • {transformation.executionTime}s
+                            {formatTimeAgo(transformation.timestamp)} •{" "}
+                            {transformation.executionTime}s
                           </p>
                         </div>
                       </div>
                       <div className="flex space-x-1">
                         {transformation.layersUsed.map((layer) => (
-                          <Badge 
-                            key={layer} 
-                            variant="secondary" 
+                          <Badge
+                            key={layer}
+                            variant="secondary"
                             className="text-xs bg-zinc-700 text-zinc-300"
                           >
                             L{layer}
@@ -388,7 +405,9 @@ export default function CompleteDashboard() {
               ) : (
                 <div className="text-center py-8">
                   <Clock className="h-8 w-8 text-zinc-500 mx-auto mb-2" />
-                  <p className="text-sm text-zinc-400">No recent transformations</p>
+                  <p className="text-sm text-zinc-400">
+                    No recent transformations
+                  </p>
                 </div>
               )}
             </CardContent>
@@ -404,20 +423,24 @@ export default function CompleteDashboard() {
             <CardContent>
               {dashboardData?.layerUsage ? (
                 <div className="space-y-4">
-                  {Object.entries(dashboardData.layerUsage).map(([layer, usage]) => (
-                    <div key={layer} className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-zinc-300">Layer {layer}</span>
-                        <span className="text-zinc-400">{usage}%</span>
+                  {Object.entries(dashboardData.layerUsage).map(
+                    ([layer, usage]) => (
+                      <div key={layer} className="space-y-2">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-zinc-300">Layer {layer}</span>
+                          <span className="text-zinc-400">{usage}%</span>
+                        </div>
+                        <Progress value={usage} />
                       </div>
-                      <Progress value={usage} />
-                    </div>
-                  ))}
+                    ),
+                  )}
                 </div>
               ) : (
                 <div className="text-center py-8">
                   <BarChart3 className="h-8 w-8 text-zinc-500 mx-auto mb-2" />
-                  <p className="text-sm text-zinc-400">No usage data available</p>
+                  <p className="text-sm text-zinc-400">
+                    No usage data available
+                  </p>
                 </div>
               )}
             </CardContent>
@@ -434,26 +457,26 @@ export default function CompleteDashboard() {
           </CardHeader>
           <CardContent>
             <div className="grid gap-4 md:grid-cols-3">
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 className="border-zinc-700 text-zinc-300 hover:text-white hover:border-zinc-600"
-                onClick={() => setActiveTab('transform')}
+                onClick={() => setActiveTab("transform")}
               >
                 <Zap className="mr-2 h-4 w-4" />
                 Transform Code
               </Button>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 className="border-zinc-700 text-zinc-300 hover:text-white hover:border-zinc-600"
-                onClick={() => setActiveTab('projects')}
+                onClick={() => setActiveTab("projects")}
               >
                 <FolderOpen className="mr-2 h-4 w-4" />
                 New Project
               </Button>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 className="border-zinc-700 text-zinc-300 hover:text-white hover:border-zinc-600"
-                onClick={() => setActiveTab('integrations')}
+                onClick={() => setActiveTab("integrations")}
               >
                 <GitBranch className="mr-2 h-4 w-4" />
                 Connect GitHub
@@ -483,7 +506,10 @@ export default function CompleteDashboard() {
       {projects.length > 0 ? (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {projects.map((project) => (
-            <Card key={project.id} className="bg-zinc-900/50 border-zinc-800 hover:border-zinc-700 transition-colors cursor-pointer">
+            <Card
+              key={project.id}
+              className="bg-zinc-900/50 border-zinc-800 hover:border-zinc-700 transition-colors cursor-pointer"
+            >
               <CardHeader>
                 <CardTitle className="text-white">{project.name}</CardTitle>
                 <CardDescription className="text-zinc-400">
@@ -498,11 +524,15 @@ export default function CompleteDashboard() {
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-zinc-400">Transformations</span>
-                    <span className="text-white">{project.totalTransformations}</span>
+                    <span className="text-white">
+                      {project.totalTransformations}
+                    </span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-zinc-400">Last Updated</span>
-                    <span className="text-white">{formatTimeAgo(project.lastUpdated)}</span>
+                    <span className="text-white">
+                      {formatTimeAgo(project.lastUpdated)}
+                    </span>
                   </div>
                 </div>
               </CardContent>
@@ -513,7 +543,9 @@ export default function CompleteDashboard() {
         <Card className="bg-zinc-900/50 border-zinc-800">
           <CardContent className="flex flex-col items-center justify-center py-12">
             <FolderOpen className="h-12 w-12 text-zinc-600 mb-4" />
-            <h3 className="text-lg font-medium text-white mb-2">No projects yet</h3>
+            <h3 className="text-lg font-medium text-white mb-2">
+              No projects yet
+            </h3>
             <p className="text-zinc-400 text-center max-w-md mb-4">
               Create your first project to organize your code transformations.
             </p>
@@ -550,30 +582,66 @@ export default function CompleteDashboard() {
 
   const renderContent = () => {
     switch (activeTab) {
-      case 'overview':
+      case "overview":
         return renderOverview();
-      case 'transform':
+      case "transform":
         return <Dashboard />;
-      case 'projects':
+      case "projects":
         return renderProjects();
-      case 'history':
-        return renderPlaceholder('Transformation History', 'View and manage your transformation history', History);
-      case 'analytics':
-        return renderPlaceholder('Analytics', 'Performance insights and code quality metrics', BarChart3);
-      case 'collaboration':
-        return renderPlaceholder('Team Collaboration', 'Collaborate with your team members', Users);
-      case 'rules':
-        return renderPlaceholder('Pattern Rules', 'Manage transformation patterns and rules', Settings);
-      case 'integrations':
-        return renderPlaceholder('Integrations', 'Connect with external tools and services', GitBranch);
-      case 'profile':
-        return renderPlaceholder('Profile Settings', 'Manage your account and preferences', User);
-      case 'billing':
-        return renderPlaceholder('Billing', 'View subscription and usage details', CreditCard);
-      case 'settings':
-        return renderPlaceholder('Settings', 'Configure your preferences', Settings);
-      case 'help':
-        return renderPlaceholder('Help', 'Documentation and support resources', HelpCircle);
+      case "history":
+        return renderPlaceholder(
+          "Transformation History",
+          "View and manage your transformation history",
+          History,
+        );
+      case "analytics":
+        return renderPlaceholder(
+          "Analytics",
+          "Performance insights and code quality metrics",
+          BarChart3,
+        );
+      case "collaboration":
+        return renderPlaceholder(
+          "Team Collaboration",
+          "Collaborate with your team members",
+          Users,
+        );
+      case "rules":
+        return renderPlaceholder(
+          "Pattern Rules",
+          "Manage transformation patterns and rules",
+          Settings,
+        );
+      case "integrations":
+        return renderPlaceholder(
+          "Integrations",
+          "Connect with external tools and services",
+          GitBranch,
+        );
+      case "profile":
+        return renderPlaceholder(
+          "Profile Settings",
+          "Manage your account and preferences",
+          User,
+        );
+      case "billing":
+        return renderPlaceholder(
+          "Billing",
+          "View subscription and usage details",
+          CreditCard,
+        );
+      case "settings":
+        return renderPlaceholder(
+          "Settings",
+          "Configure your preferences",
+          Settings,
+        );
+      case "help":
+        return renderPlaceholder(
+          "Help",
+          "Documentation and support resources",
+          HelpCircle,
+        );
       default:
         return renderOverview();
     }
@@ -583,7 +651,7 @@ export default function CompleteDashboard() {
   if (showOnboarding) {
     return (
       <ProtectedRoute>
-        <Onboarding 
+        <Onboarding
           onComplete={handleOnboardingComplete}
           onSkip={handleOnboardingSkip}
         />
@@ -595,25 +663,22 @@ export default function CompleteDashboard() {
     <ProtectedRoute>
       <div className="min-h-screen bg-black text-white flex">
         {/* Sidebar */}
-        <div className={`${sidebarCollapsed ? 'w-16' : 'w-64'} bg-zinc-900/50 border-r border-zinc-800 flex flex-col transition-all duration-300`}>
+        <div
+          className={`${sidebarCollapsed ? "w-16" : "w-64"} bg-zinc-900/50 border-r border-zinc-800 flex flex-col transition-all duration-300`}
+        >
           {/* Logo & Toggle */}
-          <div className="flex items-center justify-between p-4 border-b border-zinc-800">
-            {!sidebarCollapsed && (
-              <div className="flex items-center space-x-3">
-                <img src="/Bee logo.png" alt="NeuroLint" className="h-8 w-8 rounded-lg" />
-                <div>
-                  <h2 className="font-bold text-white">NeuroLint</h2>
-                  <p className="text-xs text-zinc-400">Code Transformation</p>
-                </div>
-              </div>
-            )}
+          <div className="flex items-center justify-end p-4 border-b border-zinc-800">
             <Button
               variant="ghost"
               size="sm"
               onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
               className="text-zinc-400 hover:text-white"
             >
-              {sidebarCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+              {sidebarCollapsed ? (
+                <ChevronRight className="h-4 w-4" />
+              ) : (
+                <ChevronLeft className="h-4 w-4" />
+              )}
             </Button>
           </div>
 
@@ -626,8 +691,8 @@ export default function CompleteDashboard() {
                   key={item.id}
                   variant={activeTab === item.id ? "secondary" : "ghost"}
                   className={`w-full justify-start ${
-                    activeTab === item.id 
-                      ? "bg-white text-black hover:bg-gray-100" 
+                    activeTab === item.id
+                      ? "bg-white text-black hover:bg-gray-100"
                       : "text-zinc-400 hover:text-white hover:bg-zinc-800"
                   }`}
                   onClick={() => setActiveTab(item.id)}
@@ -648,8 +713,8 @@ export default function CompleteDashboard() {
                   key={item.id}
                   variant={activeTab === item.id ? "secondary" : "ghost"}
                   className={`w-full justify-start ${
-                    activeTab === item.id 
-                      ? "bg-white text-black hover:bg-gray-100" 
+                    activeTab === item.id
+                      ? "bg-white text-black hover:bg-gray-100"
                       : "text-zinc-400 hover:text-white hover:bg-zinc-800"
                   }`}
                   onClick={() => setActiveTab(item.id)}
@@ -659,24 +724,24 @@ export default function CompleteDashboard() {
                 </Button>
               );
             })}
-            
+
             <Separator className="my-2 bg-zinc-800" />
-            
+
             {/* User Profile */}
             <div className="flex items-center space-x-3 p-2">
               <Avatar className="h-8 w-8">
                 <AvatarImage src="/placeholder-avatar.jpg" />
                 <AvatarFallback className="bg-zinc-700 text-white">
-                  {user?.email?.[0].toUpperCase() || 'U'}
+                  {user?.email?.[0].toUpperCase() || "U"}
                 </AvatarFallback>
               </Avatar>
               {!sidebarCollapsed && (
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-white truncate">
-                    {user?.email?.split('@')[0] || 'User'}
+                    {user?.email?.split("@")[0] || "User"}
                   </p>
                   <p className="text-xs text-zinc-400 truncate">
-                    {user?.email || 'user@example.com'}
+                    {user?.email || "user@example.com"}
                   </p>
                 </div>
               )}
@@ -688,7 +753,7 @@ export default function CompleteDashboard() {
               onClick={handleLogout}
             >
               <LogOut className="h-4 w-4 mr-3" />
-              {!sidebarCollapsed && 'Logout'}
+              {!sidebarCollapsed && "Logout"}
             </Button>
           </div>
         </div>
@@ -700,7 +765,9 @@ export default function CompleteDashboard() {
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
                 <div className="text-sm text-zinc-400">
-                  Dashboard / {sidebarItems.find(item => item.id === activeTab)?.label || 'Overview'}
+                  Dashboard /{" "}
+                  {sidebarItems.find((item) => item.id === activeTab)?.label ||
+                    "Overview"}
                 </div>
               </div>
               <div className="flex items-center space-x-3">
@@ -716,9 +783,7 @@ export default function CompleteDashboard() {
           </div>
 
           {/* Page Content */}
-          <div className="p-6">
-            {renderContent()}
-          </div>
+          <div className="p-6">{renderContent()}</div>
         </div>
       </div>
     </ProtectedRoute>
