@@ -698,15 +698,19 @@ export default function CompleteDashboard() {
               return (
                 <Button
                   key={item.id}
-                  variant={activeTab === item.id ? "secondary" : "ghost"}
+                  variant="ghost"
                   className={`w-full justify-start ${
                     activeTab === item.id
-                      ? "bg-white text-black hover:bg-gray-100"
+                      ? "text-white hover:bg-zinc-800"
                       : "text-zinc-400 hover:text-white hover:bg-zinc-800"
                   }`}
                   onClick={() => setActiveTab(item.id)}
                 >
-                  <Icon className="h-4 w-4 mr-3" />
+                  <Icon
+                    className={`h-4 w-4 mr-3 ${
+                      activeTab === item.id ? "text-blue-400" : ""
+                    }`}
+                  />
                   {!sidebarCollapsed && item.label}
                 </Button>
               );
