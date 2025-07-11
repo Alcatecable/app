@@ -57,6 +57,7 @@ app.use(cors({
       'http://localhost:3000',
       'https://neurolint.dev',
       'https://www.neurolint.dev',
+      'https://app.neurolint.dev',
       'https://api.neurolint.dev'
     ];
     
