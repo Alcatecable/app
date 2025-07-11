@@ -238,31 +238,97 @@ const authenticateUser = async (req, res, next) => {
 
 // Enhanced concurrency control with Supabase integration
 const concurrencyControl = async (req, res, next) => {
-  if (currentOperations >= config.api.maxConcurrent) {
-    return res.status(503).json({
-      error: "Server busy",
-      code: "MAX_CONCURRENT_EXCEEDED",
-      message: "Too many concurrent operations. Please try again later.",
-      timestamp: new Date().toISOString(),
+  const startTime = Date.now();
+
+  try {
+    // Check distributed rate limiting
+    const identifier = req.user?.id || req.ip;
+    const rateLimit = await checkDistributedRateLimit(identifier, req.path);
+
+    if (!rateLimit.allowed) {
+      await logAPIUsage(
+        req,
+        res,
+        Date.now() - startTime,
+        new Error("Rate limit exceeded"),
+      );
+      return res.status(429).json({
+        error: "Rate limit exceeded",
+        code: "RATE_LIMIT_EXCEEDED",
+        message: "Too many requests. Please try again later.",
+        retryAfter: rateLimit.resetTime,
+        remaining: rateLimit.remaining,
+        timestamp: new Date().toISOString(),
+      });
+    }
+
+    // Check user quota for authenticated users
+    if (
+      req.user &&
+      (req.path.includes("/transform") || req.path.includes("/layers/"))
+    ) {
+      const quota = await checkUserQuota(req.user.id);
+      if (!quota.allowed) {
+        await logAPIUsage(
+          req,
+          res,
+          Date.now() - startTime,
+          new Error("Quota exceeded"),
+        );
+        return res.status(429).json({
+          error: "Monthly quota exceeded",
+          code: "QUOTA_EXCEEDED",
+          message: `You have used all your monthly transformations.`,
+          resetDate: quota.resetDate,
+          remaining: quota.remaining,
+          timestamp: new Date().toISOString(),
+        });
+      }
+      req.userQuota = quota;
+    }
+
+    // Legacy concurrency check
+    if (currentOperations >= config.api.maxConcurrent) {
+      await logAPIUsage(
+        req,
+        res,
+        Date.now() - startTime,
+        new Error("Max concurrent exceeded"),
+      );
+      return res.status(503).json({
+        error: "Server busy",
+        code: "MAX_CONCURRENT_EXCEEDED",
+        message: "Too many concurrent operations. Please try again later.",
+        timestamp: new Date().toISOString(),
+      });
+    }
+
+    currentOperations++;
+    const operationId = crypto.randomUUID();
+    activeOperations.set(operationId, {
+      startTime: Date.now(),
+      endpoint: req.path,
+      ip: req.ip,
+      userId: req.user?.id,
     });
+
+    req.operationId = operationId;
+    req.requestStartTime = startTime;
+
+    res.on("finish", async () => {
+      currentOperations--;
+      activeOperations.delete(operationId);
+
+      // Log API usage
+      const executionTime = Date.now() - startTime;
+      await logAPIUsage(req, res, executionTime);
+    });
+
+    next();
+  } catch (error) {
+    console.error("Concurrency control error:", error);
+    next();
   }
-
-  currentOperations++;
-  const operationId = crypto.randomUUID();
-  activeOperations.set(operationId, {
-    startTime: Date.now(),
-    endpoint: req.path,
-    ip: req.ip,
-  });
-
-  req.operationId = operationId;
-
-  res.on("finish", () => {
-    currentOperations--;
-    activeOperations.delete(operationId);
-  });
-
-  next();
 };
 
 // Configure multer for file uploads
