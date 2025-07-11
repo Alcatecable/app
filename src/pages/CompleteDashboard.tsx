@@ -33,6 +33,7 @@ import {
 
 // Import existing transformation components
 import Dashboard from "./Dashboard";
+import Onboarding from "@/components/Onboarding";
 
 interface DashboardData {
   totalTransformations: number;
@@ -71,11 +72,22 @@ export default function CompleteDashboard() {
   const [activeTab, setActiveTab] = useState('overview');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   
+  // Onboarding state
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  
   // Data state
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Check if user needs onboarding
+  useEffect(() => {
+    const hasCompletedOnboarding = localStorage.getItem('neurolint_onboarding_completed');
+    if (!hasCompletedOnboarding && user) {
+      setShowOnboarding(true);
+    }
+  }, [user]);
 
   // Fetch real data from API
   useEffect(() => {
@@ -144,6 +156,24 @@ export default function CompleteDashboard() {
     { id: 'settings', label: 'Settings', icon: Settings },
     { id: 'help', label: 'Help', icon: HelpCircle },
   ];
+
+  const handleOnboardingComplete = () => {
+    localStorage.setItem('neurolint_onboarding_completed', 'true');
+    setShowOnboarding(false);
+    toast({
+      title: "Welcome to NeuroLint!",
+      description: "You're all set up. Start transforming your code!",
+    });
+  };
+
+  const handleOnboardingSkip = () => {
+    localStorage.setItem('neurolint_onboarding_completed', 'true');
+    setShowOnboarding(false);
+    toast({
+      title: "Skipped Onboarding",
+      description: "You can always access help and tutorials from the Help menu.",
+    });
+  };
 
   const handleLogout = () => {
     logout();
@@ -548,6 +578,18 @@ export default function CompleteDashboard() {
         return renderOverview();
     }
   };
+
+  // Show onboarding if user hasn't completed it
+  if (showOnboarding) {
+    return (
+      <ProtectedRoute>
+        <Onboarding 
+          onComplete={handleOnboardingComplete}
+          onSkip={handleOnboardingSkip}
+        />
+      </ProtectedRoute>
+    );
+  }
 
   return (
     <ProtectedRoute>
