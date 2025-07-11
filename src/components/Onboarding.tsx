@@ -136,12 +136,12 @@ function TodoList() {
   const features = [
     {
       icon: <Settings2 className="h-6 w-6 text-white" />,
-      title: "Layered, Deterministic Fixes",
-      description: "Multi-stage, rules-based pipeline for safe, predictable code improvements. No black-box AI."
+      title: "Deterministic, Rules-Based Pipeline",
+      description: "Multi-stage, enterprise-safe transformations for predictable code improvements."
     },
     {
       icon: <Layers className="h-6 w-6 text-white" />,
-      title: "Adaptive Learning (Layer 7)",
+      title: "Adaptive Learning",
       description: "Learns from your real transformations, but only applies new rules after validation—never surprises."
     },
     {
@@ -236,6 +236,19 @@ function TodoList() {
             <p className="text-zinc-400">Explore what NeuroLint can do for you</p>
           </div>
 
+          {/* Transformation Pipeline Section */}
+          <div className="mb-8">
+            <h3 className="text-lg font-semibold text-white mb-2">NeuroLint’s Transformation Pipeline</h3>
+            <ul className="space-y-2">
+              <li><span className="font-bold text-white">1. Configuration Optimization:</span> <span className="text-zinc-400">Fixes TypeScript, Next.js, and project config for best practices.</span></li>
+              <li><span className="font-bold text-white">2. Pattern Recognition & Cleanup:</span> <span className="text-zinc-400">Detects and fixes common code smells, HTML entities, and import issues.</span></li>
+              <li><span className="font-bold text-white">3. Component Enhancement:</span> <span className="text-zinc-400">Improves React/Vue/Svelte components for performance and maintainability.</span></li>
+              <li><span className="font-bold text-white">4. Hydration & SSR Optimization:</span> <span className="text-zinc-400">Ensures correct client/server boundaries and hydration safety.</span></li>
+              <li><span className="font-bold text-white">5. Next.js App Router Fixes:</span> <span className="text-zinc-400">Cleans up imports, adds ‘use client’, and optimizes routing.</span></li>
+              <li><span className="font-bold text-white">6. Testing & Accessibility:</span> <span className="text-zinc-400">Adds error boundaries, ARIA, and validates code safety.</span></li>
+              <li><span className="font-bold text-white">7. Adaptive Learning:</span> <span className="text-zinc-400">Learns from your transformations and suggests new, validated rules.</span></li>
+            </ul>
+          </div>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {features.map((feature, index) => (
               <Card key={index} className="bg-zinc-900/50 border-zinc-800 hover:border-zinc-700 transition-colors">
