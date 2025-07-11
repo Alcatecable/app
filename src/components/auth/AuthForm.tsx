@@ -99,15 +99,12 @@ export function AuthForm() {
     <div className="flex items-center justify-center min-h-screen bg-background p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
-          <div className="flex flex-col items-center space-y-4">
+          <div className="flex flex-col items-center">
             <img
               src="https://cdn.builder.io/api/v1/image/assets%2F67fb758850bf4dabaa407a94333b37bf%2Fe571d0c59e3845989d9b34bb02032744?format=webp&width=800"
               alt="NeuroLint Logo"
-              className="h-16 w-auto"
+              className="h-12 w-auto mb-4"
             />
-            <CardTitle className="text-2xl font-bold text-center">
-              Welcome
-            </CardTitle>
           </div>
           <CardDescription className="text-center">
             Advanced code analysis and transformation platform
