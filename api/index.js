@@ -865,6 +865,7 @@ app.post(
 // Transform code endpoint
 app.post(
   "/api/v1/transform",
+  authenticateUser,
   validateCode,
   validateLayers,
   handleValidationErrors,
