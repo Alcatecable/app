@@ -6,7 +6,29 @@
 import { TransformationResult, AnalysisResult, LayerExecutionResult } from './types';
 import { PatternRecognitionLayer } from './layers/adaptive-learning';
 
-const API_BASE_URL = 'https://api.neurolint.dev';
+// Use environment-based API URL configuration
+const getAPIBaseURL = () => {
+  // In development, use local API if available
+  if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+    return '/api';
+  }
+  
+  // In production, use the configured API endpoint
+  if (typeof window !== 'undefined') {
+    const currentHost = window.location.hostname;
+    if (currentHost === 'app.neurolint.dev') {
+      return 'https://api.neurolint.dev';
+    }
+    if (currentHost === 'neurolint.dev' || currentHost === 'www.neurolint.dev') {
+      return '/api';
+    }
+  }
+  
+  // Default fallback
+  return '/api';
+};
+
+const API_BASE_URL = getAPIBaseURL();
 
 interface APIErrorInterface {
   message: string;
