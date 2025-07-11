@@ -216,8 +216,28 @@ const handleValidationErrors = (req, res, next) => {
   next();
 };
 
-// Concurrency control middleware
-const concurrencyControl = (req, res, next) => {
+// Authentication middleware
+const authenticateUser = async (req, res, next) => {
+  try {
+    const token = req.headers.authorization?.replace("Bearer ", "");
+    if (token) {
+      const {
+        data: { user },
+        error,
+      } = await supabase.auth.getUser(token);
+      if (!error && user) {
+        req.user = user;
+      }
+    }
+    next();
+  } catch (error) {
+    console.error("Auth middleware error:", error);
+    next();
+  }
+};
+
+// Enhanced concurrency control with Supabase integration
+const concurrencyControl = async (req, res, next) => {
   if (currentOperations >= config.api.maxConcurrent) {
     return res.status(503).json({
       error: "Server busy",
