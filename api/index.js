@@ -1,15 +1,20 @@
-const express = require("express");
-const cors = require("cors");
-const helmet = require("helmet");
-const morgan = require("morgan");
-const rateLimit = require("express-rate-limit");
-const { body, validationResult, param } = require("express-validator");
-const multer = require("multer");
-const fs = require("fs").promises;
-const path = require("path");
-const { spawn } = require("child_process");
-const crypto = require("crypto");
-const cleanup = require("node-cleanup");
+import express from "express";
+import cors from "cors";
+import helmet from "helmet";
+import morgan from "morgan";
+import rateLimit from "express-rate-limit";
+import { body, validationResult, param } from "express-validator";
+import multer from "multer";
+import { promises as fs } from "fs";
+import path from "path";
+import { spawn } from "child_process";
+import crypto from "crypto";
+import cleanup from "node-cleanup";
+import { fileURLToPath } from "url";
+import fsSync from "fs";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 
@@ -1392,7 +1397,7 @@ cleanup((exitCode, signal) => {
   console.log("Cleaning up temp files...");
   activeTempFiles.forEach((file) => {
     try {
-      require("fs").unlinkSync(file);
+      fsSync.unlinkSync(file);
     } catch (e) {
       console.error("Failed to cleanup:", file);
     }
@@ -1429,4 +1434,4 @@ if (process.env.NODE_ENV !== "production") {
   });
 }
 
-module.exports = app;
+export default app;
