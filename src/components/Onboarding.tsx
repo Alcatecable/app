@@ -136,28 +136,53 @@ function TodoList() {
   const features = [
     {
       icon: <Settings2 className="h-6 w-6 text-white" />,
-      title: "Transform",
-      description: "Run code transformations with our powerful pipeline, including automatic fixes for Next.js and accessibility."
+      title: "Layered, Deterministic Fixes",
+      description: "Multi-stage, rules-based pipeline for safe, predictable code improvements. No black-box AI."
     },
     {
       icon: <Layers className="h-6 w-6 text-white" />,
       title: "Adaptive Learning (Layer 7)",
-      description: "NeuroLint learns from your transformations, applying smarter fixes over time."
+      description: "Learns from your real transformations, but only applies new rules after validation—never surprises."
     },
     {
       icon: <LayoutDashboard className="h-6 w-6 text-white" />,
-      title: "Overview",
-      description: "Track your transformation history and project metrics at a glance."
+      title: "Overview & History",
+      description: "Full audit trail of every change, with before/after diffs and project metrics."
     },
     {
       icon: <Receipt className="h-6 w-6 text-white" />,
-      title: "Billing & Usage",
-      description: "Monitor your usage and upgrade to SuperGrok for higher quotas."
+      title: "Quota & Usage Tracking",
+      description: "Transparent usage, with upgrade options for high-volume teams."
     },
     {
       icon: <ListChecks className="h-6 w-6 text-white" />,
       title: "Rule Management",
-      description: "Review and customize learned transformation rules."
+      description: "Review, approve, or disable learned rules for full control."
+    },
+    {
+      icon: <FileText className="h-6 w-6 text-white" />,
+      title: "Accessibility & Testing",
+      description: "Automated ARIA, labeling, error boundaries, and code safety validation."
+    },
+    {
+      icon: <Settings2 className="h-6 w-6 text-white" />,
+      title: "Next.js & Modern Frameworks",
+      description: "Optimizes Next.js, React, Vue, Svelte, and more with proven, enterprise-safe rules."
+    },
+    {
+      icon: <ClipboardList className="h-6 w-6 text-white" />,
+      title: "Data Privacy & Security",
+      description: "Opt out of pattern learning, control retention, and enterprise security by default."
+    },
+    {
+      icon: <Github className="h-6 w-6 text-white" />,
+      title: "GitHub, CLI, VS Code, API",
+      description: "Import from GitHub, use in your terminal or editor, or automate with API access."
+    },
+    {
+      icon: <Shield className="h-6 w-6 text-white" />,
+      title: "No Unpredictable AI",
+      description: "Every fix is explainable, reviewable, and never hallucinates code. Built for enterprise reliability."
     }
   ];
 
