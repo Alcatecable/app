@@ -791,6 +791,33 @@ function applyTestingFixes(code) {
 
 // API Routes
 
+// Enterprise setup endpoint
+app.post("/api/v1/setup/enterprise", async (req, res) => {
+  try {
+    await setupEnterpriseDatabase();
+
+    res.json({
+      success: true,
+      message: "NeuroLint Enterprise features activated!",
+      features: [
+        "Persistent pattern storage",
+        "Real-time synchronization",
+        "Distributed rate limiting",
+        "User quotas & analytics",
+        "Comprehensive API logging",
+      ],
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: "Enterprise setup failed",
+      details: error.message,
+      timestamp: new Date().toISOString(),
+    });
+  }
+});
+
 // Health check with comprehensive status
 app.get("/health", async (req, res) => {
   try {
