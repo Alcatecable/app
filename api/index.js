@@ -1490,9 +1490,10 @@ function calculateImprovementScore(data) {
   );
 }
 
-// Save patterns endpoint
+// Save patterns endpoint with Supabase persistence
 app.post(
   "/api/v1/patterns/save",
+  authenticateUser,
   [
     body("layerId")
       .isInt({ min: 1, max: 7 })
@@ -1502,30 +1503,47 @@ app.post(
       .optional()
       .isObject()
       .withMessage("Metadata must be an object"),
+    body("isPublic")
+      .optional()
+      .isBoolean()
+      .withMessage("isPublic must be a boolean"),
   ],
   handleValidationErrors,
   async (req, res) => {
     try {
-      const { layerId, patterns, metadata = {} } = req.body;
-      const patternKey = `layer_${layerId}`;
+      const { layerId, patterns, metadata = {}, isPublic = false } = req.body;
 
       const patternData = {
-        layerId,
-        patterns,
+        layer_id: layerId,
+        patterns: patterns,
         metadata: {
           ...metadata,
           updatedAt: new Date().toISOString(),
           patternCount: patterns.length,
         },
+        user_id: req.user?.id || null,
+        is_public: isPublic,
+        updated_at: new Date().toISOString(),
       };
 
-      patternsStore.set(patternKey, patternData);
+      // Upsert patterns to Supabase
+      const { data, error } = await supabase
+        .from("neurolint_patterns")
+        .upsert(patternData, {
+          onConflict: "layer_id,user_id",
+          returning: "minimal",
+        });
+
+      if (error) {
+        throw new Error(`Database error: ${error.message}`);
+      }
 
       res.json({
         success: true,
         layerId,
         patternCount: patterns.length,
-        message: "Patterns saved successfully",
+        isPublic,
+        message: "Patterns saved successfully to database",
         timestamp: new Date().toISOString(),
       });
     } catch (error) {
