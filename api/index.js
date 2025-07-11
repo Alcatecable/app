@@ -1221,6 +1221,188 @@ app.get("/health", (req, res) => {
 
 // Supabase patterns storage (production-ready persistence)
 
+// Enhanced Supabase helpers for enterprise features
+async function logAPIUsage(req, res, executionTime, error = null) {
+  try {
+    const user = req.user || null;
+    await supabase.from("api_usage_logs").insert({
+      endpoint: req.path,
+      method: req.method,
+      user_id: user?.id || null,
+      session_id: req.headers["x-session-id"] || null,
+      status_code: res.statusCode,
+      execution_time_ms: executionTime,
+      request_size_bytes: req.headers["content-length"] || 0,
+      ip_address: req.ip,
+      user_agent: req.headers["user-agent"],
+      error_details: error
+        ? { message: error.message, stack: error.stack }
+        : null,
+      metadata: {
+        operationId: req.operationId,
+        userAgent: req.headers["user-agent"],
+      },
+    });
+  } catch (logError) {
+    console.error("Failed to log API usage:", logError.message);
+  }
+}
+
+async function checkUserQuota(userId) {
+  if (!userId) return { allowed: true, remaining: 1000 };
+
+  const { data, error } = await supabase
+    .from("user_quotas")
+    .select("*")
+    .eq("user_id", userId)
+    .single();
+
+  if (error || !data) {
+    // Create quota for new user
+    const { data: newQuota } = await supabase
+      .from("user_quotas")
+      .insert({ user_id: userId })
+      .select()
+      .single();
+    return { allowed: true, remaining: 999 };
+  }
+
+  const remaining = data.monthly_transformations - data.used_transformations;
+  return {
+    allowed: remaining > 0,
+    remaining,
+    resetDate: data.quota_reset_date,
+  };
+}
+
+async function incrementUserUsage(userId) {
+  if (!userId) return;
+
+  await supabase.rpc("increment_user_transformations", {
+    user_uuid: userId,
+  });
+}
+
+async function checkDistributedRateLimit(
+  identifier,
+  endpoint,
+  limit = 100,
+  windowSeconds = 900,
+) {
+  const windowStart = new Date(
+    Date.now() - (Date.now() % (windowSeconds * 1000)),
+  );
+  const rateLimitId = `${identifier}_${endpoint}`;
+
+  const { data, error } = await supabase
+    .from("rate_limits")
+    .select("*")
+    .eq("id", rateLimitId)
+    .eq("endpoint", endpoint)
+    .single();
+
+  if (error || !data) {
+    // Create new rate limit entry
+    await supabase.from("rate_limits").upsert({
+      id: rateLimitId,
+      endpoint,
+      request_count: 1,
+      window_start: windowStart.toISOString(),
+      limit_per_window: limit,
+      window_duration_seconds: windowSeconds,
+    });
+    return { allowed: true, remaining: limit - 1 };
+  }
+
+  // Check if window has reset
+  const dataWindowStart = new Date(data.window_start);
+  if (dataWindowStart < windowStart) {
+    // Reset window
+    await supabase
+      .from("rate_limits")
+      .update({
+        request_count: 1,
+        window_start: windowStart.toISOString(),
+        is_blocked: false,
+        blocked_until: null,
+      })
+      .eq("id", rateLimitId);
+    return { allowed: true, remaining: limit - 1 };
+  }
+
+  // Check current usage
+  if (data.request_count >= limit) {
+    await supabase
+      .from("rate_limits")
+      .update({
+        is_blocked: true,
+        blocked_until: new Date(
+          windowStart.getTime() + windowSeconds * 1000,
+        ).toISOString(),
+      })
+      .eq("id", rateLimitId);
+    return { allowed: false, remaining: 0, resetTime: data.window_start };
+  }
+
+  // Increment counter
+  await supabase
+    .from("rate_limits")
+    .update({
+      request_count: data.request_count + 1,
+    })
+    .eq("id", rateLimitId);
+
+  return { allowed: true, remaining: limit - data.request_count - 1 };
+}
+
+async function saveTransformationHistory(req, transformationData) {
+  try {
+    await supabase.from("transformation_history").insert({
+      user_id: req.user?.id || null,
+      session_id: req.headers["x-session-id"] || null,
+      original_code_hash: crypto
+        .createHash("sha256")
+        .update(transformationData.originalCode)
+        .digest("hex"),
+      final_code_hash: crypto
+        .createHash("sha256")
+        .update(transformationData.finalCode)
+        .digest("hex"),
+      enabled_layers: transformationData.enabledLayers,
+      layer_results: transformationData.results,
+      total_execution_time_ms: transformationData.totalExecutionTime,
+      successful_layers: transformationData.successfulLayers,
+      failed_layers:
+        transformationData.enabledLayers.length -
+        transformationData.successfulLayers,
+      code_size_before: transformationData.originalCode.length,
+      code_size_after: transformationData.finalCode.length,
+      improvement_score: calculateImprovementScore(transformationData),
+      ip_address: req.ip,
+    });
+  } catch (error) {
+    console.error("Failed to save transformation history:", error.message);
+  }
+}
+
+function calculateImprovementScore(data) {
+  const { results, originalCode, finalCode } = data;
+  const successRate = data.successfulLayers / data.enabledLayers.length;
+  const sizeReduction = Math.max(
+    0,
+    (originalCode.length - finalCode.length) / originalCode.length,
+  );
+  const totalChanges = results.reduce(
+    (sum, r) => sum + (r.changeCount || 0),
+    0,
+  );
+
+  return Math.min(
+    100,
+    successRate * 50 + sizeReduction * 25 + Math.min(25, totalChanges * 2),
+  );
+}
+
 // Save patterns endpoint
 app.post(
   "/api/v1/patterns/save",
