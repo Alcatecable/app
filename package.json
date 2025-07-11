@@ -12,8 +12,8 @@
     "test:ui": "vitest --ui",
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",
-    "api:dev": "node api/index.cjs",
-    "api:start": "NODE_ENV=production node api/index.cjs"
+    "api:dev": "node api/index.js",
+    "api:start": "NODE_ENV=production node api/index.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
