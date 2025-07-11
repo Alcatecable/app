@@ -1,49 +1,54 @@
-
-import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Separator } from '@/components/ui/separator';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Eye, EyeOff, Mail, Lock, User } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
+import React, { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Separator } from "@/components/ui/separator";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Eye, EyeOff, Mail, Lock, User } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 export function AuthForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-    fullName: '',
-    confirmPassword: ''
+    email: "",
+    password: "",
+    fullName: "",
+    confirmPassword: "",
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
-  
+
   const { signIn, signUp, resetPassword } = useAuth();
 
   const validateForm = (isSignUp: boolean) => {
     const newErrors: Record<string, string> = {};
 
     if (!formData.email) {
-      newErrors.email = 'Email is required';
+      newErrors.email = "Email is required";
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'Please enter a valid email';
+      newErrors.email = "Please enter a valid email";
     }
 
     if (!formData.password) {
-      newErrors.password = 'Password is required';
+      newErrors.password = "Password is required";
     } else if (formData.password.length < 6) {
-      newErrors.password = 'Password must be at least 6 characters';
+      newErrors.password = "Password must be at least 6 characters";
     }
 
     if (isSignUp) {
       if (!formData.fullName) {
-        newErrors.fullName = 'Full name is required';
+        newErrors.fullName = "Full name is required";
       }
       if (formData.password !== formData.confirmPassword) {
-        newErrors.confirmPassword = 'Passwords do not match';
+        newErrors.confirmPassword = "Passwords do not match";
       }
     }
 
@@ -53,11 +58,11 @@ export function AuthForm() {
 
   const handleSubmit = async (e: React.FormEvent, isSignUp: boolean) => {
     e.preventDefault();
-    
+
     if (!validateForm(isSignUp)) return;
 
     setIsLoading(true);
-    
+
     try {
       if (isSignUp) {
         await signUp(formData.email, formData.password, formData.fullName);
@@ -71,7 +76,7 @@ export function AuthForm() {
 
   const handlePasswordReset = async () => {
     if (!formData.email) {
-      setErrors({ email: 'Please enter your email address' });
+      setErrors({ email: "Please enter your email address" });
       return;
     }
 
@@ -84,9 +89,9 @@ export function AuthForm() {
   };
 
   const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData((prev) => ({ ...prev, [field]: value }));
     if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: '' }));
+      setErrors((prev) => ({ ...prev, [field]: "" }));
     }
   };
 
@@ -94,9 +99,16 @@ export function AuthForm() {
     <div className="flex items-center justify-center min-h-screen bg-background p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold text-center">
-            Welcome to NeuroLint
-          </CardTitle>
+          <div className="flex flex-col items-center space-y-4">
+            <img
+              src="https://cdn.builder.io/api/v1/image/assets%2F67fb758850bf4dabaa407a94333b37bf%2Fe571d0c59e3845989d9b34bb02032744?format=webp&width=800"
+              alt="NeuroLint Logo"
+              className="h-16 w-auto"
+            />
+            <CardTitle className="text-2xl font-bold text-center">
+              Welcome
+            </CardTitle>
+          </div>
           <CardDescription className="text-center">
             Advanced code analysis and transformation platform
           </CardDescription>
@@ -107,9 +119,12 @@ export function AuthForm() {
               <TabsTrigger value="signin">Sign In</TabsTrigger>
               <TabsTrigger value="signup">Sign Up</TabsTrigger>
             </TabsList>
-            
+
             <TabsContent value="signin" className="space-y-4">
-              <form onSubmit={(e) => handleSubmit(e, false)} className="space-y-4">
+              <form
+                onSubmit={(e) => handleSubmit(e, false)}
+                className="space-y-4"
+              >
                 <div className="space-y-2">
                   <Label htmlFor="email">Email</Label>
                   <div className="relative">
@@ -119,7 +134,9 @@ export function AuthForm() {
                       type="email"
                       placeholder="Enter your email"
                       value={formData.email}
-                      onChange={(e) => handleInputChange('email', e.target.value)}
+                      onChange={(e) =>
+                        handleInputChange("email", e.target.value)
+                      }
                       className="pl-10"
                       disabled={isLoading}
                     />
@@ -140,7 +157,9 @@ export function AuthForm() {
                       type={showPassword ? "text" : "password"}
                       placeholder="Enter your password"
                       value={formData.password}
-                      onChange={(e) => handleInputChange('password', e.target.value)}
+                      onChange={(e) =>
+                        handleInputChange("password", e.target.value)
+                      }
                       className="pl-10 pr-10"
                       disabled={isLoading}
                     />
@@ -159,12 +178,8 @@ export function AuthForm() {
                   )}
                 </div>
 
-                <Button 
-                  type="submit" 
-                  className="w-full" 
-                  disabled={isLoading}
-                >
-                  {isLoading ? 'Signing in...' : 'Sign In'}
+                <Button type="submit" className="w-full" disabled={isLoading}>
+                  {isLoading ? "Signing in..." : "Sign In"}
                 </Button>
               </form>
 
@@ -181,7 +196,10 @@ export function AuthForm() {
             </TabsContent>
 
             <TabsContent value="signup" className="space-y-4">
-              <form onSubmit={(e) => handleSubmit(e, true)} className="space-y-4">
+              <form
+                onSubmit={(e) => handleSubmit(e, true)}
+                className="space-y-4"
+              >
                 <div className="space-y-2">
                   <Label htmlFor="fullName">Full Name</Label>
                   <div className="relative">
@@ -191,7 +209,9 @@ export function AuthForm() {
                       type="text"
                       placeholder="Enter your full name"
                       value={formData.fullName}
-                      onChange={(e) => handleInputChange('fullName', e.target.value)}
+                      onChange={(e) =>
+                        handleInputChange("fullName", e.target.value)
+                      }
                       className="pl-10"
                       disabled={isLoading}
                     />
@@ -212,7 +232,9 @@ export function AuthForm() {
                       type="email"
                       placeholder="Enter your email"
                       value={formData.email}
-                      onChange={(e) => handleInputChange('email', e.target.value)}
+                      onChange={(e) =>
+                        handleInputChange("email", e.target.value)
+                      }
                       className="pl-10"
                       disabled={isLoading}
                     />
@@ -233,7 +255,9 @@ export function AuthForm() {
                       type={showPassword ? "text" : "password"}
                       placeholder="Create a password"
                       value={formData.password}
-                      onChange={(e) => handleInputChange('password', e.target.value)}
+                      onChange={(e) =>
+                        handleInputChange("password", e.target.value)
+                      }
                       className="pl-10 pr-10"
                       disabled={isLoading}
                     />
@@ -261,24 +285,24 @@ export function AuthForm() {
                       type="password"
                       placeholder="Confirm your password"
                       value={formData.confirmPassword}
-                      onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
+                      onChange={(e) =>
+                        handleInputChange("confirmPassword", e.target.value)
+                      }
                       className="pl-10"
                       disabled={isLoading}
                     />
                   </div>
                   {errors.confirmPassword && (
                     <Alert variant="destructive">
-                      <AlertDescription>{errors.confirmPassword}</AlertDescription>
+                      <AlertDescription>
+                        {errors.confirmPassword}
+                      </AlertDescription>
                     </Alert>
                   )}
                 </div>
 
-                <Button 
-                  type="submit" 
-                  className="w-full" 
-                  disabled={isLoading}
-                >
-                  {isLoading ? 'Creating account...' : 'Create Account'}
+                <Button type="submit" className="w-full" disabled={isLoading}>
+                  {isLoading ? "Creating account..." : "Create Account"}
                 </Button>
               </form>
             </TabsContent>
