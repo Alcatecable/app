@@ -671,9 +671,9 @@ export default function CompleteDashboard() {
             {!sidebarCollapsed && (
               <div className="flex items-center">
                 <img
-                  src="https://cdn.builder.io/api/v1/image/assets%2F67fb758850bf4dabaa407a94333b37bf%2Fd91e193ae84547a9bd6e83abc78ed6c2?format=webp&width=800"
+                  src="https://cdn.builder.io/api/v1/image/assets%2F67fb758850bf4dabaa407a94333b37bf%2Fa93c019333fb4e7ead3909bb12d5ad2b?format=webp&width=800"
                   alt="NeuroLint Logo"
-                  className="h-8 w-8 rounded-lg"
+                  className="h-8 w-auto"
                 />
               </div>
             )}
