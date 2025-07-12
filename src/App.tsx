@@ -18,7 +18,6 @@ import SubscriptionSuccess from "./pages/SubscriptionSuccess";
 import SubscriptionCancel from "./pages/SubscriptionCancel";
 import ContactPage from "./pages/ContactPage";
 import NotFound from "./pages/NotFound";
-import EnhancedOnboarding from "./components/EnhancedOnboarding";
 
 const queryClient = new QueryClient();
 
@@ -31,12 +30,6 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Home />} />
-            <Route path="/onboarding" element={
-              <EnhancedOnboarding 
-                onComplete={() => window.location.href = '/dashboard'}
-                onSkip={() => window.location.href = '/dashboard'}
-              />
-            } />
             <Route path="/dashboard" element={<CompleteDashboard />} />
             <Route path="/admin" element={<ModernAdminDashboard />} />
             <Route path="/neurolint" element={<ModernNeuroLintPage />} />
