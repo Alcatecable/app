@@ -367,7 +367,7 @@ const PerformanceIndicators = () => {
           <div className="flex justify-center mb-2">
             <Gauge className="h-6 w-6 text-green-400" />
           </div>
-          <div className="text-2xl font-bold text-white">< 5s</div>
+          <div className="text-2xl font-bold text-white">&lt; 5s</div>
           <div className="text-sm text-zinc-400">Analysis Time</div>
           <div className="text-xs text-zinc-500 mt-1">Enterprise SLA</div>
         </CardContent>
@@ -423,7 +423,7 @@ const ComprehensiveLayerTicker = () => {
 
   return (
     <div className="border border-zinc-700 rounded-lg bg-zinc-900/30 overflow-hidden">
-      <div className="flex animate-scroll space-x-8 py-3">
+      <div className="flex space-x-8 py-3 animate-scroll">
         {[...layers, ...layers].map((layer, index) => (
           <div key={index} className="flex items-center space-x-2 whitespace-nowrap">
             <span className="text-sm text-zinc-300">{layer}</span>
@@ -435,12 +435,16 @@ const ComprehensiveLayerTicker = () => {
       </div>
       
       <style jsx>{`
-        @keyframes scroll {
-          0% { transform: translateX(0); }
-          100% { transform: translateX(-50%); }
-        }
         .animate-scroll {
           animation: scroll 25s linear infinite;
+        }
+        @keyframes scroll {
+          0% { 
+            transform: translateX(0); 
+          }
+          100% { 
+            transform: translateX(-50%); 
+          }
         }
       `}</style>
     </div>
