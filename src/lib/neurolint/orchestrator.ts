@@ -59,7 +59,7 @@ export class NeuroLintOrchestrator {
       enabledLayers: enabledLayers.join(','),
       changeCount: 0
     });
-    metrics.recordLayerExecution(0, 0);
+    metrics.recordLayerExecution(0, true, 0, 0);
 
     // Validate and correct layer dependencies following Layer Dependency Management
     const correctedLayers = this.validateAndCorrectLayers(enabledLayers);
@@ -121,6 +121,7 @@ export class NeuroLintOrchestrator {
                   previousCode,
                   layerResult.transformedCode,
                   layerId,
+                  layerResult.improvements,
                   { projectType: 'neurolint-transformation' }
                 );
                 logger.info(`Pattern learning completed for Layer ${layerId}`, {
@@ -156,7 +157,7 @@ export class NeuroLintOrchestrator {
         }
       } catch (error: any) {
         logger.error(`Layer ${layerId} execution failed`, error instanceof Error ? error : new Error(String(error)));
-        metrics.recordLayerExecution(layerId, 0);
+        metrics.recordLayerExecution(layerId, false, 0, 0);
         
         results.push({
           layerId,
@@ -313,3 +314,4 @@ export class NeuroLintOrchestrator {
     return layerNames[layerId as keyof typeof layerNames] || `Layer ${layerId}`;
   }
 }
+

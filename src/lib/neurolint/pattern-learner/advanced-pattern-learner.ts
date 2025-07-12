@@ -1,4 +1,3 @@
-
 import { LearnedPattern, PatternRule, TransformationExample } from "../types";
 import { logger } from "../logger";
 import { patternStorage } from "../pattern-storage";
@@ -85,6 +84,7 @@ export class AdvancedPatternLearner {
     before: string,
     after: string,
     layerId: number,
+    improvements?: string[],
     context?: { filePath?: string; projectType?: string }
   ): Promise<void> {
     await this.initialize();
@@ -93,10 +93,12 @@ export class AdvancedPatternLearner {
       id: this.generateId(),
       before,
       after,
+      description: `Layer ${layerId} transformation`,
+      category: 'learned',
+      patterns: this.extractPatterns(before, after).map(p => p.id),
       layerId,
       timestamp: Date.now(),
       context,
-      patterns: this.extractPatterns(before, after),
     };
 
     this.transformationHistory.push(example);
@@ -143,8 +145,10 @@ export class AdvancedPatternLearner {
       transformedCode = this.applyPattern(transformedCode, pattern);
       
       if (transformedCode !== previousCode) {
-        appliedRules.push(pattern.name);
-        pattern.successfulApplications++;
+        appliedRules.push(pattern.name || pattern.id);
+        if (pattern.successfulApplications !== undefined) {
+          pattern.successfulApplications++;
+        }
         
         // Update confidence based on successful application
         this.updatePatternConfidence(pattern, true);
@@ -213,12 +217,14 @@ export class AdvancedPatternLearner {
     for (const transform of transformations) {
       if (transform.beforeRegex.test(before) && after.includes(transform.afterPattern.replace(/\$\d+/g, ''))) {
         patterns.push({
+          id: this.generateId(),
           type: 'regex',
           name: transform.type,
           description: transform.description,
           pattern: transform.beforeRegex,
           replacement: transform.afterPattern,
           confidence: 0.8,
+          category: 'learned'
         });
       }
     }
@@ -236,23 +242,27 @@ export class AdvancedPatternLearner {
     if (this.isReactComponent(before) && this.isReactComponent(after)) {
       if (!before.includes("'use client'") && after.includes("'use client'")) {
         patterns.push({
+          id: this.generateId(),
           type: 'structural',
           name: 'add-use-client-directive',
           description: 'Add "use client" directive to React components',
           pattern: /^(?!.*'use client')/,
           replacement: "'use client';\n",
           confidence: 0.9,
+          category: 'structural'
         });
       }
 
       if (!before.includes('React.memo') && after.includes('React.memo')) {
         patterns.push({
+          id: this.generateId(),
           type: 'structural',
           name: 'add-react-memo',
           description: 'Wrap components with React.memo for performance',
           pattern: /(function\s+\w+\s*\([^)]*\)\s*{[^}]*return\s*\()/,
           replacement: 'React.memo($1',
           confidence: 0.7,
+          category: 'structural'
         });
       }
     }
@@ -272,16 +282,17 @@ export class AdvancedPatternLearner {
 
     if (beforeImports.length !== afterImports.length) {
       const addedImports = afterImports.filter(imp => !beforeImports.includes(imp));
-      const removedImports = beforeImports.filter(imp => !afterImports.includes(imp));
 
       if (addedImports.length > 0) {
         patterns.push({
+          id: this.generateId(),
           type: 'context',
           name: 'import-optimization',
           description: `Add missing imports: ${addedImports.join(', ')}`,
           pattern: /^/,
           replacement: addedImports.join('\n') + '\n',
           confidence: 0.6,
+          category: 'imports'
         });
       }
     }
@@ -293,28 +304,38 @@ export class AdvancedPatternLearner {
    * Analyze transformation example and update pattern database
    */
   private async analyzeAndUpdatePatterns(example: TransformationExample): Promise<void> {
-    for (const patternRule of example.patterns) {
+    const patternRules = this.extractPatterns(example.before, example.after);
+    
+    for (const patternRule of patternRules) {
       const patternKey = this.generatePatternKey(patternRule);
       
       if (this.patterns.has(patternKey)) {
         // Update existing pattern
         const existingPattern = this.patterns.get(patternKey)!;
-        existingPattern.frequency++;
-        existingPattern.lastSeen = Date.now();
-        existingPattern.examples.push(example.id);
+        if (existingPattern.frequency !== undefined) {
+          existingPattern.frequency++;
+        }
+        if (existingPattern.lastSeen !== undefined) {
+          existingPattern.lastSeen = Date.now();
+        }
+        if (existingPattern.examples && example.id) {
+          existingPattern.examples.push(example.id);
+        }
         
         // Update confidence based on consistency
         this.updatePatternConfidence(existingPattern, true);
       } else {
         // Create new pattern
         const newPattern: LearnedPattern = {
-          id: this.generateId(),
+          id: patternRule.id,
           name: patternRule.name,
           type: patternRule.type,
           description: patternRule.description,
-          pattern: patternRule.pattern,
+          pattern: patternRule.pattern.toString(),
           replacement: patternRule.replacement,
           confidence: patternRule.confidence,
+          usage: 0,
+          category: patternRule.category,
           frequency: 1,
           successfulApplications: 0,
           failedApplications: 0,
@@ -335,9 +356,7 @@ export class AdvancedPatternLearner {
    */
   private applyPattern(code: string, pattern: LearnedPattern): string {
     try {
-      if (pattern.pattern instanceof RegExp) {
-        return code.replace(pattern.pattern, pattern.replacement as string);
-      } else if (typeof pattern.pattern === 'string') {
+      if (typeof pattern.pattern === 'string') {
         const regex = new RegExp(pattern.pattern, 'g');
         return code.replace(regex, pattern.replacement as string);
       }
@@ -348,7 +367,9 @@ export class AdvancedPatternLearner {
         error: error instanceof Error ? error.message : "Unknown error",
       });
       
-      pattern.failedApplications++;
+      if (pattern.failedApplications !== undefined) {
+        pattern.failedApplications++;
+      }
       this.updatePatternConfidence(pattern, false);
       return code;
     }
@@ -358,14 +379,16 @@ export class AdvancedPatternLearner {
    * Update pattern confidence based on success/failure
    */
   private updatePatternConfidence(pattern: LearnedPattern, success: boolean): void {
-    const totalApplications = pattern.successfulApplications + pattern.failedApplications;
+    const successfulApps = pattern.successfulApplications || 0;
+    const failedApps = pattern.failedApplications || 0;
+    const totalApplications = successfulApps + failedApps;
     
     if (totalApplications > 0) {
-      pattern.confidence = pattern.successfulApplications / totalApplications;
+      pattern.confidence = successfulApps / totalApplications;
     }
     
     // Boost confidence for frequently successful patterns
-    if (pattern.successfulApplications > 10 && pattern.confidence > 0.8) {
+    if (successfulApps > 10 && pattern.confidence > 0.8) {
       pattern.confidence = Math.min(0.95, pattern.confidence + 0.05);
     }
   }
@@ -380,8 +403,8 @@ export class AdvancedPatternLearner {
     
     // Sort by confidence and frequency (ascending)
     patternsArray.sort(([, a], [, b]) => {
-      const scoreA = a.confidence * a.frequency;
-      const scoreB = b.confidence * b.frequency;
+      const scoreA = a.confidence * (a.frequency || 1);
+      const scoreB = b.confidence * (b.frequency || 1);
       return scoreA - scoreB;
     });
 
@@ -402,7 +425,7 @@ export class AdvancedPatternLearner {
    */
   getStoredRules(): LearnedPattern[] {
     return Array.from(this.patterns.values())
-      .sort((a, b) => (b.confidence * b.frequency) - (a.confidence * a.frequency));
+      .sort((a, b) => (b.confidence * (b.frequency || 1)) - (a.confidence * (a.frequency || 1)));
   }
 
   /**
@@ -420,7 +443,8 @@ export class AdvancedPatternLearner {
     const averageConfidence = patterns.reduce((sum, p) => sum + p.confidence, 0) / patterns.length;
     
     const patternsByLayer = patterns.reduce((acc, pattern) => {
-      acc[pattern.layerId] = (acc[pattern.layerId] || 0) + 1;
+      const layerId = pattern.layerId || 0;
+      acc[layerId] = (acc[layerId] || 0) + 1;
       return acc;
     }, {} as Record<number, number>);
 

@@ -1,4 +1,5 @@
 
+
 import { Rule } from "./rules";
 
 // Corruption patterns for validation
@@ -156,6 +157,7 @@ export interface RecoverySuggestion {
   estimatedEffectiveness: number;
   type?: string;
   actions?: string[];
+  title?: string;
 }
 
 export interface LayerResult {
@@ -280,6 +282,8 @@ export interface LogContext {
   strategy?: string;
   codeLength?: number;
   successfulLayers?: number;
+  enabledLayers?: string;
+  metadata?: Record<string, any>;
 }
 
 // Pattern learner types
@@ -291,6 +295,16 @@ export interface LearnedPattern {
   usage: number;
   category: string;
   description?: string;
+  name?: string;
+  type?: string;
+  frequency?: number;
+  successfulApplications?: number;
+  failedApplications?: number;
+  layerId?: number;
+  firstSeen?: number;
+  lastSeen?: number;
+  examples?: string[];
+  context?: any;
 }
 
 export interface PatternRule {
@@ -300,6 +314,8 @@ export interface PatternRule {
   description: string;
   category: string;
   confidence: number;
+  type?: string;
+  name?: string;
 }
 
 export interface TransformationExample {
@@ -309,4 +325,8 @@ export interface TransformationExample {
   description: string;
   category: string;
   patterns: string[];
+  layerId?: number;
+  timestamp?: number;
+  context?: any;
 }
+

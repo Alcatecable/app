@@ -1,3 +1,4 @@
+
 import { LearnedPattern } from "./types";
 import { logger } from "./logger";
 
@@ -7,6 +8,7 @@ import { logger } from "./logger";
  */
 export class PatternLearner {
   private learnedPatterns: LearnedPattern[] = [];
+  private learnedRules: LearnedPattern[] = [];
 
   constructor() {
     // Load existing patterns from storage or database
@@ -18,7 +20,7 @@ export class PatternLearner {
     this.learnedPatterns = [];
   }
 
-  learnFromTransformation(before: string, after: string, layerId: number): void {
+  learnFromTransformation(before: string, after: string, layerId: number, improvements?: string[]): void {
     logger.info(`Learning from transformation in layer ${layerId}`, {
       layerId,
       changeCount: Math.abs(before.length - after.length)
@@ -27,8 +29,13 @@ export class PatternLearner {
     const pattern = this.analyzePattern(before, after);
     if (pattern) {
       this.learnedPatterns.push(pattern);
+      this.learnedRules.push(pattern);
       this.savePattern(pattern);
     }
+  }
+
+  learn(before: string, after: string, layerId: number, improvements?: string[]): void {
+    this.learnFromTransformation(before, after, layerId, improvements);
   }
 
   private async savePattern(pattern: LearnedPattern): Promise<void> {
@@ -37,6 +44,40 @@ export class PatternLearner {
 
   getLearnedPatterns(): LearnedPattern[] {
     return this.learnedPatterns;
+  }
+
+  getLearnedRules(): LearnedPattern[] {
+    return this.learnedRules;
+  }
+
+  clearRules(): void {
+    this.learnedPatterns = [];
+    this.learnedRules = [];
+  }
+
+  getStatistics(): {
+    totalRules: number;
+    activeRules: number;
+    averageConfidence: number;
+    overallSuccessRate: number;
+    totalApplications: number;
+  } {
+    const totalRules = this.learnedPatterns.length;
+    const activeRules = this.learnedPatterns.filter(p => p.confidence >= 0.7).length;
+    const avgConfidence = totalRules > 0 
+      ? this.learnedPatterns.reduce((sum, p) => sum + p.confidence, 0) / totalRules 
+      : 0;
+    const totalApplications = this.learnedPatterns.reduce((sum, p) => sum + (p.usage || 0), 0);
+    const successfulApplications = this.learnedPatterns.reduce((sum, p) => sum + (p.successfulApplications || 0), 0);
+    const overallSuccessRate = totalApplications > 0 ? successfulApplications / totalApplications : 0;
+
+    return {
+      totalRules,
+      activeRules,
+      averageConfidence: avgConfidence,
+      overallSuccessRate,
+      totalApplications
+    };
   }
 
   applyLearnedPatterns(code: string, layerId: number): string {
@@ -131,6 +172,8 @@ export class PatternLearner {
       usage: 0,
       category: "generic",
       description: `Learned pattern from code transformation`,
+      successfulApplications: 0,
+      failedApplications: 0
     };
   }
 
@@ -140,3 +183,4 @@ export class PatternLearner {
 }
 
 export const patternLearner = new PatternLearner();
+
