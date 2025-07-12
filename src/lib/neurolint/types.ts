@@ -1,5 +1,3 @@
-import { Rule } from "./rules";
-
 // Corruption patterns for validation
 export const CORRUPTION_PATTERNS = [
   {
@@ -23,6 +21,16 @@ export const CORRUPTION_PATTERNS = [
     regex: /(\w+)\s*\(\s*\)\s*=>\s*\(\s*\)\s*=>/g
   }
 ];
+
+// Basic Rule interface (since we removed the import)
+export interface Rule {
+  id: string;
+  name: string;
+  description: string;
+  pattern: RegExp;
+  replacement: string;
+  category: string;
+}
 
 export interface LayerConfig {
   id: number;
@@ -265,6 +273,7 @@ export interface LogEntry {
   context: LogContext;
 }
 
+// Updated LogContext with all missing properties
 export interface LogContext {
   [key: string]: any;
   layerId?: number;

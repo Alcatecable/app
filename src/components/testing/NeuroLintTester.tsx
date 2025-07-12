@@ -28,7 +28,7 @@ import {
 import { CodeInput } from "./CodeInput";
 import { TestResults } from "./TestResults";
 import { PerformanceMetrics } from "./PerformanceMetrics";
-import { TestRunner } from "@/lib/neurolint/test-runner";
+import { TestRunner } from "@/lib/neurolint/test-runner/core";
 import { performanceBenchmarks } from "@/lib/neurolint/performance-benchmarks";
 
 interface TestSession {
@@ -72,28 +72,22 @@ export const NeuroLintTester: React.FC = () => {
             });
             break;
           case "integration":
-            results = await testRunner.runIntegrationTests(
-              (progress, testName) => {
-                setProgress(progress);
-                setCurrentTest(testName);
-              },
-            );
+            results = await testRunner.runIntegrationTests((progress, testName) => {
+              setProgress(progress);
+              setCurrentTest(testName);
+            });
             break;
           case "performance":
-            results = await performanceBenchmarks.runFullBenchmark(
-              (progress, testName) => {
-                setProgress(progress);
-                setCurrentTest(testName);
-              },
-            );
+            results = await performanceBenchmarks.runFullBenchmark((progress, testName) => {
+              setProgress(progress);
+              setCurrentTest(testName);
+            });
             break;
           case "edge-cases":
-            results = await testRunner.runEdgeCaseTests(
-              (progress, testName) => {
-                setProgress(progress);
-                setCurrentTest(testName);
-              },
-            );
+            results = await testRunner.runEdgeCaseTests((progress, testName) => {
+              setProgress(progress);
+              setCurrentTest(testName);
+            });
             break;
           case "load":
             results = await testRunner.runLoadTests((progress, testName) => {
@@ -103,13 +97,10 @@ export const NeuroLintTester: React.FC = () => {
             break;
           case "custom":
             if (!code) throw new Error("No code provided for custom test");
-            results = await testRunner.runCustomCodeTest(
-              code,
-              (progress, testName) => {
-                setProgress(progress);
-                setCurrentTest(testName);
-              },
-            );
+            results = await testRunner.runCustomCodeTest(code, (progress, testName) => {
+              setProgress(progress);
+              setCurrentTest(testName);
+            });
             break;
           default:
             throw new Error(`Unknown test type: ${testType}`);

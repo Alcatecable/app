@@ -1,330 +1,117 @@
-// Real-time Pattern Synchronization Client
-// Integrates with Supabase real-time subscriptions for live pattern updates
 
-import React from 'react';
-import { supabase } from "@/integrations/supabase/client";
-import type { RealtimeChannel } from "@supabase/supabase-js";
+import React, { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 
-export interface PatternUpdate {
-  layerId: number;
-  patterns: any[];
+interface RealtimePattern {
+  id: string;
+  patterns: string[];
   metadata: Record<string, any>;
-  isPublic: boolean;
-  updatedAt: string;
-  userId?: string;
+  is_public: boolean;
+  updated_at: string;
+  user_id: string;
 }
 
-export interface PatternSubscription {
-  layerId: number;
-  callback: (update: PatternUpdate) => void;
-  channel?: RealtimeChannel;
-}
+export class RealtimePatternSync {
+  private static subscribers: Set<(patterns: RealtimePattern[]) => void> = new Set();
+  private static patterns: RealtimePattern[] = [];
 
-class RealtimePatternManager {
-  private subscriptions = new Map<number, PatternSubscription>();
-  private isConnected = false;
-
-  /**
-   * Subscribe to real-time pattern updates for a specific layer
-   */
-  async subscribeToLayer(
-    layerId: number,
-    callback: (update: PatternUpdate) => void,
-  ): Promise<boolean> {
+  static async initialize() {
     try {
-      // Check if already subscribed
-      if (this.subscriptions.has(layerId)) {
-        console.warn(`Already subscribed to layer ${layerId}`);
-        return true;
-      }
+      const { data, error } = await supabase
+        .from('learned_patterns')
+        .select('*')
+        .eq('is_public', true);
 
-      // Create subscription in database
-      const { data: user } = await supabase.auth.getUser();
-      if (user.user) {
-        const response = await fetch("/api/v1/patterns/subscribe", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
-          },
-          body: JSON.stringify({ layerId }),
-        });
+      if (error) throw error;
 
-        if (!response.ok) {
-          throw new Error(
-            `Failed to create subscription: ${response.statusText}`,
-          );
-        }
-      }
+      // Type assertion to handle the database response
+      const typedData = data as any[];
+      
+      this.patterns = typedData.map(item => ({
+        id: item.id,
+        patterns: item.patterns || [],
+        metadata: item.metadata || {},
+        is_public: item.is_public || false,
+        updated_at: item.updated_at || new Date().toISOString(),
+        user_id: item.user_id || '',
+      }));
 
-      // Create Supabase real-time channel
-      const channel = supabase
-        .channel(`pattern-updates-${layerId}`)
-        .on(
-          "postgres_changes",
-          {
-            event: "*",
-            schema: "public",
-            table: "neurolint_patterns",
-            filter: `layer_id=eq.${layerId}`,
-          },
-          (payload) => {
-            console.log(`[RealtimePatterns] Layer ${layerId} update:`, payload);
-
-            const update: PatternUpdate = {
-              layerId,
-              patterns: payload.new?.patterns || [],
-              metadata: payload.new?.metadata || {},
-              isPublic: payload.new?.is_public || false,
-              updatedAt: payload.new?.updated_at || new Date().toISOString(),
-              userId: payload.new?.user_id,
-            };
-
-            callback(update);
-          },
-        )
-        .subscribe((status) => {
-          console.log(
-            `[RealtimePatterns] Layer ${layerId} subscription status:`,
-            status,
-          );
-          this.isConnected = status === "SUBSCRIBED";
-        });
-
-      // Store subscription
-      this.subscriptions.set(layerId, {
-        layerId,
-        callback,
-        channel,
-      });
-
-      console.log(
-        `[RealtimePatterns] Subscribed to layer ${layerId} pattern updates`,
-      );
-      return true;
+      this.notifySubscribers();
     } catch (error) {
-      console.error(
-        `[RealtimePatterns] Failed to subscribe to layer ${layerId}:`,
-        error,
-      );
-      return false;
+      console.error('Failed to initialize realtime patterns:', error);
     }
   }
 
-  /**
-   * Unsubscribe from pattern updates for a specific layer
-   */
-  async unsubscribeFromLayer(layerId: number): Promise<boolean> {
-    try {
-      const subscription = this.subscriptions.get(layerId);
-      if (!subscription) {
-        console.warn(`No subscription found for layer ${layerId}`);
-        return true;
-      }
-
-      // Remove Supabase real-time subscription
-      if (subscription.channel) {
-        await supabase.removeChannel(subscription.channel);
-      }
-
-      // Remove database subscription
-      const { data: user } = await supabase.auth.getUser();
-      if (user.user) {
-        const response = await fetch(`/api/v1/patterns/subscribe/${layerId}`, {
-          method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
-          },
-        });
-
-        if (!response.ok) {
-          console.warn(
-            `Failed to remove database subscription: ${response.statusText}`,
-          );
-        }
-      }
-
-      // Remove local subscription
-      this.subscriptions.delete(layerId);
-
-      console.log(
-        `[RealtimePatterns] Unsubscribed from layer ${layerId} pattern updates`,
-      );
-      return true;
-    } catch (error) {
-      console.error(
-        `[RealtimePatterns] Failed to unsubscribe from layer ${layerId}:`,
-        error,
-      );
-      return false;
-    }
-  }
-
-  /**
-   * Subscribe to multiple layers at once
-   */
-  async subscribeToMultipleLayers(
-    layerIds: number[],
-    callback: (layerId: number, update: PatternUpdate) => void,
-  ): Promise<boolean[]> {
-    const results = await Promise.all(
-      layerIds.map((layerId) =>
-        this.subscribeToLayer(layerId, (update) => callback(layerId, update)),
-      ),
-    );
-
-    return results;
-  }
-
-  /**
-   * Get all active subscriptions
-   */
-  getActiveSubscriptions(): number[] {
-    return Array.from(this.subscriptions.keys());
-  }
-
-  /**
-   * Check if connected to real-time updates
-   */
-  isRealtimeConnected(): boolean {
-    return this.isConnected;
-  }
-
-  /**
-   * Unsubscribe from all pattern updates
-   */
-  async unsubscribeFromAll(): Promise<void> {
-    const layerIds = Array.from(this.subscriptions.keys());
-    await Promise.all(
-      layerIds.map((layerId) => this.unsubscribeFromLayer(layerId)),
-    );
-  }
-
-  /**
-   * Get user's pattern subscriptions from the server
-   */
-  async getUserSubscriptions(): Promise<PatternSubscription[]> {
-    try {
-      const { data: user } = await supabase.auth.getUser();
-      if (!user.user) {
-        return [];
-      }
-
-      const response = await fetch("/api/v1/patterns/subscriptions", {
-        headers: {
-          Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(
-          `Failed to fetch subscriptions: ${response.statusText}`,
-        );
-      }
-
-      const data = await response.json();
-      return data.subscriptions || [];
-    } catch (error) {
-      console.error(
-        "[RealtimePatterns] Failed to fetch user subscriptions:",
-        error,
-      );
-      return [];
-    }
-  }
-
-  /**
-   * Manually trigger a pattern refresh for all subscribed layers
-   */
-  async refreshAllPatterns(): Promise<void> {
-    const layerIds = this.getActiveSubscriptions();
-
-    for (const layerId of layerIds) {
-      try {
-        const response = await fetch(
-          `/api/v1/patterns/load?layerId=${layerId}`,
-          {
-            headers: {
-              Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
-            },
-          },
-        );
-
-        if (response.ok) {
-          const data = await response.json();
-          const subscription = this.subscriptions.get(layerId);
-
-          if (subscription && data.success) {
-            const update: PatternUpdate = {
-              layerId: data.layerId,
-              patterns: data.patterns,
-              metadata: data.metadata,
-              isPublic: data.isPublic,
-              updatedAt: data.updatedAt,
-            };
-
-            subscription.callback(update);
-          }
-        }
-      } catch (error) {
-        console.error(
-          `[RealtimePatterns] Failed to refresh layer ${layerId}:`,
-          error,
-        );
-      }
-    }
-  }
-}
-
-// Export singleton instance
-export const realtimePatterns = new RealtimePatternManager();
-
-// React hook for easy pattern subscription
-export function useRealtimePatterns(layerId: number, enabled = true) {
-  const [isSubscribed, setIsSubscribed] = React.useState(false);
-  const [latestUpdate, setLatestUpdate] = React.useState<PatternUpdate | null>(
-    null,
-  );
-  const [error, setError] = React.useState<string | null>(null);
-
-  React.useEffect(() => {
-    if (!enabled || !layerId) return;
-
-    const handleUpdate = (update: PatternUpdate) => {
-      setLatestUpdate(update);
-      setError(null);
-    };
-
-    const subscribe = async () => {
-      try {
-        const success = await realtimePatterns.subscribeToLayer(
-          layerId,
-          handleUpdate,
-        );
-        setIsSubscribed(success);
-        if (!success) {
-          setError("Failed to subscribe to real-time updates");
-        }
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Unknown error");
-        setIsSubscribed(false);
-      }
-    };
-
-    subscribe();
+  static subscribe(callback: (patterns: RealtimePattern[]) => void) {
+    this.subscribers.add(callback);
+    callback(this.patterns);
 
     return () => {
-      realtimePatterns.unsubscribeFromLayer(layerId);
-      setIsSubscribed(false);
+      this.subscribers.delete(callback);
     };
-  }, [layerId, enabled]);
+  }
 
-  return {
-    isSubscribed,
-    latestUpdate,
-    error,
-    refreshPatterns: () => realtimePatterns.refreshAllPatterns(),
-  };
+  private static notifySubscribers() {
+    this.subscribers.forEach(callback => callback(this.patterns));
+  }
+
+  static async syncPattern(pattern: Omit<RealtimePattern, 'id' | 'updated_at'>) {
+    try {
+      const { data, error } = await supabase
+        .from('learned_patterns')
+        .insert([{
+          patterns: pattern.patterns,
+          metadata: pattern.metadata,
+          is_public: pattern.is_public,
+          user_id: pattern.user_id,
+        }])
+        .select();
+
+      if (error) throw error;
+
+      await this.initialize(); // Refresh patterns
+    } catch (error) {
+      console.error('Failed to sync pattern:', error);
+    }
+  }
 }
 
-export default realtimePatterns;
+// React hook for using realtime patterns
+export function useRealtimePatterns() {
+  const [patterns, setPatterns] = useState<RealtimePattern[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const unsubscribe = RealtimePatternSync.subscribe((newPatterns) => {
+      setPatterns(newPatterns);
+      setLoading(false);
+    });
+
+    RealtimePatternSync.initialize();
+
+    return unsubscribe;
+  }, []);
+
+  return { patterns, loading };
+}
+
+// React component for pattern sharing
+export const PatternSharingComponent: React.FC = () => {
+  const { patterns, loading } = useRealtimePatterns();
+
+  if (loading) {
+    return <div>Loading patterns...</div>;
+  }
+
+  return (
+    <div>
+      <h3>Shared Patterns ({patterns.length})</h3>
+      {patterns.map(pattern => (
+        <div key={pattern.id}>
+          <strong>Pattern {pattern.id}</strong>
+          <pre>{JSON.stringify(pattern.patterns, null, 2)}</pre>
+        </div>
+      ))}
+    </div>
+  );
+};
