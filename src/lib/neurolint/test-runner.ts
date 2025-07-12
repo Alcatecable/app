@@ -1,3 +1,4 @@
+
 import { PerformanceMetrics, TestResult } from "./types";
 import { unitTests } from "./tests/unit-tests";
 import { integrationTests } from "./tests/integration-tests";
@@ -254,3 +255,7 @@ export class NeuroLintTestRunner {
     };
   }
 }
+
+// Export both the class and as default for compatibility
+export { NeuroLintTestRunner as TestRunner };
+export default NeuroLintTestRunner;

@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { CheckCircle2, Circle, CloudCog, Code, LayoutDashboard, Rocket, Sparkles, Star, TrendingUp } from 'lucide-react';
+import { CheckCircle2, Circle, CloudCog, Code, LayoutDashboard, Rocket, Sparkles, Star, TrendingUp, Brain } from 'lucide-react';
 import { useTheme } from 'next-themes';
 
 const FloatingAnimation = ({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) => (
@@ -50,7 +50,12 @@ const FeatureCard = ({ title, description, icon }: { title: string; description:
   </Card>
 );
 
-export default function EnhancedOnboarding() {
+interface EnhancedOnboardingProps {
+  onComplete?: () => void;
+  onSkip?: () => void;
+}
+
+export default function EnhancedOnboarding({ onComplete, onSkip }: EnhancedOnboardingProps) {
   const [progress, setProgress] = useState(35);
   const [isDarkTheme, setIsDarkTheme] = useState(false);
   const { theme } = useTheme();

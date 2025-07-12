@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState } from 'react';
@@ -156,7 +155,7 @@ export default function Layer7Test() {
                     <div>
                       <span className="font-medium">{rule.description}</span>
                       <div className="text-xs text-muted-foreground">
-                        Layer {rule.layerId} • Used {rule.usageCount} times
+                        Layer {rule.layerId} • Used {rule.usage || 0} times
                       </div>
                     </div>
                     <Badge variant="secondary">

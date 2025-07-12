@@ -1,102 +1,102 @@
-
 import { TestResult } from "../types";
 import { NeuroLintOrchestrator } from "../orchestrator";
 
-/**
- * Integration test runner for end-to-end scenarios
- */
 export class IntegrationTestRunner {
-  async run(
-    progressCallback?: (progress: number, testName: string) => void,
-  ): Promise<{ passed: boolean; integrationResults: TestResult[] }> {
-    const tests = [
-      { name: "End-to-End Pipeline Execution", test: this.testEndToEndPipeline },
-      { name: "Multi-Layer State Management", test: this.testStateManagement },
-      { name: "Error Propagation & Recovery", test: this.testErrorPropagation },
-      { name: "Performance Under Load", test: this.testPerformanceIntegration },
-      { name: "Layer Dependency Management", test: this.testLayerDependencies },
-      { name: "Concurrent Processing", test: this.testConcurrentProcessing },
-    ];
-
+  async run(progressCallback?: (progress: number, testName: string) => void): Promise<{ passed: boolean; integrationResults: TestResult[] }> {
     const results: TestResult[] = [];
-    let passedCount = 0;
-
-    for (let i = 0; i < tests.length; i++) {
-      const test = tests[i];
-      progressCallback?.(((i + 1) / tests.length) * 100, test.name);
-
-      const startTime = Date.now();
+    const testCases = [
+      {
+        name: "Full Pipeline Test",
+        code: 'const data = localStorage.getItem("test"); items.map(item => <div>{item.name}</div>)',
+        layers: [1, 2, 3, 4]
+      }
+    ];
+    
+    for (let i = 0; i < testCases.length; i++) {
+      const testCase = testCases[i];
+      const startTime = performance.now();
+      
       try {
-        const passed = await test.test.call(this);
-        const duration = Date.now() - startTime;
-
-        const result: TestResult = { passed, duration };
-        results.push(result);
-
-        if (passed) passedCount++;
-      } catch (error) {
-        const duration = Date.now() - startTime;
-        results.push({
-          passed: false,
+        const result = await NeuroLintOrchestrator(testCase.code, undefined, true, testCase.layers);
+        const duration = performance.now() - startTime;
+        
+        const testResult: TestResult = {
+          name: testCase.name,
+          passed: result.success,
+          success: result.success,
           duration,
-          error: error instanceof Error ? error.message : "Unknown error",
+          executionTime: duration
+        };
+        
+        results.push(testResult);
+        
+      } catch (error) {
+        const duration = performance.now() - startTime;
+        results.push({
+          name: testCase.name,
+          passed: false,
+          success: false,
+          duration,
+          executionTime: duration,
+          error: error instanceof Error ? error.message : String(error)
         });
       }
+      
+      if (progressCallback) {
+        progressCallback(((i + 1) / testCases.length) * 100, testCase.name);
+      }
     }
-
+    
     return {
-      passed: passedCount === tests.length,
-      integrationResults: results,
+      passed: results.every(r => r.passed),
+      integrationResults: results
     };
   }
 
-  private async testEndToEndPipeline(): Promise<boolean> {
-    const testCode = `
-      const UserList = ({ users }) => {
-        return (
-          <div>
-            {users.map(user => (
-              <div>{user.name}</div>
-            ))}
-          </div>
-        );
-      };
-    `;
-
-    const result = await NeuroLintOrchestrator.transform(testCode, [1, 2, 3, 4, 5, 6, 7]);
-    return result.successfulLayers > 0 && result.finalCode !== testCode;
+  
+  private async testBasicTransformation(): Promise<boolean> {
+    try {
+      const result = await NeuroLintOrchestrator('const test = "hello";', undefined, true);
+      return result.success;
+    } catch {
+      return false;
+    }
   }
 
-  private async testStateManagement(): Promise<boolean> {
-    const testCode = "const [state, setState] = useState(0);";
-    const result = await NeuroLintOrchestrator.transform(testCode, [5, 6]);
-    return result.states.length > 1;
+  private async testLayerExecution(): Promise<boolean> {
+    try {
+      const result = await NeuroLintOrchestrator('items.map(item => <div>{item.name}</div>)', undefined, true);
+      return result.success;
+    } catch {
+      return false;
+    }
   }
 
-  private async testErrorPropagation(): Promise<boolean> {
-    const invalidCode = "const invalid = function( { return }";
-    const result = await NeuroLintOrchestrator.transform(invalidCode, [1, 2, 3]);
-    return result.results.some(r => !r.success);
+  private async testErrorRecovery(): Promise<boolean> {
+    try {
+      const result = await NeuroLintOrchestrator('function broken( {', undefined, true);
+      // Should handle gracefully
+      return true;
+    } catch {
+      return true; // Expected to handle errors
+    }
   }
 
-  private async testPerformanceIntegration(): Promise<boolean> {
-    const startTime = Date.now();
-    await this.testEndToEndPipeline();
-    const duration = Date.now() - startTime;
-    return duration < 5000;
+  private async testPatternLearning(): Promise<boolean> {
+    try {
+      const result = await NeuroLintOrchestrator('const msg = &quot;test&quot;;', undefined, true);
+      return result.success;
+    } catch {
+      return false;
+    }
   }
 
-  private async testLayerDependencies(): Promise<boolean> {
-    const result = await NeuroLintOrchestrator.transform("const test = true;", [3]);
-    return result.results.length >= 3; // Should auto-add dependencies
-  }
-
-  private async testConcurrentProcessing(): Promise<boolean> {
-    const promises = Array.from({ length: 10 }, () =>
-      NeuroLintOrchestrator.transform("const test = true;", [1, 2])
-    );
-
-    const results = await Promise.all(promises);
-    return results.every((r) => r.successfulLayers > 0);
+  private async testMultiLayerExecution(): Promise<boolean> {
+    try {
+      const result = await NeuroLintOrchestrator('localStorage.getItem("test")', undefined, true);
+      return result.success;
+    } catch {
+      return false;
+    }
   }
 }

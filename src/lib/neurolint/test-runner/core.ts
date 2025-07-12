@@ -1,4 +1,4 @@
-import { TestResult, LayerTestResult, TestSuite } from "../types";
+import { TestResult, LayerTestResult, TestSuite, PerformanceMetrics } from "../types";
 import { UnitTestRunner } from "./unit-tests";
 import { IntegrationTestRunner } from "./integration-tests";
 import { EdgeCaseTestRunner } from "./edge-case-tests";
@@ -67,10 +67,7 @@ export class TestRunner {
       unitTestResults: unitResults.unitTestResults,
       integrationResults: integrationResults.integrationResults,
       layerResults: [],
-      performanceResults: {
-        loadTestsPassed: loadResults.passed,
-        averageExecutionTime: this.calculateAverageExecutionTime(loadResults.loadTestResults),
-      },
+      performanceResults: this.runPerformanceTests(),
       edgeCaseResults: edgeCaseResults.edgeCaseResults,
       loadTestResults: loadResults.loadTestResults,
     };

@@ -1,5 +1,3 @@
-
-
 import { Rule } from "./rules";
 
 // Corruption patterns for validation
@@ -293,6 +291,7 @@ export interface LearnedPattern {
   replacement: string;
   confidence: number;
   usage: number;
+  usageCount?: number;
   category: string;
   description?: string;
   name?: string;
@@ -329,4 +328,3 @@ export interface TransformationExample {
   timestamp?: number;
   context?: any;
 }
-

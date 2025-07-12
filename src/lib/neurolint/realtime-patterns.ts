@@ -1,6 +1,7 @@
 // Real-time Pattern Synchronization Client
 // Integrates with Supabase real-time subscriptions for live pattern updates
 
+import React from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 
